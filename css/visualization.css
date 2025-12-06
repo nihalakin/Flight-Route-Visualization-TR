@@ -327,14 +327,14 @@ marker path {
 .warning-message {
     background-color: #fff3cd;
     border: 1px solid #ffeaa7;
+    text-align: center;
     border-radius: 10px;
     padding: 20px;
-    margin: 20px 0;
+    margin: 0 0 20px 0;
 }
 
 .warning-icon {
     font-size: 48px;
-    text-align: center;
     margin-bottom: 15px;
 }
 
@@ -418,7 +418,7 @@ marker path {
     justify-content: center;
 }
 
-.btn-primary, .btn-secondary {
+ .btn-secondary {
     padding: 10px 20px;
     border: none;
     border-radius: 5px;
@@ -428,14 +428,6 @@ marker path {
     transition: background-color 0.3s;
 }
 
-.btn-primary {
-    background-color: #3b82f6;
-    color: white;
-}
-
-.btn-primary:hover {
-    background-color: #2563eb;
-}
 
 .btn-secondary {
     background-color: #6c757d;
@@ -560,3 +552,82 @@ marker path {
     border-radius: 6px;
     margin-left: 5px;
 }
+
+
+
+/* main.css veya yeni bir coupon.css dosyasına ekleyin */
+.coupon-input-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+.coupon-input-group input {
+    flex: 1;
+}
+
+.coupon-message {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.coupon-message.success {
+    background-color: #d1fae5;
+    border: 1px solid #10b981;
+    color: #065f46;
+}
+
+.coupon-message.error {
+    background-color: #fee2e2;
+    border: 1px solid #ef4444;
+    color: #7f1d1d;
+}
+
+.coupon-indicator {
+    background-color: #10b981;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    margin-left: 10px;
+}
+
+.route-price.coupon-applied {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.original-price {
+    text-decoration: line-through;
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+.discounted-price {
+    color: #ef4444;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.coupon-badge {
+    background-color: #10b981;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    display: inline-block;
+    margin-left: 10px;
+}
+
+.coupon-airline-info {
+    margin-top: 10px;
+    padding: 8px;
+    background-color: #e0f2fe;
+    border-radius: 5px;
+    border-left: 4px solid #0ea5e9;
+}
+
+

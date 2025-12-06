@@ -1,7 +1,161 @@
 // Uçuş Arama ve API Entegrasyonu - Backend ile
+class CouponManager {
+    constructor() {
+        this.coupons = new Map();
+        this.loadCoupons();
+    }
+
+    async loadCoupons() {
+        try {
+            const response = await fetch('assets/data/sentetik_iade_biletleri_turkiye.csv');
+            const csvText = await response.text();
+            this.parseCSV(csvText);
+            console.log(`✅ ${this.coupons.size} adet kupon yüklendi`);
+        } catch (error) {
+            console.warn('⚠️ Kupon verileri yüklenemedi, kupon özelliği devre dışı:', error);
+        }
+    }
+
+    parseCSV(csvText) {
+        const lines = csvText.split('\n').slice(1); // Başlık satırını atla
+        lines.forEach(line => {
+            const [pnr_kodu, havayolu, bilet_tutari_tl, iade_edilen_tutar_tl, 
+                   iade_tarihi, iptal_nedeni, son_kullanim_tarihi] = line.split(',');
+            
+            if (pnr_kodu && iade_edilen_tutar_tl) {
+                const coupon = {
+                    code: pnr_kodu.trim(),
+                    airline: havayolu.trim(),
+                    originalAmount: parseFloat(bilet_tutari_tl),
+                    discountAmount: parseFloat(iade_edilen_tutar_tl),
+                    issueDate: iade_tarihi.trim(),
+                    reason: iptal_nedeni.trim(),
+                    expiryDate: new Date(son_kullanim_tarihi.trim())
+                };
+                
+                this.coupons.set(coupon.code.toUpperCase(), coupon);
+            }
+        });
+    }
+
+    validateCoupon(code) {
+        const coupon = this.coupons.get(code.toUpperCase());
+        
+        if (!coupon) {
+            return {
+                valid: false,
+                message: 'Girdiğiniz kupon kodu geçersizdir.'
+            };
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (coupon.expiryDate < today) {
+            return {
+                valid: false,
+                message: 'Kupon kodunuzun süresi dolmuştur.'
+            };
+        }
+
+        return {
+            valid: true,
+            coupon: coupon
+        };
+    }
+
+    applyCouponToFlights(flights, coupon, searchParams) {
+        // 1. Öncelikle kuponun havayoluna ait uçuşları filtrele
+        const airlineFlights = flights.filter(flight => {
+            const itinerary = flight.itineraries[0];
+            return itinerary.segments.some(segment => 
+                this.isMatchingAirline(segment.airline, coupon.airline)
+            );
+        });
+
+        // 2. Havayoluna ait uçuşlar varsa, onlara indirim uygula
+        if (airlineFlights.length > 0) {
+            const discountedFlights = airlineFlights.map(flight => {
+                return {
+                    ...flight,
+                    price: this.calculateDiscountedPrice(flight.price, coupon.discountAmount),
+                    originalPrice: flight.price, // Orijinal fiyatı sakla
+                    couponApplied: true,
+                    couponCode: coupon.code,
+                    discountAmount: coupon.discountAmount,
+                    couponAirline: coupon.airline
+                };
+            });
+
+            // 3. Diğer havayolu uçuşlarını (indirimsiz) ekle
+            const otherFlights = flights.filter(flight => 
+                !airlineFlights.some(f => f.id === flight.id)
+            ).map(flight => ({
+                ...flight,
+                couponApplied: false
+            }));
+
+            return [...discountedFlights, ...otherFlights];
+        } else {
+            // Havayoluna ait uçuş yoksa
+            return flights.map(flight => ({
+                ...flight,
+                couponApplied: false,
+                couponWarning: `Kuponunuz bağlı olduğu ${coupon.airline} havayolu şirketinin bu rota için uçuşu bulunmamaktadır.`
+            }));
+        }
+    }
+
+    isMatchingAirline(segmentAirline, couponAirline) {
+        // Havayolu eşleştirme mantığı
+        const airlineMap = {
+            'Ajet': ['AJ', 'VF', 'Ajet'],
+            'AnadoluJet': ['AJ', 'AnadoluJet', 'TK-AnadoluJet'],
+            'Pegasus': ['PC', 'Pegasus'],
+            'SunExpress': ['XQ', 'SunExpress'],
+            'Turkish Airlines': ['TK', 'Turkish Airlines']
+        };
+
+        const couponAirlineKey = Object.keys(airlineMap).find(key => 
+            key.toLowerCase().includes(couponAirline.toLowerCase()) || 
+            couponAirline.toLowerCase().includes(key.toLowerCase())
+        );
+
+        if (couponAirlineKey) {
+            const possibleCodes = airlineMap[couponAirlineKey];
+            return possibleCodes.some(code => 
+                segmentAirline && segmentAirline.toString().toLowerCase().includes(code.toLowerCase())
+            );
+        }
+
+        return segmentAirline && segmentAirline.toString().toLowerCase().includes(couponAirline.toLowerCase());
+    }
+
+    calculateDiscountedPrice(originalPrice, discountAmount) {
+        const newPrice = originalPrice - discountAmount;
+        return Math.max(newPrice, 0); // Fiyat negatif olamaz
+    }
+
+    getCouponStatusMessage(flights) {
+        const couponAppliedFlights = flights.filter(f => f.couponApplied);
+        const couponWarningFlights = flights.filter(f => f.couponWarning);
+        
+        if (couponAppliedFlights.length > 0) {
+            const coupon = couponAppliedFlights[0];
+            return `✅ Kupon kodu uygulandı! ${coupon.couponAirline} uçuşlarında ${coupon.discountAmount} TL indirim.`;
+        } else if (couponWarningFlights.length > 0) {
+            return couponWarningFlights[0].couponWarning;
+        }
+        
+        return null;
+    }
+}
+
+
 class FlightSearch {
     constructor() {
-        this.backendUrl = 'http://localhost:5000/api'; // Backend URL'si
+        this.backendUrl = 'http://localhost:5000/api';
+        this.couponManager = new CouponManager();
         this.airlineDict = {
             "TK": "Türk Hava Yolları",
             "PC": "Pegasus",
@@ -39,58 +193,70 @@ class FlightSearch {
         document.getElementById('departure-date').value = today;
     }
 
-    // Backend API üzerinden uçuş araması yap
-    // flight-search.js - searchFlights fonksiyonunu güncelleyin
+
 async searchFlights(searchParams) {
-    try {
-        // Backend API'sine sorgu yap
-        const queryParams = new URLSearchParams({
-            origin: searchParams.origin,
-            destination: searchParams.destination,
-            departureDate: searchParams.departureDate,
-            adults: searchParams.adults || 1,
-            travelClass: searchParams.cabinClass || 'ECONOMY' // Yeni parametre
-        });
+        try {
+            const queryParams = new URLSearchParams({
+                origin: searchParams.origin,
+                destination: searchParams.destination,
+                departureDate: searchParams.departureDate,
+                adults: searchParams.adults || 1,
+                travelClass: searchParams.cabinClass || 'ECONOMY'
+            });
 
-        const response = await fetch(`${this.backendUrl}/flights?${queryParams}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
+            const response = await fetch(`${this.backendUrl}/flights?${queryParams}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Backend hatası: ${response.status}`);
             }
-        });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `Backend hatası: ${response.status}`);
-        }
-
-        const data = await response.json();
-        const processedFlights = this.processFlightData(data);
-        
-        // Eğer uçuş bulunamadıysa ve business sınıfı seçildiyse
-        if (processedFlights.length === 0 && searchParams.cabinClass === 'BUSINESS') {
+            const data = await response.json();
+            let processedFlights = this.processFlightData(data);
+            
+            // Kupon kodu varsa uygula
+            if (searchParams.couponCode && searchParams.couponCode.trim() !== '') {
+                processedFlights = this.applyCouponCode(processedFlights, searchParams.couponCode);
+            }
+            
+            // Business sınıfı kontrolü
+            if (processedFlights.length === 0 && searchParams.cabinClass === 'BUSINESS') {
+                return {
+                    flights: [],
+                    cabinClassWarning: 'BUSINESS',
+                    message: 'Seçilen tarihte BUSINESS sınıfında uçuş bulunamadı.'
+                };
+            }
+            
             return {
-                flights: [],
-                cabinClassWarning: 'BUSINESS',
-                message: 'Seçilen tarihte BUSINESS sınıfında uçuş bulunamadı. ECONOMY sınıfındaki uçuşlara bakmak için lütfen filtreyi değiştirin.'
+                flights: processedFlights,
+                cabinClass: searchParams.cabinClass,
+                couponStatus: this.couponManager.getCouponStatusMessage(processedFlights)
             };
+            
+        } catch (error) {
+            console.error('Uçuş arama hatası:', error);
+            throw error;
         }
-        
-        return {
-            flights: processedFlights,
-            cabinClass: searchParams.cabinClass
-        };
-        
-    } catch (error) {
-        console.error('Uçuş arama hatası:', error);
-        
-        if (error.message.includes('Failed to fetch') || error.message.includes('Network')) {
-            throw new Error('Backend servisine ulaşılamıyor. Lütfen backend\'in çalıştığından emin olun.');
-        }
-        
-        throw error;
     }
-}
+
+    applyCouponCode(flights, couponCode) {
+        const validation = this.couponManager.validateCoupon(couponCode);
+        
+        if (!validation.valid) {
+            // Kupon geçersizse hata mesajı ekle
+            return flights.map(flight => ({
+                ...flight,
+                couponError: validation.message
+            }));
+        }
+        
+        // Kupon geçerliyse uçuşlara uygula
+        return this.couponManager.applyCouponToFlights(flights, validation.coupon);
+    }
 
     // Backend sağlık kontrolü
     async checkBackendHealth() {

@@ -7,14 +7,10 @@ class FlightOptimizer {
 
     // Ana optimizasyon fonksiyonu
     optimizeFlights(flights, searchParams) {
-            if (flights.cabinClassWarning) {
+    // Kupon uyarısı kontrolü
+    if (flights.cabinClassWarning) {
         return {
-            routes: {
-                cheapest: null,
-                fastest: null,
-                earliest: null,
-                balanced: null
-            },
+            routes: { cheapest: null, fastest: null, earliest: null, balanced: null },
             prunedGraph: {},
             filteredCount: 0,
             cabinClassWarning: flights.cabinClassWarning,
@@ -22,24 +18,42 @@ class FlightOptimizer {
         };
     }
     
-    const filteredFlights = this.filterByTime(flights, searchParams);
+    // Kuponlu uçuşları önceliklendir
+    const sortedFlights = this.prioritizeCouponFlights(flights);
+    
+    // Zaman filtresi
+    const filteredFlights = this.filterByTime(sortedFlights, searchParams);
         
-        this.optimizedRoutes = {
-            cheapest: this.findCheapestRoute(filteredFlights),
-            fastest: this.findFastestRoute(filteredFlights),
-            earliest: this.findEarliestArrivalRoute(filteredFlights),
-            balanced: this.findBalancedRoute(filteredFlights)
-        };
+    this.optimizedRoutes = {
+        cheapest: this.findCheapestRoute(filteredFlights),
+        fastest: this.findFastestRoute(filteredFlights),
+        earliest: this.findEarliestArrivalRoute(filteredFlights),
+        balanced: this.findBalancedRoute(filteredFlights)
+    };
 
-        // Grafı buda
-        const prunedGraph = this.pruneGraph(filteredFlights, searchParams);
-        
-        return {
-            routes: this.optimizedRoutes,
-            prunedGraph: prunedGraph,
-            filteredCount: filteredFlights.length
-        };
-    }
+    const prunedGraph = this.pruneGraph(filteredFlights, searchParams);
+    
+    return {
+        routes: this.optimizedRoutes,
+        prunedGraph: prunedGraph,
+        filteredCount: filteredFlights.length,
+        couponStatus: flights.couponStatus // Kupon durumunu da döndür
+    };
+}
+
+prioritizeCouponFlights(flights) {
+    // Kupon uygulanan uçuşları başa al
+    const couponFlights = flights.filter(f => f.couponApplied);
+    const nonCouponFlights = flights.filter(f => !f.couponApplied);
+    
+    // Kuponlu uçuşları fiyatına göre sırala (en ucuz önce)
+    const sortedCouponFlights = [...couponFlights].sort((a, b) => a.price - b.price);
+    
+    // Diğer uçuşları sırala
+    const sortedNonCouponFlights = [...nonCouponFlights].sort((a, b) => a.price - b.price);
+    
+    return [...sortedCouponFlights, ...sortedNonCouponFlights];
+}
 
     // Saat filtresine göre uçuşları filtrele
     filterByTime(flights, searchParams) {

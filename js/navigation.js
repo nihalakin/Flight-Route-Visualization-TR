@@ -132,21 +132,45 @@ class Navigation {
     }
     
     initializeFlightSearchListeners() {
-        const searchBtn = document.getElementById('search-flights');
-        
-        if (searchBtn) {
-            searchBtn.addEventListener('click', () => {
-                this.performFlightSearch();
-            });
-        }
-        
-        // Enter tuşu desteği
-        document.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && this.currentTab === 'rota-olustur') {
-                this.performFlightSearch();
-            }
+    const searchBtn = document.getElementById('search-flights');
+    const validateCouponBtn = document.getElementById('validate-coupon');
+    
+    if (searchBtn) {
+        searchBtn.addEventListener('click', () => {
+            this.performFlightSearch();
         });
     }
+    
+    if (validateCouponBtn) {
+        validateCouponBtn.addEventListener('click', () => {
+            this.validateCouponCode();
+        });
+    }
+    
+    // Enter tuşu desteği
+    document.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && this.currentTab === 'rota-olustur') {
+            this.performFlightSearch();
+        }
+    });
+}
+
+validateCouponCode() {
+    const couponCode = document.getElementById('coupon-code')?.value || '';
+    
+    if (!couponCode.trim()) {
+        this.showCouponMessage('Lütfen bir kupon kodu girin.', true);
+        return;
+    }
+    
+    const validation = this.flightSearch.couponManager.validateCoupon(couponCode);
+    
+    if (validation.valid) {
+        this.showCouponMessage(`✅ Kupon geçerli! ${validation.coupon.airline} havayolu için ${validation.coupon.discountAmount} TL indirim.`, false);
+    } else {
+        this.showCouponMessage(validation.message, true);
+    }
+}
     
     // Optimizasyon haritasını başlat
     initializeOptimizationMap() {
@@ -252,6 +276,7 @@ createMissingOptimizationContainers() {
 async performFlightSearch() {
     const searchParams = this.getFlightSearchParams();
     this.clearPreviousResults();
+    this.clearCouponMessages();
     // Validasyon
     if (!this.validateFlightSearchParams(searchParams)) {
         return;
@@ -268,7 +293,11 @@ async performFlightSearch() {
         const searchResult = await this.flightSearch.searchFlights(searchParams);
         
         console.log('✅ API yanıtı alındı:', searchResult);
-        
+
+                // Kupon hata mesajlarını göster
+        if (searchResult.couponStatus) {
+            this.showCouponMessage(searchResult.couponStatus, searchResult.flights[0]?.couponError);
+        }
         // Eğer business sınıfında uçuş bulunamadıysa
         if (searchResult.cabinClassWarning === 'BUSINESS') {
             console.log('⚠️ BUSINESS sınıfı uyarısı');
@@ -352,7 +381,34 @@ async performFlightSearch() {
         this.showLoading(false);
     }
 }
+showCouponMessage(statusMessage, errorMessage = null) {
+    const couponMessageDiv = document.getElementById('coupon-message');
+    if (!couponMessageDiv) return;
+    
+    if (errorMessage) {
+        couponMessageDiv.innerHTML = `
+            <div class="coupon-error">
+                ❌ ${errorMessage}
+            </div>
+        `;
+        couponMessageDiv.className = 'coupon-message error';
+    } else if (statusMessage) {
+        couponMessageDiv.innerHTML = `
+            <div class="coupon-success">
+                ${statusMessage}
+            </div>
+        `;
+        couponMessageDiv.className = 'coupon-message success';
+    }
+}
 
+clearCouponMessages() {
+    const couponMessageDiv = document.getElementById('coupon-message');
+    if (couponMessageDiv) {
+        couponMessageDiv.innerHTML = '';
+        couponMessageDiv.className = 'coupon-message';
+    }
+}
 // Yeni fonksiyon: Önceki sonuçları temizle
 clearPreviousResults() {
     console.log('🧹 Önceki sonuçlar temizleniyor...');
@@ -402,26 +458,19 @@ showCabinClassWarning(message, searchParams) {
     
     container.innerHTML = `
         <div class="warning-message">
-            <div class="warning-icon">⚠️</div>
+            <div class="warning-icon"><i class="fa-solid fa-triangle-exclamation" style="color: #FFD43B;"></i></div>
+            
             <h3>BUSINESS Sınıfında Uçuş Bulunamadı</h3>
             <p>${message}</p>
             <div class="warning-actions">
-                <button id="try-economy" class="btn-secondary">ECONOMY Sınıfını Dene</button>
-                <button id="change-filters" class="btn-primary">Filtreleri Değiştir</button>
-            </div>
-            <div class="search-info">
-                <p><strong>Arama Kriterleri:</strong></p>
-                <p>${searchParams.origin} → ${searchParams.destination}</p>
-                <p>Tarih: ${searchParams.departureDate}</p>
-                <p>Yolcu: ${searchParams.adults}</p>
+                <button id="try-economy" class="btn-secondary">Ekonomi Sınıfını Dene</button>
             </div>
         </div>
     `;
     
     console.log('✅ Uyarı mesajı gösterildi, butonlar oluşturuldu');
     
-    // Buton event listener'larını EKLEMEK YERİNE YENİDEN OLUŞTUR
-    // Önce eski event listener'ları temizlemek için butonları yeniden seç
+
     const tryEconomyBtn = document.getElementById('try-economy');
     const changeFiltersBtn = document.getElementById('change-filters');
     
@@ -475,16 +524,9 @@ showNoFlightsMessage(searchParams) {
     
     container.innerHTML = `
         <div class="no-flights-message">
-            <div class="no-flights-icon">✈️</div>
+            <div class="no-flights-icon"></div>
             <h3>Uçuş Bulunamadı</h3>
             <p>Seçtiğiniz kriterlere uygun uçuş bulunamadı.</p>
-            <div class="search-info">
-                <p><strong>Arama Kriterleri:</strong></p>
-                <p>${searchParams.origin} → ${searchParams.destination}</p>
-                <p>Tarih: ${searchParams.departureDate}</p>
-                <p>Kabin Sınıfı: ${searchParams.cabinClass === 'ECONOMY' ? 'Ekonomi' : 'Business'}</p>
-                <p>Yolcu: ${searchParams.adults}</p>
-            </div>
             <div class="suggestions">
                 <p><strong>Öneriler:</strong></p>
                 <ul>
@@ -494,9 +536,6 @@ showNoFlightsMessage(searchParams) {
                 </ul>
             </div>
             <div class="action-buttons">
-                <button id="change-cabin-class" class="btn-secondary">
-                    Kabin Sınıfını Değiştir
-                </button>
                 <button id="new-search" class="btn-primary">
                     Yeni Arama Yap
                 </button>
@@ -626,6 +665,52 @@ displayOptimizationCard(containerId, route, title, searchParams = null) {
             return;
         }
 
+        // Kupon bilgilerini al
+        const hasCoupon = route.couponApplied || false;
+        const originalPrice = route.originalPrice || route.summary.price;
+        const couponDiscount = route.discountAmount || 0;
+        const finalPrice = route.summary.price;
+
+        // Fiyat gösterimi için
+        let priceHTML = '';
+        if (hasCoupon) {
+            priceHTML = `
+                <div class="route-price coupon-applied">
+                    <div class="price-comparison">
+                        <span class="original-price">${originalPrice.toFixed(2)} ${route.summary.currency}</span>
+                        <span class="discounted-price">${finalPrice.toFixed(2)} ${route.summary.currency}</span>
+                    </div>
+                    <span class="coupon-badge">${couponDiscount.toFixed(2)} TL indirim</span>
+                </div>
+            `;
+        } else {
+            priceHTML = `
+                <div class="route-price">
+                    <span class="final-price">${finalPrice.toFixed(2)} ${route.summary.currency}</span>
+                </div>
+            `;
+        }
+
+        // Havayolu bilgisi
+        let airlineHTML = '';
+        if (route.couponAirline) {
+            airlineHTML = `
+                <div class="coupon-airline-info">
+                    <strong>Kupon Havayolu:</strong> ${route.couponAirline}
+                </div>
+            `;
+        }
+
+        // Kupon uyarısı
+        let couponWarningHTML = '';
+        if (route.couponWarning) {
+            couponWarningHTML = `
+                <div class="coupon-warning">
+                    ⚠️ ${route.couponWarning}
+                </div>
+            `;
+        }
+
         const arrivalTime = route.summary.arrivalTime.toLocaleTimeString('tr-TR', {
             hour: '2-digit',
             minute: '2-digit'
@@ -684,11 +769,16 @@ displayOptimizationCard(containerId, route, title, searchParams = null) {
                 const departureCity = departureAirport ? departureAirport.city : segment.departure.airport;
                 const arrivalCity = arrivalAirport ? arrivalAirport.city : segment.arrival.airport;
 
+                // Segment havayolu kontrolü (kupon havayoluyla eşleşiyor mu?)
+                const isCouponAirline = route.couponAirline && 
+                    route.couponAirline.toLowerCase().includes(segment.airline?.toLowerCase() || segment.carrier?.toLowerCase());
+
                 segmentsHTML += `
-                    <div class="segment">
+                    <div class="segment ${isCouponAirline ? 'coupon-airline-segment' : ''}">
                         <div class="segment-info">
                             <div class="segment-header">
                                 <span class="segment-airline">${segment.airline || segment.carrier || 'Bilinmiyor'}</span>
+                                ${isCouponAirline ? '<span class="coupon-airline-tag">🎫 Kupon</span>' : ''}
                                 <span class="segment-flight">${segment.flightNumber || 'Bilinmiyor'}</span>
                             </div>
                             <div class="segment-route">
@@ -724,7 +814,10 @@ displayOptimizationCard(containerId, route, title, searchParams = null) {
 
         container.innerHTML = `
             <div class="optimization-card-header">
-                <h4>${title}</h4>
+                <div class="header-left">
+                    <h4>${title}</h4>
+                    ${hasCoupon ? '<span class="coupon-indicator">🎫 Kuponlu</span>' : ''}
+                </div>
                 ${searchParams && searchParams.cabinClass ? `
                     <div class="cabin-class-badge ${searchParams.cabinClass.toLowerCase()}">
                         ${searchParams.cabinClass === 'ECONOMY' ? '🪑 Ekonomi' : '🛋️ Business'}
@@ -732,8 +825,11 @@ displayOptimizationCard(containerId, route, title, searchParams = null) {
                 ` : ''}
             </div>
             <div class="optimized-route">
+                ${couponWarningHTML}
+                ${airlineHTML}
+                
                 <div class="route-summary">
-                    <div class="route-price">${route.summary.price} ${route.summary.currency}</div>
+                    ${priceHTML}
                     <div class="route-duration">${Math.floor(route.summary.duration/60)}s ${route.summary.duration%60}d</div>
                 </div>
                 
@@ -767,7 +863,7 @@ displayOptimizationCard(containerId, route, title, searchParams = null) {
     } catch (error) {
         console.error(`Optimizasyon kartı gösterilirken hata (${containerId}):`, error);
     }
-}
+} 
 // Yardımcı fonksiyon - süreyi formatla
 formatDuration(durationStr) {
     if (!durationStr) return 'Bilinmiyor';
@@ -804,19 +900,19 @@ formatDuration(durationStr) {
     }
 }
     
-    // navigation.js - getFlightSearchParams fonksiyonunu güncelleyin
     getFlightSearchParams() {
-        return {
-            origin: document.getElementById('origin')?.value || '',
-            destination: document.getElementById('destination')?.value || '',
-            departureDate: document.getElementById('departure-date')?.value || '',
-            arrivalTime: document.getElementById('arrival-time')?.value || '',
-            adults: parseInt(document.getElementById('adults')?.value) || 1,
-            cabinClass: document.getElementById('cabin-class')?.value || 'ECONOMY',
-            optimizationType: document.getElementById('optimization-type')?.value || 'cheapest',
-            maxResults: 20
-        };
-    }
+    return {
+        origin: document.getElementById('origin')?.value || '',
+        destination: document.getElementById('destination')?.value || '',
+        departureDate: document.getElementById('departure-date')?.value || '',
+        arrivalTime: document.getElementById('arrival-time')?.value || '',
+        adults: parseInt(document.getElementById('adults')?.value) || 1,
+        cabinClass: document.getElementById('cabin-class')?.value || 'ECONOMY',
+        couponCode: document.getElementById('coupon-code')?.value || '', // Yeni
+        optimizationType: document.getElementById('optimization-type')?.value || 'cheapest',
+        maxResults: 20
+    };
+}
 
     validateFlightSearchParams(params) {
         if (!params.origin || !params.destination) {
