@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Türkiye Havalimanları Uçuş Ağı</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+    
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/visualization.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h2>Türkiye Uçuş Ağı</h2>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#anasayfa" class="nav-link active" data-tab="anasayfa">Ana Sayfa</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#rota-olustur" class="nav-link" data-tab="rota-olustur">Rota Oluştur</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#havalimanlari" class="nav-link" data-tab="havalimanlari">Havalimanları</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#istatistikler" class="nav-link" data-tab="istatistikler">İstatistikler</a>
+                </li>
+            </ul>
+            <div class="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Ana Sayfa İçeriği -->
+    <div id="anasayfa" class="tab-content active">
+        <div class="container">
+            <header>
+                <h1>Türkiye Havalimanları Uçuş Ağı</h1>
+                <!--<div class="subtitle">Sesli komutlarla uçuş rotalarını keşfedin</div>-->
+            </header>
+            
+            <div class="map-container">
+                <div class="route-controls">
+                    <div>
+                        <label for="from-airport">Kalkış Noktası:</label>
+                        <select id="from-airport">
+                            <option value="">-- Havalimanı Seçin --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="to-airport">Varış Noktası:</label>
+                        <select id="to-airport">
+                            <option value="">-- Havalimanı Seçin --</option>
+                        </select>
+                    </div>
+                    <button id="show-route">Rotayı Göster</button>
+                    <button id="show-network">Tüm Uçuş Ağını Göster</button>
+                    <button id="clear-route">Temizle</button>
+                </div>
+                <div id="route-info" class="route-info"></div>
+                <div id="route-details" class="route-details" style="display: none;"></div>
+                <div id="network-stats" class="network-stats" style="display: none;"></div>
+
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #8B0000;"></div>
+                        <span>Uçuş Noktaları(10+)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #FF4500;"></div>
+                        <span>Uçuş Noktaları(5-9)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #FFD700;"></div>
+                        <span>Uçuş Noktaları(1-4)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #10b981; border-radius: 0;"></div>
+                        <span>Doğrudan Uçuş</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #ff9800; border-radius: 0;"></div>
+                        <span>Aktarmalı Uçuş</span>
+                    </div>
+                    <!--<div class="legend-item">
+                        <div class="legend-color" style="background-color: #9b59b6; border-radius: 0;"></div>
+                        <span>Tüm Uçuş Ağı</span>
+                    </div>-->
+                </div>
+
+                <div id="map"></div>
+
+                <div class="status" id="status">
+                    Bir havalimanının üzerine gelerek uçuş rotalarını görüntüleyin
+                </div>
+                
+
+            </div>
+            
+            <div class="info-panel">
+                <div class="info-title">Havalimanı Detayları</div>
+                <div id="airport-info" class="airport-details">
+                    <div class="airport-card">
+                        <div class="airport-name">Bir havalimanı seçin</div>
+                        <div class="airport-code">Haritadaki bir havalimanına tıklayarak detaylı bilgi görüntüleyin</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rota Oluştur İçeriği -->
+    <div id="rota-olustur" class="tab-content">
+        <div class="container">
+            <header>
+                <h1>Akıllı Uçuş Arama</h1>
+                <div class="subtitle">Saat ve optimizasyon filtreleri ile en iyi rotayı bulun</div>
+            </header>
+
+            <div class="flight-search-container">
+                <div class="search-card">
+                    <h3>Uçuş Bilgileri</h3>
+                    
+                    <div class="search-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="origin">Kalkış Şehri:</label>
+                                <select id="origin" class="form-select" required>
+                                    <option value="">Seçiniz</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="destination">Varış Şehri:</label>
+                                <select id="destination" class="form-select" required>
+                                    <option value="">Seçiniz</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="departure-date">Kalkış Tarihi:</label>
+                                <input type="date" id="departure-date" class="form-input" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="arrival-time">Varış Saati (Opsiyonel):</label>
+                                <input type="time" id="arrival-time" class="form-input">
+                                <small class="filter-hint">En geç bu saatte varmak istiyorum</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="adults">Yolcu Sayısı:</label>
+                                <select id="adults" class="form-select">
+                                    <option value="1">1 Yolcu</option>
+                                    <option value="2">2 Yolcu</option>
+                                    <option value="3">3 Yolcu</option>
+                                    <option value="4">4 Yolcu</option>
+                                </select>
+                            </div>
+
+
+                            <div class="form-group">
+                                <label for="cabin-class">Kabin Sınıfı:</label>
+                                <select id="cabin-class" class="form-select">
+                                    <option value="ECONOMY">Ekonomi</option>
+                                    <option value="BUSINESS">Business</option>
+                                </select>
+                            </div>
+
+                            <!--<div class="form-group">
+                                <label for="optimization-type">Optimizasyon Türü:</label>
+                                <select id="optimization-type" class="form-select">
+                                    <option value="cheapest">En Ucuz</option>
+                                    <option value="fastest">En Hızlı</option>
+                                    <option value="earliest">En Erken Varış</option>
+                                    <option value="balanced">Dengeli (Süre/Fiyat)</option>
+                                </select>
+                            </div>-->
+                        </div>
+
+                        <button id="search-flights" class="btn-primary search-btn">
+                             Optimize Rotaları Bul
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sonuçlar Bölümü -->
+                <div class="results-section">
+                    <div class="loading-section" id="loading-section" style="display: none;">
+                        <div class="loading-spinner"></div>
+                        <p>Optimize rotalar aranıyor...</p>
+                    </div>
+
+                    <div class="results-container" id="results-container">
+                        <!--<div class="placeholder-message">
+                            <h3>Akıllı Rota Optimizasyonu</h3>
+                            <p>Kalkış ve varış şehirlerini seçerek optimize edilmiş rotaları bulun.</p>
+                            <p>Saat sınırlaması ekleyerek daha spesifik sonuçlar alabilirsiniz.</p>
+                        </div>-->
+                    </div>
+                    <div class="optimization-map-section">    
+                        <h3>Optimize Rota Görselleştirme</h3>
+                        <div class="optimization-map-container">
+                            <div class="map-controls">
+                                <button id="show-cheapest-route" class="route-btn active">En Ucuz</button>
+                                <button id="show-fastest-route" class="route-btn">En Hızlı</button>
+                                <button id="show-earliest-route" class="route-btn">En Erken</button>
+                                <button id="show-balanced-route" class="route-btn">Dengeli</button>
+                            </div>
+                            
+                            <div class="optimization-legend">
+                                <!--<div class="legend-item">
+                                    <div class="legend-color" style="background-color: #10b981;"></div>
+                                    <span>Seçili Rota</span>
+                                </div>-->
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: #6366f1;"></div>
+                                    <span>Olası Rotalar</span>
+                                </div>
+                                <!--<div class="legend-item">
+                                    <div class="legend-color" style="background-color: #ef4444;"></div>
+                                    <span>Başlangıç</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: #22c55e;"></div>
+                                    <span>Bitiş</span>
+                                </div>-->
+                            </div>
+
+                            <div id="optimization-map" class="optimization-map"></div>
+                            
+                            <div class="optimization-info" id="optimization-info">
+                                Optimize rotalar bulunduktan sonra burada görselleştirilecek
+                            </div>
+                        </div>
+                    </div>
+                    <div class="graph-section" style="display: none;">
+                        <h3>Optimize Edilmiş Uçuş Ağı</h3>
+                        <div id="graph-visualization" class="graph-container">
+                            <div class="placeholder-text">
+                                Optimize rotalar bulunduktan sonra budanmış uçuş ağı burada gösterilecek
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Optimize Edilmiş Graf Görselleştirme -->
+                    <div class="optimization-results">
+                        <h3>Optimize Rota Analizi</h3>
+                        <div class="optimization-cards">
+                            <div class="optimization-card" id="cheapest-route">
+                                <h4>En Ucuz Rota</h4>
+                                <div class="route-placeholder">Sonuçlar burada gösterilecek</div>
+                            </div>
+                            <div class="optimization-card" id="fastest-route">
+                                <h4>En Hızlı Rota</h4>
+                                <div class="route-placeholder">Sonuçlar burada gösterilecek</div>
+                            </div>
+                            <div class="optimization-card" id="earliest-route">
+                                <h4>En Erken Varış</h4>
+                                <div class="route-placeholder">Sonuçlar burada gösterilecek</div>
+                            </div>
+                                    
+                            <div class="optimization-card" id="balanced-route">
+                                <h4>Dengeli Rota</h4>
+                                <div class="route-placeholder">Sonuçlar burada gösterilecek</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+            </div>
+        </div>
+    </div>
+</div>
+    <!-- Havalimanları İçeriği -->
+    <div id="havalimanlari" class="tab-content">
+        <div class="container">
+            <header>
+                <h1>Türkiye Havalimanları</h1>
+                <div class="subtitle">Tüm havalimanları hakkında detaylı bilgiler</div>
+            </header>
+
+            <div class="airports-section">
+                <div class="search-filter">
+                    <input type="text" id="airport-search" placeholder="Havalimanı ara..." class="search-input">
+                    <select id="region-filter" class="filter-select">
+                        <option value="">Tüm Bölgeler</option>
+                        <option value="marmara">Marmara</option>
+                        <option value="ege">Ege</option>
+                        <option value="akdeniz">Akdeniz</option>
+                        <option value="icanadolu">İç Anadolu</option>
+                        <option value="karadeniz">Karadeniz</option>
+                        <option value="dogu">Doğu Anadolu</option>
+                        <option value="guneydogu">Güneydoğu Anadolu</option>
+                    </select>
+                    <select id="type-filter" class="filter-select">
+                        <option value="">Tüm Türler</option>
+                        <option value="sivil">Sivil</option>
+                        <option value="askeri">Askerî</option>
+                        <option value="karma">Karma</option>
+                    </select>
+                </div>
+
+                <div id="airports-list" class="airports-list">
+                    <!-- Havalimanları listesi buraya dinamik olarak eklenecek -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- İstatistikler İçeriği -->
+    <div id="istatistikler" class="tab-content">
+        <div class="container">
+            <header>
+                <h1>Uçuş Ağı İstatistikleri</h1>
+                <div class="subtitle">Türkiye uçuş ağı hakkında detaylı analizler</div>
+            </header>
+
+            <div class="stats-section">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Genel İstatistikler</h3>
+                        <div id="general-stats" class="stats-content">
+                            <!-- Genel istatistikler buraya eklenecek -->
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>En'ler</h3>
+                        <div id="top-stats" class="stats-content">
+                            <!-- En'ler istatistikleri buraya eklenecek -->
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Bölgesel Dağılım</h3>
+                        <div id="regional-stats" class="stats-content">
+                            <!-- Bölgesel istatistikler buraya eklenecek -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-section">
+                    <h3>Görsel Analizler</h3>
+                    <div class="charts-grid">
+                        <div class="chart-container">
+                            <h4>Havalimanı Bağlantı Dağılımı</h4>
+                            <div id="connections-chart" class="chart">
+                                <p>Grafikler yakında eklenecek</p>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <h4>Bölgelere Göre Dağılım</h4>
+                            <div id="regions-chart" class="chart">
+                                <p>Grafikler yakında eklenecek</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="js/utils.js"></script>
+    <script src="js/flight-network.js"></script>
+    <script src="js/visualization.js"></script>
+    <script src="js/flight-filter.js"></script>
+    <script src="js/voice-commands.js"></script>
+    <script src="js/flight-search.js"></script>
+    <script src="js/flight-optimizer.js"></script>
+    <script src="js/optimization-map.js"></script> 
+    <script src="js/navigation.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
