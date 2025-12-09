@@ -10,9 +10,9 @@ class CouponManager {
             const response = await fetch('assets/data/sentetik_iade_biletleri_turkiye.csv');
             const csvText = await response.text();
             this.parseCSV(csvText);
-            console.log(`✅ ${this.coupons.size} adet kupon yüklendi`);
+            console.log(` ${this.coupons.size} adet kupon yüklendi`);
         } catch (error) {
-            console.warn('⚠️ Kupon verileri yüklenemedi, kupon özelliği devre dışı:', error);
+            console.warn('Kupon verileri yüklenemedi, kupon özelliği devre dışı:', error);
         }
     }
 
@@ -142,7 +142,7 @@ class CouponManager {
         
         if (couponAppliedFlights.length > 0) {
             const coupon = couponAppliedFlights[0];
-            return `✅ Kupon kodu uygulandı! ${coupon.couponAirline} uçuşlarında ${coupon.discountAmount} TL indirim.`;
+            return `<i class="fa-solid fa-check" style="color: #63E6BE;"></i> Kupon kodu uygulandı! ${coupon.couponAirline} uçuşlarında ${coupon.discountAmount} TL indirim.`;
         } else if (couponWarningFlights.length > 0) {
             return couponWarningFlights[0].couponWarning;
         }
