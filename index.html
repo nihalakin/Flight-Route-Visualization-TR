@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
@@ -179,6 +180,19 @@
                                     <option value="ECONOMY">Ekonomi</option>
                                     <option value="BUSINESS">Business</option>
                                 </select>
+                            </div>
+
+
+                            <div class="form-group">
+                                <label for="coupon-code">Kupon Kodu (Opsiyonel):</label>
+                                <div class="coupon-input-group">
+                                    <input type="text" id="coupon-code" class="form-input" 
+                                        placeholder="Kupon kodunuzu girin">
+                                    <button type="button" id="validate-coupon" class="btn-secondary">
+                                        Kuponu Kontrol Et
+                                    </button>
+                                </div>
+                                <div id="coupon-message" class="coupon-message"></div>
                             </div>
 
                             <!--<div class="form-group">

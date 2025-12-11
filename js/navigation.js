@@ -166,7 +166,7 @@ validateCouponCode() {
     const validation = this.flightSearch.couponManager.validateCoupon(couponCode);
     
     if (validation.valid) {
-        this.showCouponMessage(`✅ Kupon geçerli! ${validation.coupon.airline} havayolu için ${validation.coupon.discountAmount} TL indirim.`, false);
+        this.showCouponMessage(`<i class="fa-solid fa-check" style="color: #56b397;"></i> Kupon geçerli! ${validation.coupon.airline} havayolu için ${validation.coupon.discountAmount} TL indirim.`, false);
     } else {
         this.showCouponMessage(validation.message, true);
     }
@@ -292,7 +292,7 @@ async performFlightSearch() {
         console.log('🔄 API çağrısı yapılıyor...');
         const searchResult = await this.flightSearch.searchFlights(searchParams);
         
-        console.log('✅ API yanıtı alındı:', searchResult);
+        console.log('<i class="fa-solid fa-check" style="color: #63E6BE;"></i> API yanıtı alındı:', searchResult);
 
                 // Kupon hata mesajlarını göster
         if (searchResult.couponStatus) {
@@ -300,7 +300,7 @@ async performFlightSearch() {
         }
         // Eğer business sınıfında uçuş bulunamadıysa
         if (searchResult.cabinClassWarning === 'BUSINESS') {
-            console.log('⚠️ BUSINESS sınıfı uyarısı');
+            console.log('BUSINESS sınıfı uyarısı');
             this.showCabinClassWarning(searchResult.message, searchParams);
             this.showLoading(false);
             return;
@@ -326,7 +326,7 @@ async performFlightSearch() {
         console.log('⚡ Optimizasyon başlatılıyor...');
         const optimizationResult = this.flightOptimizer.optimizeFlights(flights, searchParams);
         
-        console.log('✅ Optimizasyon tamamlandı:', optimizationResult);
+        console.log('<i class="fa-solid fa-check" style="color: #63E6BE;"></i> Optimizasyon tamamlandı:', optimizationResult);
         
         // Eksik container'ları kontrol et ve oluştur
         this.checkOptimizationContainers();
@@ -370,7 +370,7 @@ async performFlightSearch() {
         console.log('📋 Sonuçlar ekranda gösteriliyor...');
         this.displayOptimizationResults(optimizationResult, searchParams);
         
-        console.log('✅ Tüm işlemler başarıyla tamamlandı');
+        console.log('<i class="fa-solid fa-check" style="color: #63E6BE;"></i> Tüm işlemler başarıyla tamamlandı');
         
     } catch (error) {
         console.error('❌ Uçuş arama hatası:', error);
@@ -468,7 +468,7 @@ showCabinClassWarning(message, searchParams) {
         </div>
     `;
     
-    console.log('✅ Uyarı mesajı gösterildi, butonlar oluşturuldu');
+    console.log('<i class="fa-solid fa-check" style="color: #63E6BE;"></i> Uyarı mesajı gösterildi, butonlar oluşturuldu');
     
 
     const tryEconomyBtn = document.getElementById('try-economy');
@@ -481,7 +481,7 @@ showCabinClassWarning(message, searchParams) {
         const newTryEconomyBtn = document.getElementById('try-economy');
         
         newTryEconomyBtn.addEventListener('click', (e) => {
-            console.log('🔄 ECONOMY sınıfına geçiliyor...');
+            console.log('Ekonomi sınıfına geçiliyor...');
             e.preventDefault();
             e.stopPropagation();
             
@@ -489,7 +489,7 @@ showCabinClassWarning(message, searchParams) {
             const cabinClassSelect = document.getElementById('cabin-class');
             if (cabinClassSelect) {
                 cabinClassSelect.value = 'ECONOMY';
-                console.log('✅ Kabin sınıfı ECONOMY olarak ayarlandı');
+                console.log('✅ Kabin sınıfı Ekonomi olarak ayarlandı');
             }
             
             // Arama yap
@@ -499,7 +499,7 @@ showCabinClassWarning(message, searchParams) {
     
     if (changeFiltersBtn) {
         changeFiltersBtn.addEventListener('click', () => {
-            console.log('🔄 Filtreler değiştiriliyor...');
+            console.log('Filtreler değiştiriliyor...');
             // Sadece form alanlarını temizle
             const arrivalTimeInput = document.getElementById('arrival-time');
             if (arrivalTimeInput) arrivalTimeInput.value = '';
@@ -528,7 +528,7 @@ showNoFlightsMessage(searchParams) {
             <h3>Uçuş Bulunamadı</h3>
             <p>Seçtiğiniz kriterlere uygun uçuş bulunamadı.</p>
             <div class="suggestions">
-                <p><strong>Öneriler:</strong></p>
+                <p><strong><i class="fa-solid fa-lightbulb" style="color: #FFD43B;"></i> Öneriler:</strong></p>
                 <ul>
                     <li>Farklı bir tarih deneyin</li>
                     <li>Kabin sınıfını değiştirin</li>
