@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="css/visualization.css">
+    <link rel="stylesheet" href="css/statistic.css">
 </head>
 <body>
 
@@ -339,52 +340,308 @@
         <div class="container">
             <header>
                 <h1>Uçuş Ağı İstatistikleri</h1>
-                <div class="subtitle">Türkiye uçuş ağı hakkında detaylı analizler</div>
+                <div class="subtitle">Türkiye hava trafiği hakkında detaylı analizler ve karşılaştırmalar</div>
             </header>
 
-            <div class="stats-section">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <h3>Genel İstatistikler</h3>
-                        <div id="general-stats" class="stats-content">
-                            <!-- Genel istatistikler buraya eklenecek -->
+            <!-- Ana Mod Seçimi -->
+            <div class="stats-mode-selector">
+                <button id="show-all-years" class="mode-btn active">
+                    <i class="fas fa-chart-bar"></i> Tüm Yılları Göster
+                </button>
+                <button id="compare-years" class="mode-btn">
+                    <i class="fas fa-balance-scale"></i> Karşılaştırma Yap
+                </button>
+            </div>
+
+            <!-- Tüm Yılları Göster Modu -->
+            <div id="all-years-mode" class="stats-mode-content active">
+                <!-- Tarihi Analiz Alanı -->
+                <div class="historical-analysis">
+                    <h2><i class="fas fa-history"></i> Tarihi Analiz</h2>
+                    
+                    <div class="analysis-cards">
+                        <div class="analysis-card">
+                            <h3><i class="fas fa-trophy"></i> Tarihi Rekorlar</h3>
+                            <div id="historical-records" class="records-list">
+                                <!-- Dinamik olarak yüklenecek -->
+                            </div>
                         </div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>En'ler</h3>
-                        <div id="top-stats" class="stats-content">
-                            <!-- En'ler istatistikleri buraya eklenecek -->
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Bölgesel Dağılım</h3>
-                        <div id="regional-stats" class="stats-content">
-                            <!-- Bölgesel istatistikler buraya eklenecek -->
+                        
+                        <div class="analysis-card">
+                            <h3><i class="fas fa-exclamation-circle"></i> Önemli Noktalar</h3>
+                            <div id="important-points" class="points-list">
+                                <!-- Dinamik olarak yüklenecek -->
+                            </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Grafikler Bölümü -->
                 <div class="charts-section">
-                    <h3>Görsel Analizler</h3>
-                    <div class="charts-grid">
-                        <div class="chart-container">
-                            <h4>Havalimanı Bağlantı Dağılımı</h4>
-                            <div id="connections-chart" class="chart">
-                                <p>Grafikler yakında eklenecek</p>
+                    <h2><i class="fas fa-chart-line"></i> Yıllık Trafik Grafikleri</h2>
+                    
+                    <div class="charts-container">
+                        <div class="chart-card">
+                            <h3>Uçuş Trafiği</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="flight-traffic-chart"></canvas>
                             </div>
                         </div>
-                        <div class="chart-container">
-                            <h4>Bölgelere Göre Dağılım</h4>
-                            <div id="regions-chart" class="chart">
-                                <p>Grafikler yakında eklenecek</p>
+                        
+                        <div class="chart-card">
+                            <h3>Yolcu Trafiği</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="passenger-traffic-chart"></canvas>
                             </div>
+                        </div>
+                        
+                        <div class="chart-card">
+                            <h3>Kargo Trafiği</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="cargo-traffic-chart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-card">
+                            <h3>Yük Trafiği</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="freight-traffic-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detaylı Veri Tabları -->
+                <div class="data-tabs-section">
+                    <h2><i class="fas fa-table"></i> Yıl Bazlı Detaylı Veriler</h2>
+                    
+                    <div class="tabs-container">
+                        <div class="tabs-header">
+                            <button class="tab-btn active" data-tab="uçuş">Uçuş Yoğunluğu</button>
+                            <button class="tab-btn" data-tab="kargo">Kargo Yoğunluğu</button>
+                            <button class="tab-btn" data-tab="yolcu">Yolcu Yoğunluğu</button>
+                            <button class="tab-btn" data-tab="yük">Yük Yoğunluğu</button>
+                        </div>
+                        
+                        <div class="tabs-content">
+                            <div id="tab-uçuş" class="tab-content active">
+                                <div class="data-table-container">
+                                    <table id="flight-data-table" class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Yıl</th>
+                                                <th>Tüm Uçak</th>
+                                                <th>Uçak Trafiği</th>
+                                                <th>İç Hat</th>
+                                                <th>Dış Hat</th>
+                                                <th>Overflight</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Dinamik olarak yüklenecek -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div id="tab-kargo" class="tab-content">
+                                <div class="data-table-container">
+                                    <table id="cargo-data-table" class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Yıl</th>
+                                                <th>Toplam Kargo (ton)</th>
+                                                <th>İç Hat Kargo (ton)</th>
+                                                <th>Dış Hat Kargo (ton)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Dinamik olarak yüklenecek -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div id="tab-yolcu" class="tab-content">
+                                <div class="data-table-container">
+                                    <table id="passenger-data-table" class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Yıl</th>
+                                                <th>Toplam Yolcu</th>
+                                                <th>Yolcu Trafiği</th>
+                                                <th>İç Hat</th>
+                                                <th>Dış Hat</th>
+                                                <th>Transit</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Dinamik olarak yüklenecek -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div id="tab-yük" class="tab-content">
+                                <div class="data-table-container">
+                                    <table id="freight-data-table" class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Yıl</th>
+                                                <th>Toplam Yük (ton)</th>
+                                                <th>İç Hat Yük (ton)</th>
+                                                <th>Dış Hat Yük (ton)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Dinamik olarak yüklenecek -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Karşılaştırma Modu -->
+            <div id="compare-mode" class="stats-mode-content">
+                <div class="compare-header">
+                    <h2><i class="fas fa-balance-scale"></i> Detaylı Yıl Karşılaştırması</h2>
+                    
+                    <div class="compare-controls">
+                        <div class="year-selector-group">
+                            <label class="year-selector-label">
+                                <i class="fas fa-calendar-alt"></i> Birinci Yıl:
+                            </label>
+                            <select id="compare-year1" class="year-select">
+                                <!-- Dinamik olarak yüklenecek -->
+                            </select>
+                        </div>
+                        
+                        <div class="year-selector-group">
+                            <label class="year-selector-label">
+                                <i class="fas fa-calendar-alt"></i> İkinci Yıl:
+                            </label>
+                            <select id="compare-year2" class="year-select">
+                                <!-- Dinamik olarak yüklenecek -->
+                            </select>
+                        </div>
+                        
+                        <button id="run-comparison" class="compare-btn">
+                            <i class="fas fa-chart-bar"></i> Karşılaştırmayı Çalıştır
+                        </button>
+                    </div>
+                    
+                    <!-- Gelişmiş seçenekler -->
+                    <div class="advanced-comparison-options">
+                        <button id="toggle-advanced-options" class="advanced-options-toggle">
+                            <i class="fas fa-cog"></i> Gelişmiş Karşılaştırma Seçenekleri
+                        </button>
+                        <div id="advanced-options-content" class="advanced-options-content">
+                            <div class="option-group">
+                                <label class="option-checkbox">
+                                    <input type="checkbox" id="option-trend-analysis" checked>
+                                    <span>Trend Analizi Göster</span>
+                                </label>
+                                <label class="option-checkbox">
+                                    <input type="checkbox" id="option-density-analysis">
+                                    <span>Yoğunluk Analizi</span>
+                                </label>
+                                <label class="option-checkbox">
+                                    <input type="checkbox" id="option-growth-rates" checked>
+                                    <span>Büyüme Oranları</span>
+                                </label>
+                                <label class="option-checkbox">
+                                    <input type="checkbox" id="option-yearly-change">
+                                    <span>Yıllık Değişim Grafiği</span>
+                                </label>
+                            </div>
+                            <div class="option-group">
+                                <label class="option-checkbox">
+                                    <input type="checkbox" id="option-normalize">
+                                    <span>Verileri Normalize Et</span>
+                                </label>
+                                <label class="option-checkbox">
+                                    <input type="checkbox" id="option-percentage" checked>
+                                    <span>Yüzde Değişimleri Göster</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KARŞILAŞTIRMA SONUÇLARI BÖLÜMÜ (Başlangıçta gizli) -->
+                <div id="comparison-results" class="comparison-results" style="display: none;">
+                    <!-- Karşılaştırma başlıkları -->
+                    <div class="comparison-headers">
+                        <div class="year-header-card" id="year1-header">
+                            <!-- Yıl 1 başlığı buraya eklenecek -->
+                        </div>
+                        <div class="vs-text">
+                            <i class="fas fa-balance-scale"></i>
+                            <span>Karşılaştırma</span>
+                        </div>
+                        <div class="year-header-card" id="year2-header">
+                            <!-- Yıl 2 başlığı buraya eklenecek -->
+                        </div>
+                    </div>
+
+                    <!-- Karşılaştırma Grafikleri -->
+                    <div class="comparison-charts-section">
+                        <h3><i class="fas fa-chart-bar"></i> Karşılaştırma Grafikleri</h3>
+                        <div class="comparison-charts">
+                            <div class="comparison-chart-card">
+                                <h4>Uçuş Trafiği</h4>
+                                <div class="chart-wrapper">
+                                    <canvas id="compare-flight-chart"></canvas>
+                                </div>
+                            </div>
+                            <div class="comparison-chart-card">
+                                <h4>Yolcu Trafiği</h4>
+                                <div class="chart-wrapper">
+                                    <canvas id="compare-passenger-chart"></canvas>
+                                </div>
+                            </div>
+                            <div class="comparison-chart-card">
+                                <h4>Kargo Trafiği</h4>
+                                <div class="chart-wrapper">
+                                    <canvas id="compare-cargo-chart"></canvas>
+                                </div>
+                            </div>
+                            <div class="comparison-chart-card">
+                                <h4>Yük Trafiği</h4>
+                                <div class="chart-wrapper">
+                                    <canvas id="compare-freight-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detaylı Karşılaştırma Tablosu -->
+                    <div class="detailed-comparison">
+                        <h3><i class="fas fa-table"></i> Detaylı Karşılaştırma Tablosu</h3>
+                        <div class="data-table-container">
+                            <table id="comparison-table" class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Metrik</th>
+                                        <th id="year1-header-table">Yıl 1</th>
+                                        <th id="year2-header-table">Yıl 2</th>
+                                        <th>Fark</th>
+                                        <th>% Değişim</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dinamik olarak yüklenecek -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
 
     <script src="js/utils.js"></script>
     <script src="js/flight-network.js"></script>
@@ -396,5 +653,6 @@
     <script src="js/optimization-map.js"></script> 
     <script src="js/navigation.js"></script>
     <script src="js/app.js"></script>
+    <script src="js/statistics.js"></script>
 </body>
 </html>
