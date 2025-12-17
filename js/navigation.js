@@ -646,8 +646,6 @@ displayOptimizedRoutes(routes, searchParams = null) {
         console.error('Optimize rotalar gösterilirken hata:', error);
     }
 }
-
-// navigation.js - displayOptimizationCard fonksiyonunu güncelleyin
 displayOptimizationCard(containerId, route, title, searchParams = null) {
     try {
         const container = document.getElementById(containerId);
@@ -812,6 +810,16 @@ displayOptimizationCard(containerId, route, title, searchParams = null) {
             segmentsHTML += `</div>`;
         }
 
+        // PDF indirme butonu HTML'i
+        const downloadButtonHTML = `
+            <div class="download-section">
+                <button class="btn-download-pdf" data-route-type="${containerId.replace('-route', '')}" 
+                        data-flight-index="${route.flight?.id || ''}">
+                    <i class="fa-solid fa-download"></i> PDF Olarak İndir
+                </button>
+            </div>
+        `;
+
         container.innerHTML = `
             <div class="optimization-card-header">
                 <div class="header-left">
@@ -830,7 +838,7 @@ displayOptimizationCard(containerId, route, title, searchParams = null) {
                 
                 <div class="route-summary">
                     ${priceHTML}
-                    <div class="route-duration">${Math.floor(route.summary.duration/60)}s ${route.summary.duration%60}d</div>
+                    <div class="route-duration">${Math.floor(route.summary.duration/60)}sa ${route.summary.duration%60}dak</div>
                 </div>
                 
                 <div class="route-path">
@@ -858,12 +866,111 @@ displayOptimizationCard(containerId, route, title, searchParams = null) {
                 </div>
                 
                 ${segmentsHTML}
+                
+                ${downloadButtonHTML}
             </div>
         `;
+
+        // PDF indirme butonu event listener'ını ekle
+        this.attachDownloadButtonListener(container, route, containerId);
+
     } catch (error) {
         console.error(`Optimizasyon kartı gösterilirken hata (${containerId}):`, error);
     }
-} 
+}
+
+// PDF indirme butonu event listener'ını ekle
+attachDownloadButtonListener(container, route, routeType) {
+    const downloadButton = container.querySelector('.btn-download-pdf');
+    if (downloadButton) {
+        downloadButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.downloadTicketAsPDF(route, routeType);
+        });
+    }
+}
+
+downloadTicketAsPDF(route, routeType) {
+    if (!route || !route.flight) {
+        this.showError('Bilet oluşturma için uçuş bilgisi bulunamadı.');
+        return;
+    }
+
+    try {
+        // Yolcu bilgilerini al
+        const passengerInfo = this.getPassengerInfo();
+        
+        // Başarı mesajı göster
+        this.showSuccessMessage(`${routeType} rotası için e-bilet oluşturuluyor...`);
+        
+        // PDF oluştur (otomatik indir + yeni sekmede aç)
+        const success = this.flightSearch.generateTicketPDF(
+            route.flight, 
+            passengerInfo,
+            {
+                openInNewTab: true, // Yeni sekmede aç
+                autoPrint: false    // Otomatik yazdırma YOK
+            }
+        );
+        
+        if (!success) {
+            this.showError('Bilet oluşturulurken bir hata oluştu.');
+        }
+    } catch (error) {
+        console.error('PDF indirme hatası:', error);
+        this.showError('Bilet indirilirken bir hata oluştu: ' + error.message);
+    }
+}
+showSuccessMessage(message) {
+    // Geçici bir bildirim göster
+    const notification = document.createElement('div');
+    notification.className = 'download-notification';
+    notification.innerHTML = `
+        <div class="notification-content">
+            <i class="fas fa-check-circle" style="color: #10b981; margin-right: 10px;"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: white;
+        padding: 15px 25px;
+        border-radius: 10px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        border-left: 4px solid #10b981;
+        z-index: 10000;
+        animation: slideIn 0.3s ease;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // 3 saniye sonra kaldır
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
+}
+// Yolcu bilgilerini al (basit versiyon)
+getPassengerInfo() {
+    // Burada kullanıcıdan yolcu bilgilerini alabiliriz
+    // Şimdilik varsayılan değerler kullanalım
+    return {
+        name: "YOLCU",
+        surname: "ADI SOYADI",
+        email: "yolcu@example.com"
+    };
+    
+    // İleri versiyon için modal/popup açabiliriz:
+    // return this.showPassengerInfoModal();
+}
+
 // Yardımcı fonksiyon - süreyi formatla
 formatDuration(durationStr) {
     if (!durationStr) return 'Bilinmiyor';
@@ -1112,13 +1219,46 @@ formatDuration(durationStr) {
     }
     
     initializeStatisticsPage() {
-        // İstatistikler sayfası için özel başlatma işlemleri
-        console.log('İstatistikler sayfası başlatıldı');
-        this.loadStatistics();
+    // İstatistikler sayfası için özel başlatma işlemleri
+    console.log('İstatistikler sayfası başlatıldı');
+    
+    // Eski istatistik instance'ını temizle
+    if (statistics && typeof statistics.destroyAllCharts === 'function') {
+        statistics.destroyAllCharts();
     }
     
-    // navigation.js dosyasında loadAirportsList fonksiyonunu güncelleyin
+    // Chart.js kütüphanesini kontrol et
+    if (typeof Chart === 'undefined') {
+        console.log('Chart.js yükleniyor...');
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+        script.onload = () => {
+            console.log('Chart.js yüklendi, istatistikler başlatılıyor...');
+            setTimeout(() => {
+                statistics = new Statistics();
+            }, 100);
+        };
+        document.head.appendChild(script);
+    } else {
+        console.log('Chart.js zaten yüklü, istatistikler başlatılıyor...');
+        setTimeout(() => {
+            statistics = new Statistics();
+        }, 100);
+    }
+}
 
+loadChartJS() {
+    if (typeof Chart === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+        script.onload = () => {
+            if (typeof Statistics !== 'undefined') {
+                statistics = new Statistics();
+            }
+        };
+        document.head.appendChild(script);
+    }
+}
 loadAirportsList() {
     const airportsList = document.getElementById('airports-list');
     
