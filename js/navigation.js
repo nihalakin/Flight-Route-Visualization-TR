@@ -381,6 +381,45 @@ async performFlightSearch() {
         this.showLoading(false);
     }
 }
+showCouponWarning(message) {
+    const warningDiv = document.createElement('div');
+    warningDiv.className = 'coupon-warning-modal';
+    warningDiv.innerHTML = `
+        <div class="warning-content">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    // Stilleri ekle
+    warningDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        padding: 15px 20px;
+        z-index: 10001;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: slideIn 0.3s ease;
+    `;
+    
+    document.body.appendChild(warningDiv);
+    
+    // 5 saniye sonra kaldır
+    setTimeout(() => {
+        warningDiv.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => {
+            if (warningDiv.parentNode) {
+                warningDiv.parentNode.removeChild(warningDiv);
+            }
+        }, 300);
+    }, 5000);
+}
+
+// Ayrıca showCouponMessage fonksiyonunu da ekleyin veya güncelleyin
 showCouponMessage(statusMessage, errorMessage = null) {
     const couponMessageDiv = document.getElementById('coupon-message');
     if (!couponMessageDiv) return;
@@ -388,7 +427,7 @@ showCouponMessage(statusMessage, errorMessage = null) {
     if (errorMessage) {
         couponMessageDiv.innerHTML = `
             <div class="coupon-error">
-                ❌ ${errorMessage}
+                Bu kupon kodu geçerli değildir.
             </div>
         `;
         couponMessageDiv.className = 'coupon-message error';
@@ -399,6 +438,15 @@ showCouponMessage(statusMessage, errorMessage = null) {
             </div>
         `;
         couponMessageDiv.className = 'coupon-message success';
+    }
+}
+
+// clearCouponMessages fonksiyonunu ekleyin
+clearCouponMessages() {
+    const couponMessageDiv = document.getElementById('coupon-message');
+    if (couponMessageDiv) {
+        couponMessageDiv.innerHTML = '';
+        couponMessageDiv.className = 'coupon-message';
     }
 }
 
@@ -727,7 +775,7 @@ displayOptimizationCard(containerId, route, title, searchParams = null) {
         let cabinClassInfo = '';
         if (searchParams && searchParams.cabinClass) {
             const cabinClassDisplay = searchParams.cabinClass === 'ECONOMY' ? 'Ekonomi' : 'Business';
-            const cabinClassIcon = searchParams.cabinClass === 'ECONOMY' ? '🪑' : '🛋️';
+            const cabinClassIcon = searchParams.cabinClass === 'ECONOMY' ? '🪑' : '';
             cabinClassInfo = `
                 <div class="stat">
                     <span class="stat-label">Kabin:</span>
@@ -812,23 +860,23 @@ displayOptimizationCard(containerId, route, title, searchParams = null) {
 
         // PDF indirme butonu HTML'i
         const downloadButtonHTML = `
-            <div class="download-section">
-                <button class="btn-download-pdf" data-route-type="${containerId.replace('-route', '')}" 
-                        data-flight-index="${route.flight?.id || ''}">
-                    <i class="fa-solid fa-download"></i> PDF Olarak İndir
-                </button>
-            </div>
-        `;
+    <div class="download-section">
+        <button class="btn-download-pdf" data-route-type="${containerId.replace('-route', '')}" 
+                data-flight-index="${route.flight?.id || ''}">
+            <i class="fa-solid fa-download"></i> Bilet Oluştur ve İndir
+        </button>
+    </div>
+`;
 
         container.innerHTML = `
             <div class="optimization-card-header">
                 <div class="header-left">
                     <h4>${title}</h4>
-                    ${hasCoupon ? '<span class="coupon-indicator">🎫 Kuponlu</span>' : ''}
+                    ${hasCoupon ? '<span class="coupon-indicator">Kuponlu</span>' : ''}
                 </div>
                 ${searchParams && searchParams.cabinClass ? `
                     <div class="cabin-class-badge ${searchParams.cabinClass.toLowerCase()}">
-                        ${searchParams.cabinClass === 'ECONOMY' ? '🪑 Ekonomi' : '🛋️ Business'}
+                        ${searchParams.cabinClass === 'ECONOMY' ? 'Ekonomi' : 'Business'}
                     </div>
                 ` : ''}
             </div>
@@ -856,7 +904,7 @@ displayOptimizationCard(containerId, route, title, searchParams = null) {
                     </div>
                     <div class="stat">
                         <span class="stat-label">Tip:</span>
-                        <span class="stat-value">${route.summary.isDirect ? '✈️ Direkt' : '🔄 Aktarmalı'}</span>
+                        <span class="stat-value">${route.summary.isDirect ? 'Direkt' : 'Aktarmalı'}</span>
                     </div>
                     <div class="stat">
                         <span class="stat-label">Uçuşlar:</span>
@@ -897,19 +945,811 @@ downloadTicketAsPDF(route, routeType) {
     }
 
     try {
-        // Yolcu bilgilerini al
-        const passengerInfo = this.getPassengerInfo();
+        // Arama parametrelerini al (kabin sınıfı için)
+        const searchParams = this.getFlightSearchParams();
         
+        // Yolcu bilgileri modal'ını göster
+        this.showPassengerModal(route, routeType, searchParams);
+        
+    } catch (error) {
+        console.error('PDF indirme hatası:', error);
+        this.showError('Bilet indirilirken bir hata oluştu: ' + error.message);
+    }
+}
+
+showPassengerModal(route, routeType, searchParams) {
+    const modal = document.getElementById('passenger-modal');
+    if (!modal) {
+        console.error('Passenger modal bulunamadı');
+        return;
+    }
+    
+    // 1. AŞAMA: Modal açılmadan önce kuponu doğrula
+    const couponCode = searchParams.couponCode || '';
+    let validCoupon = null;
+    let couponValidationResult = null;
+    
+    if (couponCode.trim() !== '') {
+        couponValidationResult = this.validateCouponForFlightStep1(route.flight, searchParams, couponCode);
+        
+        if (!couponValidationResult.valid) {
+            // Geçersiz kupon için uyarı göster
+            this.showCouponWarning(couponValidationResult.message);
+            
+            // Kuponu geçersiz olarak işaretle
+            validCoupon = null;
+            
+            // Modalda kupon bilgisini gösterme
+            this.handleInvalidCouponInModal();
+        } else {
+            validCoupon = couponValidationResult.coupon;
+        }
+    }
+    
+    // Arama bilgilerini modal'a yerleştir (geçerli kupon bilgisi ile)
+    this.populateModalInfo(route, routeType, searchParams, validCoupon);
+    
+    // Yolcu alanlarını oluştur
+    this.createPassengerFields(searchParams.adults);
+    
+    // Fiyat bilgilerini güncelle (geçerli kupon bilgisi ile)
+    this.updatePriceSummary(route, searchParams, validCoupon);
+    
+    // Modal'ı göster
+    modal.style.display = 'flex';
+    
+    // Event listener'ları ekle (geçerli kupon bilgisi ile)
+    this.attachModalListeners(route, routeType, searchParams, validCoupon);
+}
+validateCouponForFlightStep1(flight, searchParams, couponCode) {
+    try {
+        const validation = this.flightSearch.couponManager.validateCouponForFlight(
+            couponCode, 
+            flight, 
+            searchParams
+        );
+        
+        if (!validation.valid) {
+            console.warn('1. Aşama kupon doğrulama başarısız:', validation.message);
+        }
+        
+        return validation;
+    } catch (error) {
+        console.error('1. Aşama kupon doğrulama hatası:', error);
+        return {
+            valid: false,
+            message: 'Kupon doğrulama sırasında hata oluştu.',
+            coupon: null
+        };
+    }
+}
+
+createPassengerFields(passengerCount) {
+    const container = document.getElementById('passenger-fields-container');
+    container.innerHTML = '';
+    
+    for (let i = 1; i <= passengerCount; i++) {
+        const fieldGroup = document.createElement('div');
+        fieldGroup.className = 'passenger-field-group';
+        fieldGroup.id = `passenger-group-${i}`;
+        
+        fieldGroup.innerHTML = `
+            <div class="passenger-header">
+                <div class="passenger-number">${i}</div>
+                <h4>Yolcu ${i}</h4>
+            </div>
+            <div class="passenger-fields">
+                <div class="form-group">
+                    <label for="passenger-name-${i}">Adı*</label>
+                    <input type="text" id="passenger-name-${i}" class="form-input" 
+                           placeholder="Yolcu adı" required>
+                </div>
+                <div class="form-group">
+                    <label for="passenger-surname-${i}">Soyadı*</label>
+                    <input type="text" id="passenger-surname-${i}" class="form-input" 
+                           placeholder="Yolcu soyadı" required>
+                </div>
+                <div class="form-group">
+                    <label for="passenger-email-${i}">E-posta</label>
+                    <input type="email" id="passenger-email-${i}" class="form-input" 
+                           placeholder="ornek@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="passenger-phone-${i}">Telefon</label>
+                    <input type="tel" id="passenger-phone-${i}" class="form-input" 
+                           placeholder="(555) 123 45 67">
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(fieldGroup);
+    }
+}
+
+
+updatePriceSummary(route, searchParams, validCoupon = null) {
+    const passengerCount = searchParams.adults;
+    const flightPrice = route.flight.originalPrice || route.flight.price;
+    const couponCode = validCoupon ? validCoupon.code : '';
+    
+    // Toplam bilet ücreti
+    const totalTicketPrice = flightPrice * passengerCount;
+    
+    // Kupon indirimi hesapla - SADECE geçerli kupon varsa
+    let couponDiscount = 0;
+    let finalPrice = totalTicketPrice;
+    
+    if (validCoupon) {
+        // 2. AŞAMA: Modal içinde tekrar doğrulama
+        const step2Validation = this.validateCouponForFlightStep2(route.flight, searchParams, validCoupon);
+        
+        if (step2Validation.valid) {
+            couponDiscount = validCoupon.discountAmount;
+            finalPrice = Math.max(totalTicketPrice - couponDiscount, 0);
+            
+            // Kupon bilgilerini göster
+            document.getElementById('modal-coupon-info').textContent = 
+                `${validCoupon.airline} - ${couponDiscount} TL indirim`;
+            document.getElementById('coupon-discount-row').style.display = 'block';
+            document.getElementById('coupon-discount').textContent = `-${couponDiscount.toFixed(2)} TL`;
+        } else {
+            // 2. aşamada geçersiz çıkarsa
+            this.showCouponWarning(step2Validation.message);
+            this.handleInvalidCouponInModal();
+        }
+    } else {
+        // Kupon yoksa indirim satırını gizle
+        document.getElementById('coupon-discount-row').style.display = 'none';
+    }
+    
+    // Fiyatları göster
+    document.getElementById('total-price').textContent = `${totalTicketPrice.toFixed(2)} TL`;
+    document.getElementById('final-price').textContent = `${finalPrice.toFixed(2)} TL`;
+    
+    // Modal'daki kupon bilgisini göster/gizle
+    const couponSummary = document.querySelector('.coupon-summary');
+    if (validCoupon && couponDiscount > 0) {
+        couponSummary.style.display = 'flex';
+    } else {
+        couponSummary.style.display = 'none';
+    }
+    
+    // Fiyat bilgilerini sakla (sonra kullanmak için)
+    this.currentPriceInfo = {
+        totalTicketPrice,
+        couponDiscount,
+        finalPrice,
+        passengerCount,
+        flightPrice,
+        validCoupon: validCoupon
+    };
+}
+
+validateCouponForFlightStep2(flight, searchParams, coupon) {
+    try {
+        // Havayolu uyumluluğu kontrolü
+        const isCompatible = this.flightSearch.couponManager.isFlightCompatibleWithCoupon(flight, coupon);
+        
+        if (!isCompatible) {
+            return {
+                valid: false,
+                message: `Seçilen uçuş ${coupon.airline} havayolu ile uyumlu değil.`
+            };
+        }
+        
+        // Tarih kontrolü
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (coupon.expiryDate < today) {
+            return {
+                valid: false,
+                message: 'Kupon kodunuzun süresi dolmuştur.'
+            };
+        }
+        
+        // Uçuş tarihi kontrolü
+        if (searchParams.departureDate) {
+            const departureDate = new Date(searchParams.departureDate);
+            departureDate.setHours(0, 0, 0, 0);
+            
+            if (coupon.expiryDate < departureDate) {
+                return {
+                    valid: false,
+                    message: 'Kupon kodunuzun süresi seçilen uçuş tarihinden önce dolmuştur.'
+                };
+            }
+        }
+        
+        return {
+            valid: true,
+            message: 'Kupon doğrulandı.'
+        };
+        
+    } catch (error) {
+        console.error('2. Aşama kupon doğrulama hatası:', error);
+        return {
+            valid: false,
+            message: 'Kupon doğrulama sırasında hata oluştu.'
+        };
+    }
+}
+
+// Geçersiz kupon için modal'ı güncelle
+handleInvalidCouponInModal() {
+    const couponSummary = document.querySelector('.coupon-summary');
+    const couponMessage = document.getElementById('modal-coupon-info');
+    
+    if (couponSummary) {
+        couponSummary.style.display = 'none';
+    }
+    if (couponMessage) {
+        couponMessage.textContent = '';
+    }
+}
+
+
+attachModalListeners(route, routeType, searchParams, validCoupon = null) {
+    const modal = document.getElementById('passenger-modal');
+    
+    const closeModal = () => {
+        modal.style.display = 'none';
+        this.removeModalListeners();
+    };
+    
+    // Kapatma butonu
+    modal.querySelector('.close-modal').onclick = closeModal;
+    
+    // Vazgeç butonu
+    modal.querySelector('#cancel-passenger').onclick = closeModal;
+    
+    // Modal dışına tıklayarak kapatma
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    };
+    
+    // Submit butonu - 3. AŞAMA DOĞRULAMA
+    modal.querySelector('#submit-passenger').onclick = async () => {
+        // 3. AŞAMA: Bilet oluşturmadan önce son doğrulama
+        if (validCoupon) {
+            const finalValidation = await this.validateCouponForFlightStep3(
+                route.flight, 
+                searchParams, 
+                validCoupon
+            );
+            
+            if (!finalValidation.valid) {
+                this.showCouponWarning(finalValidation.message);
+                
+                // Kuponu geçersiz kabul et ve fiyatları güncelle
+                this.handleInvalidCouponInSubmit(route, searchParams);
+                return;
+            }
+        }
+        
+        // Form validasyonu
+        const passengerInfoList = this.collectAllPassengerInfo();
+        
+        // Validasyon
+        if (!this.validatePassengerInfo(passengerInfoList)) {
+            return;
+        }
+        
+        // Modal'ı kapat
+        closeModal();
+        
+        // Yükleme overlay'ini göster ve biletleri oluştur
+        setTimeout(() => {
+            this.generateAllTickets(route, routeType, searchParams, passengerInfoList, validCoupon);
+        }, 300);
+    };
+}
+
+// 3. Aşama doğrulama: Bilet oluşturmadan önce
+async validateCouponForFlightStep3(flight, searchParams, coupon) {
+    try {
+        // 1. Havayolu uyumluluğu
+        const isCompatible = this.flightSearch.couponManager.isFlightCompatibleWithCoupon(flight, coupon);
+        if (!isCompatible) {
+            return {
+                valid: false,
+                message: `Uçuşunuz ${coupon.airline} havayolu ile uyumlu değil. Kupon kaldırıldı.`
+            };
+        }
+        
+        // 2. Tarih kontrolleri
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (coupon.expiryDate < today) {
+            return {
+                valid: false,
+                message: 'Kupon süresi dolmuş.'
+            };
+        }
+        
+        if (searchParams.departureDate) {
+            const departureDate = new Date(searchParams.departureDate);
+            departureDate.setHours(0, 0, 0, 0);
+            
+            if (coupon.expiryDate < departureDate) {
+                return {
+                    valid: false,
+                    message: 'Kupon seçilen uçuş tarihi için geçersiz.'
+                };
+            }
+        }
+        
+        // 3. Kuponun durumunu backend'den kontrol et (opsiyonel)
+        // Burada ek API çağrısı yapılabilir
+        
+        return {
+            valid: true,
+            message: 'Kupon son doğrulamadan geçti.'
+        };
+        
+    } catch (error) {
+        console.error('3. Aşama kupon doğrulama hatası:', error);
+        return {
+            valid: false,
+            message: 'Kupon doğrulama hatası.'
+        };
+    }
+}
+// Geçersiz kupon durumunda submit'i işle
+handleInvalidCouponInSubmit(route, searchParams) {
+    // Fiyatları kupon olmadan güncelle
+    const passengerCount = searchParams.adults;
+    const flightPrice = route.flight.originalPrice || route.flight.price;
+    const totalTicketPrice = flightPrice * passengerCount;
+    
+    // Modal'daki fiyatları güncelle
+    document.getElementById('coupon-discount-row').style.display = 'none';
+    document.getElementById('total-price').textContent = `${totalTicketPrice.toFixed(2)} TL`;
+    document.getElementById('final-price').textContent = `${totalTicketPrice.toFixed(2)} TL`;
+    
+    // Kupon summary'ı gizle
+    const couponSummary = document.querySelector('.coupon-summary');
+    if (couponSummary) {
+        couponSummary.style.display = 'none';
+    }
+    
+    // Geçerli kuponu null yap
+    this.currentPriceInfo.validCoupon = null;
+    this.currentPriceInfo.couponDiscount = 0;
+    this.currentPriceInfo.finalPrice = totalTicketPrice;
+}
+// Tüm yolcu bilgilerini topla
+collectAllPassengerInfo() {
+    const passengerCount = this.currentPriceInfo?.passengerCount || 1;
+    const passengerInfoList = [];
+    
+    for (let i = 1; i <= passengerCount; i++) {
+        const passengerInfo = {
+            id: i,
+            name: document.getElementById(`passenger-name-${i}`)?.value.trim() || '',
+            surname: document.getElementById(`passenger-surname-${i}`)?.value.trim() || '',
+            email: document.getElementById(`passenger-email-${i}`)?.value.trim() || '',
+            phone: document.getElementById(`passenger-phone-${i}`)?.value.trim() || '',
+            ticketNumber: this.generateTicketNumber(), // Her yolcu için benzersiz bilet numarası
+            individualPrice: this.calculateIndividualPrice(i) // Yolcu bazlı fiyat
+        };
+        
+        passengerInfoList.push(passengerInfo);
+    }
+    
+    return passengerInfoList;
+}
+
+// Bilet numarası üret (13 haneli)
+generateTicketNumber() {
+    // Standart E-ticket formatı: 3 haneli airline code + 10 haneli numara
+    const airlineCode = 'TK'; // Türk Hava Yolları için varsayılan
+    const randomNum = Math.floor(Math.random() * 10000000000).toString().padStart(10, '0');
+    return `${airlineCode}${randomNum}`;
+}
+
+// Yolcu bazlı fiyat hesapla
+calculateIndividualPrice(passengerIndex) {
+    if (!this.currentPriceInfo) return { original: 0, discount: 0, final: 0 };
+    
+    const { flightPrice, couponDiscount, passengerCount, finalPrice } = this.currentPriceInfo;
+    
+    // Brüt bilet ücreti (her yolcu için aynı)
+    const grossPrice = flightPrice;
+    
+    // Kupon indirimi hesapla (eşit dağıt)
+    const individualDiscount = couponDiscount / passengerCount;
+    
+    // Net ödenen ücret
+    const netPrice = Math.max(grossPrice - individualDiscount, 0);
+    
+    return {
+        gross: grossPrice,
+        discount: individualDiscount,
+        net: netPrice
+    };
+}
+
+// Yolcu bilgilerini validate et
+validatePassengerInfo(passengerInfoList) {
+    for (const passenger of passengerInfoList) {
+        if (!passenger.name || !passenger.surname) {
+            this.showError(`Yolcu ${passenger.id}: Lütfen ad ve soyad bilgilerini giriniz.`);
+            return false;
+        }
+    }
+    return true;
+}
+
+
+// navigation.js - generateAllTickets fonksiyonunu güncelleyin
+generateAllTickets(route, routeType, searchParams, passengerInfoList) {
+    try {
+        // Yükleme overlay'ini göster
+        this.showLoadingOverlay();
+        
+        // PNR üret (rezervasyon bazlı, tüm yolcular için aynı)
+        const pnr = this.generatePNR();
+        
+        // Tüm biletlerin durumunu takip etmek için
+        const totalTickets = passengerInfoList.length;
+        let completedTickets = 0;
+        let failedTickets = 0;
+        
+        console.log(`🎫 ${totalTickets} yolcu için bilet oluşturulmaya başlandı...`);
+        
+        // Her yolcu için bilet oluştur
+        const ticketPromises = passengerInfoList.map((passengerInfo, index) => {
+            return new Promise((resolve, reject) => {
+                setTimeout(async () => {
+                    try {
+                        // Progress bar'ı güncelle
+                        this.updateProgressBar((index + 1) / totalTickets * 100);
+                        
+                        console.log(`🔄 Yolcu ${passengerInfo.id} bilet oluşturuluyor...`);
+                        
+                        await this.generateSingleTicket(
+                            route, 
+                            routeType, 
+                            searchParams, 
+                            passengerInfo, 
+                            pnr,
+                            index + 1
+                        );
+                        
+                        completedTickets++;
+                        console.log(`✅ Yolcu ${passengerInfo.id} bilet oluşturuldu: ${passengerInfo.ticketNumber}`);
+                        
+                        resolve();
+                    } catch (error) {
+                        failedTickets++;
+                        console.error(`❌ Yolcu ${passengerInfo.id} bilet oluşturma hatası:`, error);
+                        reject(error);
+                    }
+                }, index * 300); // 0.3 saniye aralıklarla
+            });
+        });
+        
+        // Tüm biletleri bekleyin
+        Promise.allSettled(ticketPromises)
+            .then(results => {
+                console.log(`Bilet oluşturma tamamlandı: ${completedTickets} başarılı, ${failedTickets} başarısız`);
+                
+                // Progress bar'ı tamamlanmış olarak göster
+                this.completeProgressBar();
+                
+                // "İşlem tamamlandı" mesajını göster
+                this.showCompletionMessage();
+                
+                // 2 saniye sonra overlay'i kaldır
+                setTimeout(() => {
+                    this.hideLoadingOverlay();
+                    
+                    // Ödeme başarılı mesajı göster
+                    if (completedTickets > 0) {
+                        this.showPaymentSuccess(completedTickets, this.currentPriceInfo.finalPrice);
+                    }
+                    
+                    // Başarısız biletler varsa bildir
+                    if (failedTickets > 0) {
+                        this.showError(`${failedTickets} yolcu için bilet oluşturulurken hata oluştu.`);
+                    }
+                    
+                }, 2000);
+                
+            })
+            .catch(error => {
+                console.error('Bilet oluşturma sürecinde hata:', error);
+                this.showError('Biletler oluşturulurken bir hata oluştu.');
+                this.hideLoadingOverlay();
+            });
+        
+    } catch (error) {
+        console.error('Bilet oluşturma hatası:', error);
+        this.showError('Biletler oluşturulurken bir hata oluştu: ' + error.message);
+        this.hideLoadingOverlay();
+    }
+}
+
+// Yeni fonksiyonlar - yükleme overlay'i yönetimi
+showLoadingOverlay() {
+    // Eğer zaten varsa temizle
+    this.removeExistingOverlay();
+    
+    // Yeni overlay oluştur
+    const overlay = document.createElement('div');
+    overlay.className = 'pdf-loading-overlay';
+    overlay.id = 'pdf-loading-overlay';
+    
+    overlay.innerHTML = `
+        <div class="loading-content">
+            <div class="loading-text" id="loading-text">Biletler oluşturuluyor...</div>
+            <div class="progress-bar-container">
+                <div class="progress-bar indeterminate" id="progress-bar"></div>
+            </div>
+            <div class="loading-status" id="loading-status" style="color: #666; font-size: 16px;">
+                Lütfen bekleyin...
+            </div>
+        </div>
+    `;
+    
+    // Body'e ekle ve sayfayı dondur
+    document.body.appendChild(overlay);
+    document.body.classList.add('pdf-generating');
+    
+    // Sayfa scroll'unu engelle
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+}
+
+removeExistingOverlay() {
+    const existingOverlay = document.getElementById('pdf-loading-overlay');
+    if (existingOverlay) {
+        existingOverlay.remove();
+    }
+    document.body.classList.remove('pdf-generating');
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+}
+
+updateProgressBar(percentage) {
+    const progressBar = document.getElementById('progress-bar');
+    const loadingStatus = document.getElementById('loading-status');
+    
+    if (progressBar) {
+        // Indeterminate moddan çık
+        progressBar.classList.remove('indeterminate');
+        
+        // Yeni yüzdeyi ayarla
+        const clampedPercentage = Math.min(100, Math.max(0, percentage));
+        progressBar.style.width = `${clampedPercentage}%`;
+        
+        // Durum metnini güncelle
+        if (loadingStatus) {
+            loadingStatus.textContent = `İşlem devam ediyor... %${Math.round(clampedPercentage)}`;
+        }
+    }
+}
+
+completeProgressBar() {
+    const progressBar = document.getElementById('progress-bar');
+    const loadingStatus = document.getElementById('loading-status');
+    
+    if (progressBar) {
+        progressBar.classList.remove('indeterminate');
+        progressBar.classList.add('completed');
+        progressBar.style.width = '100%';
+        
+        if (loadingStatus) {
+            loadingStatus.textContent = 'İşlem tamamlanıyor...';
+        }
+    }
+}
+
+showCompletionMessage() {
+    const loadingText = document.getElementById('loading-text');
+    const loadingStatus = document.getElementById('loading-status');
+    
+    if (loadingText) {
+        loadingText.textContent = 'İşlem tamamlandı!';
+        loadingText.classList.remove('loading-text');
+        loadingText.classList.add('completion-text');
+    }
+    
+    if (loadingStatus) {
+        loadingStatus.textContent = 'Biletleriniz indirildi. Sayfaya yönlendiriliyorsunuz...';
+        loadingStatus.style.color = '#27ae60';
+    }
+}
+
+hideLoadingOverlay() {
+    const overlay = document.getElementById('pdf-loading-overlay');
+    
+    if (overlay) {
+        // Fade-out animasyonu ekle
+        overlay.classList.add('hidden');
+        
+        // Animasyon tamamlandıktan sonra kaldır
+        setTimeout(() => {
+            this.removeExistingOverlay();
+        }, 800); // CSS transition süresiyle aynı
+    } else {
+        this.removeExistingOverlay();
+    }
+}
+
+// Tek bilet oluştur
+generateSingleTicket(route, routeType, searchParams, passengerInfo, pnr, order) {
+    try {
+        // Yolcu özel fiyat bilgileri
+        const priceInfo = this.calculateIndividualPrice(passengerInfo.id);
+        
+        // Bilet verilerini hazırla
+        const ticketData = {
+            passengerInfo: passengerInfo,
+            pnr: pnr,
+            order: order,
+            priceInfo: priceInfo,
+            route: route,
+            searchParams: searchParams,
+            routeType: routeType
+        };
+        
+        // FlightSearch sınıfını kullanarak bilet oluştur
+        const success = this.flightSearch.generateTicketForPassenger(ticketData);
+        
+        if (success) {
+            console.log(`✅ Yolcu ${passengerInfo.id} bilet oluşturuldu: ${passengerInfo.ticketNumber}`);
+        }
+        
+    } catch (error) {
+        console.error(`Yolcu ${passengerInfo.id} bilet oluşturma hatası:`, error);
+    }
+}
+
+// PNR üret (6 haneli)
+generatePNR() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let pnr = '';
+    for (let i = 0; i < 6; i++) {
+        pnr += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return pnr;
+}
+
+// Ödeme başarılı mesajı
+showPaymentSuccess(passengerCount, totalAmount) {
+    const notification = document.createElement('div');
+    notification.className = 'payment-success-notification';
+    notification.innerHTML = `
+        <div class="notification-content">
+            <i class="fas fa-check-circle" style="color: #10b981; margin-right: 10px; font-size: 24px;"></i>
+            <div>
+                <h4>İndirme Başarılı!</h4>
+                /*<p>${passengerCount} yolcu için toplam ${totalAmount.toFixed(2)} TL ödendi.</p>*/
+                <p>Tüm biletler PDF olarak indirildi.</p>
+            </div>
+        </div>
+    `;
+    
+    notification.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border-left: 6px solid #10b981;
+        z-index: 10000;
+        animation: slideInUp 0.5s ease;
+        max-width: 400px;
+        font-family: 'Segoe UI', sans-serif;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // 5 saniye sonra kaldır
+    setTimeout(() => {
+        notification.style.animation = 'slideOutDown 0.5s ease';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 500);
+    }, 5000);
+}
+
+populateModalInfo(route, routeType, searchParams, validCoupon = null) {
+    const fromSelect = document.getElementById('origin');
+    const toSelect = document.getElementById('destination');
+    const fromOption = fromSelect?.options[fromSelect.selectedIndex];
+    const toOption = toSelect?.options[toSelect.selectedIndex];
+    
+    const fromText = fromOption?.textContent || searchParams.origin;
+    const toText = toOption?.textContent || searchParams.destination;
+    
+    // Rota bilgisi
+    document.getElementById('modal-route-info').textContent = `${fromText} → ${toText}`;
+    
+    // Tarih bilgisi
+    document.getElementById('modal-date-info').textContent = 
+        new Date(searchParams.departureDate).toLocaleDateString('tr-TR', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    
+    // Yolcu sayısı
+    document.getElementById('modal-passenger-count').textContent = searchParams.adults;
+    
+    // Kupon bilgisi - SADECE geçerli kupon varsa göster
+    this.handleCouponDisplayInModal(validCoupon);
+}
+// Geçerli kupon varsa modalda göster
+handleCouponDisplayInModal(validCoupon) {
+    const couponSummary = document.querySelector('.coupon-summary');
+    const couponMessage = document.getElementById('modal-coupon-info');
+    
+    if (!validCoupon) {
+        // Kupon yoksa veya geçersizse
+        if (couponSummary) {
+            couponSummary.style.display = 'none';
+        }
+        if (couponMessage) {
+            couponMessage.textContent = '';
+        }
+        return;
+    }
+    
+    // Geçerli kupon varsa göster
+    if (couponSummary) {
+        couponSummary.style.display = 'flex';
+        if (couponMessage) {
+            couponMessage.textContent = 
+                `${validCoupon.airline} - ${validCoupon.discountAmount} TL indirim`;
+        }
+    }
+}
+
+removeModalListeners() {
+    const modal = document.getElementById('passenger-modal');
+    if (!modal) return;
+    
+    modal.querySelector('.close-modal').onclick = null;
+    modal.querySelector('#cancel-passenger').onclick = null;
+    modal.querySelector('#submit-passenger').onclick = null;
+    modal.onclick = null;
+}
+
+// Yolcu bilgilerini topla
+collectPassengerInfo() {
+    return {
+        name: document.getElementById('passenger-name').value.trim(),
+        surname: document.getElementById('passenger-surname').value.trim(),
+        email: document.getElementById('passenger-email').value.trim(),
+        phone: document.getElementById('passenger-phone').value.trim()
+    };
+}
+
+// Yolcu bilgileriyle bilet oluştur
+generateTicketWithPassengerInfo(route, routeType, searchParams, passengerInfo) {
+    try {
         // Başarı mesajı göster
         this.showSuccessMessage(`${routeType} rotası için e-bilet oluşturuluyor...`);
         
-        // PDF oluştur (otomatik indir + yeni sekmede aç)
+        // FlightSearch sınıfının generateTicketPDF fonksiyonunu çağır
         const success = this.flightSearch.generateTicketPDF(
             route.flight, 
             passengerInfo,
             {
-                openInNewTab: true, // Yeni sekmede aç
-                autoPrint: false    // Otomatik yazdırma YOK
+                openInNewTab: true,
+                autoPrint: false,
+                searchParams: searchParams
             }
         );
         
@@ -917,9 +1757,20 @@ downloadTicketAsPDF(route, routeType) {
             this.showError('Bilet oluşturulurken bir hata oluştu.');
         }
     } catch (error) {
-        console.error('PDF indirme hatası:', error);
-        this.showError('Bilet indirilirken bir hata oluştu: ' + error.message);
+        console.error('PDF oluşturma hatası:', error);
+        this.showError('Bilet oluşturulurken bir hata oluştu: ' + error.message);
     }
+}
+
+// Varsayılan yolcu bilgileriyle bilet oluştur (fallback)
+generateTicketWithDefaultInfo(route, routeType, searchParams) {
+    const defaultPassengerInfo = {
+        name: "YOLCU",
+        surname: "ADI SOYADI",
+        email: ""
+    };
+    
+    this.generateTicketWithPassengerInfo(route, routeType, searchParams, defaultPassengerInfo);
 }
 showSuccessMessage(message) {
     // Geçici bir bildirim göster
