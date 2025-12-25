@@ -775,7 +775,7 @@ displayOptimizationCard(containerId, route, title, searchParams = null) {
         let cabinClassInfo = '';
         if (searchParams && searchParams.cabinClass) {
             const cabinClassDisplay = searchParams.cabinClass === 'ECONOMY' ? 'Ekonomi' : 'Business';
-            const cabinClassIcon = searchParams.cabinClass === 'ECONOMY' ? '🪑' : '';
+            const cabinClassIcon = searchParams.cabinClass === 'ECONOMY' ? '' : '';
             cabinClassInfo = `
                 <div class="stat">
                     <span class="stat-label">Kabin:</span>
@@ -1036,7 +1036,7 @@ createPassengerFields(passengerCount) {
         fieldGroup.innerHTML = `
             <div class="passenger-header">
                 <div class="passenger-number">${i}</div>
-                <h4>Yolcu ${i}</h4>
+                <h4 style="border-bottom: none";>Yolcu ${i}</h4>
             </div>
             <div class="passenger-fields">
                 <div class="form-group">
@@ -1066,14 +1066,13 @@ createPassengerFields(passengerCount) {
     }
 }
 
-
+// navigation.js - updatePriceSummary fonksiyonunu güncelleyin
 updatePriceSummary(route, searchParams, validCoupon = null) {
     const passengerCount = searchParams.adults;
-    const flightPrice = route.flight.originalPrice || route.flight.price;
-    const couponCode = validCoupon ? validCoupon.code : '';
     
-    // Toplam bilet ücreti
-    const totalTicketPrice = flightPrice * passengerCount;
+    // IMPORTANT: Rota kartında gösterilen fiyat zaten yolcu sayısı ile çarpılmış toplam fiyattır
+    // Bu yüzden tekrar çarpmamalıyız
+    const totalTicketPrice = route.flight.originalPrice || route.flight.price;
     
     // Kupon indirimi hesapla - SADECE geçerli kupon varsa
     let couponDiscount = 0;
@@ -1084,6 +1083,7 @@ updatePriceSummary(route, searchParams, validCoupon = null) {
         const step2Validation = this.validateCouponForFlightStep2(route.flight, searchParams, validCoupon);
         
         if (step2Validation.valid) {
+            // Kupon indirimi de zaten yolcu sayısı ile çarpılmış olarak geliyor
             couponDiscount = validCoupon.discountAmount;
             finalPrice = Math.max(totalTicketPrice - couponDiscount, 0);
             
@@ -1102,7 +1102,7 @@ updatePriceSummary(route, searchParams, validCoupon = null) {
         document.getElementById('coupon-discount-row').style.display = 'none';
     }
     
-    // Fiyatları göster
+    // Fiyatları göster - BU FİYATLAR ZATEN TOPLAM FİYATTIR
     document.getElementById('total-price').textContent = `${totalTicketPrice.toFixed(2)} TL`;
     document.getElementById('final-price').textContent = `${finalPrice.toFixed(2)} TL`;
     
@@ -1116,11 +1116,11 @@ updatePriceSummary(route, searchParams, validCoupon = null) {
     
     // Fiyat bilgilerini sakla (sonra kullanmak için)
     this.currentPriceInfo = {
-        totalTicketPrice,
-        couponDiscount,
-        finalPrice,
+        totalTicketPrice,       // Zaten yolcu sayısı ile çarpılmış toplam
+        couponDiscount,         // Zaten yolcu sayısı ile çarpılmış indirim
+        finalPrice,             // Zaten yolcu sayısı ile çarpılmış net fiyat
         passengerCount,
-        flightPrice,
+        flightPrice: totalTicketPrice / passengerCount, // Tek bir yolcu için bilet fiyatı
         validCoupon: validCoupon
     };
 }
@@ -1300,10 +1300,10 @@ async validateCouponForFlightStep3(flight, searchParams, coupon) {
 }
 // Geçersiz kupon durumunda submit'i işle
 handleInvalidCouponInSubmit(route, searchParams) {
-    // Fiyatları kupon olmadan güncelle
     const passengerCount = searchParams.adults;
-    const flightPrice = route.flight.originalPrice || route.flight.price;
-    const totalTicketPrice = flightPrice * passengerCount;
+    
+    // IMPORTANT: Rota fiyatı zaten toplam fiyat, tekrar çarpmıyoruz
+    const totalTicketPrice = route.flight.originalPrice || route.flight.price;
     
     // Modal'daki fiyatları güncelle
     document.getElementById('coupon-discount-row').style.display = 'none';
@@ -1311,15 +1311,17 @@ handleInvalidCouponInSubmit(route, searchParams) {
     document.getElementById('final-price').textContent = `${totalTicketPrice.toFixed(2)} TL`;
     
     // Kupon summary'ı gizle
-    const couponSummary = document.querySelector('.coupon-summary');
+    const couponSummary = document.querySelector('.coupon-sumbox');
     if (couponSummary) {
         couponSummary.style.display = 'none';
     }
     
-    // Geçerli kuponu null yap
-    this.currentPriceInfo.validCoupon = null;
+    // Fiyat bilgilerini güncelle
+    this.currentPriceInfo.totalTicketPrice = totalTicketPrice;
     this.currentPriceInfo.couponDiscount = 0;
     this.currentPriceInfo.finalPrice = totalTicketPrice;
+    this.currentPriceInfo.flightPrice = totalTicketPrice / passengerCount;
+    this.currentPriceInfo.validCoupon = null;
 }
 // Tüm yolcu bilgilerini topla
 collectAllPassengerInfo() {
@@ -1352,18 +1354,19 @@ generateTicketNumber() {
 }
 
 // Yolcu bazlı fiyat hesapla
+// Yolcu bazlı fiyat hesapla
 calculateIndividualPrice(passengerIndex) {
-    if (!this.currentPriceInfo) return { original: 0, discount: 0, final: 0 };
+    if (!this.currentPriceInfo) return { gross: 0, discount: 0, net: 0 };
     
-    const { flightPrice, couponDiscount, passengerCount, finalPrice } = this.currentPriceInfo;
+    const { totalTicketPrice, couponDiscount, passengerCount, flightPrice } = this.currentPriceInfo;
     
-    // Brüt bilet ücreti (her yolcu için aynı)
-    const grossPrice = flightPrice;
+    // Brüt bilet ücreti (her yolcu için eşit pay)
+    const grossPrice = flightPrice; // Tek bir yolcu için
     
     // Kupon indirimi hesapla (eşit dağıt)
     const individualDiscount = couponDiscount / passengerCount;
     
-    // Net ödenen ücret
+    // Net ödenen ücret (tek yolcu için)
     const netPrice = Math.max(grossPrice - individualDiscount, 0);
     
     return {
@@ -1372,7 +1375,6 @@ calculateIndividualPrice(passengerIndex) {
         net: netPrice
     };
 }
-
 // Yolcu bilgilerini validate et
 validatePassengerInfo(passengerInfoList) {
     for (const passenger of passengerInfoList) {
@@ -1587,7 +1589,7 @@ generateSingleTicket(route, routeType, searchParams, passengerInfo, pnr, order) 
         // Yolcu özel fiyat bilgileri
         const priceInfo = this.calculateIndividualPrice(passengerInfo.id);
         
-        // Bilet verilerini hazırla
+        // Bilet verilerini hazırla - validCoupon parametresini ekleyin
         const ticketData = {
             passengerInfo: passengerInfo,
             pnr: pnr,
@@ -1595,7 +1597,8 @@ generateSingleTicket(route, routeType, searchParams, passengerInfo, pnr, order) 
             priceInfo: priceInfo,
             route: route,
             searchParams: searchParams,
-            routeType: routeType
+            routeType: routeType,
+            validCoupon: this.currentPriceInfo?.validCoupon || null // Kupon bilgisini ekleyin
         };
         
         // FlightSearch sınıfını kullanarak bilet oluştur
@@ -1609,7 +1612,6 @@ generateSingleTicket(route, routeType, searchParams, passengerInfo, pnr, order) 
         console.error(`Yolcu ${passengerInfo.id} bilet oluşturma hatası:`, error);
     }
 }
-
 // PNR üret (6 haneli)
 generatePNR() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -1629,7 +1631,7 @@ showPaymentSuccess(passengerCount, totalAmount) {
             <i class="fas fa-check-circle" style="color: #10b981; margin-right: 10px; font-size: 24px;"></i>
             <div>
                 <h4>İndirme Başarılı!</h4>
-                /*<p>${passengerCount} yolcu için toplam ${totalAmount.toFixed(2)} TL ödendi.</p>*/
+                <!--<p>${passengerCount} yolcu için toplam ${totalAmount.toFixed(2)} TL ödendi.</p>-->
                 <p>Tüm biletler PDF olarak indirildi.</p>
             </div>
         </div>
