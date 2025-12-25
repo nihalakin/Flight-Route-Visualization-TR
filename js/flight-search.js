@@ -125,53 +125,7 @@ isFlightCompatibleWithCoupon(flight, coupon) {
     
     return hasMatchingAirline;
 }
-validateCouponForPDF(coupon, flight, searchParams) {
-    try {
-        // Havayolu uyumluluğu
-        const isCompatible = this.couponManager.isFlightCompatibleWithCoupon(flight, coupon);
-        if (!isCompatible) {
-            return {
-                valid: false,
-                message: 'PDF için: Havayolu uyumsuzluğu'
-            };
-        }
-        
-        // Tarih kontrolleri
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        if (coupon.expiryDate < today) {
-            return {
-                valid: false,
-                message: 'PDF için: Kupon süresi dolmuş'
-            };
-        }
-        
-        if (searchParams.departureDate) {
-            const departureDate = new Date(searchParams.departureDate);
-            departureDate.setHours(0, 0, 0, 0);
-            
-            if (coupon.expiryDate < departureDate) {
-                return {
-                    valid: false,
-                    message: 'PDF için: Uçuş tarihi uyumsuz'
-                };
-            }
-        }
-        
-        return {
-            valid: true,
-            message: 'PDF için kupon geçerli'
-        };
-        
-    } catch (error) {
-        console.error('PDF kupon doğrulama hatası:', error);
-        return {
-            valid: false,
-            message: 'PDF için: Doğrulama hatası'
-        };
-    }
-}
+
 // Kuponlu uçuşu fiyatlandır
 applyCouponToSingleFlight(flight, coupon) {
     if (!this.isFlightCompatibleWithCoupon(flight, coupon)) {
@@ -476,7 +430,7 @@ async searchFlights(searchParams) {
     showError(message) {
         alert(`${message}`);
     }
-// flight-search.js içinde generateTicketPDF fonksiyonunu güncelleyin
+
 generateTicketPDF(flight, passengerInfo = null, options = {}) {
     try {
         // E-ticket verilerini hazırla (searchParams ile)
@@ -503,7 +457,6 @@ generateTicketPDF(flight, passengerInfo = null, options = {}) {
     }
 }
 
-// flight-search.js - prepareTicketData fonksiyonunu güncelleyin
 prepareTicketData(flight, passengerInfo, searchParams = null) {
     const itinerary = flight.itineraries[0];
     const firstSegment = itinerary.segments[0];
@@ -520,28 +473,32 @@ prepareTicketData(flight, passengerInfo, searchParams = null) {
     const finalPrice = flight.price;
     const discountAmount = originalPrice - finalPrice;
     
-    // Fiyatları formatla (iki ondalık haneli)
+    // Fiyatları formatla
     const formattedOriginalPrice = originalPrice.toFixed(2);
     const formattedFinalPrice = finalPrice.toFixed(2);
     const formattedDiscount = discountAmount.toFixed(2);
     
-    // Yolcu bilgileri - artık parametre olarak geliyor
+    // Yolcu bilgileri - BÜYÜK HARF YAPILACAK
     const passengerName = passengerInfo?.name || "YOLCU ADI SOYADI";
     const passengerSurname = passengerInfo?.surname || "";
     const passengerEmail = passengerInfo?.email || "";
     const passengerPhone = passengerInfo?.phone || "";
     
-    // Tam adı oluştur
+    // Tam adı oluştur ve BÜYÜK HARF YAP
     const fullName = passengerName && passengerSurname 
-        ? `${passengerName} ${passengerSurname}`
-        : passengerName || "YOLCU ADI SOYADI";
-
+        ? `${passengerName} ${passengerSurname}`.toUpperCase().trim()
+        : passengerName.toUpperCase().trim() || "YOLCU ADI SOYADI";
+    
+    // Ayrı ad ve soyadı da büyük harf yap
+    const passengerNameUpper = passengerName.toUpperCase().trim();
+    const passengerSurnameUpper = passengerSurname.toUpperCase().trim();
+    
     // Aktarmalı uçuş için ekstra bilgiler
     let transferInfo = {};
     let secondAirlineInfo = {};
     
-    // Kabin sınıfı bilgisi - searchParams'tan al veya flight'tan al
-    let cabinClass = "Economy"; // Varsayılan
+    // Kabin sınıfı bilgisi
+    let cabinClass = "Economy";
     if (searchParams && searchParams.cabinClass) {
         cabinClass = searchParams.cabinClass === 'ECONOMY' ? 'Ekonomi' : 'Business';
     } else if (flight.cabinClass) {
@@ -574,12 +531,12 @@ prepareTicketData(flight, passengerInfo, searchParams = null) {
     }
 
     return {
-        // Yolcu bilgileri - GÜNCELLENDİ
+        // Yolcu bilgileri - BÜYÜK HARF YAPILMIŞ
         passengerName: fullName,
-        passengerFirstName: passengerName,
-        passengerLastName: passengerSurname,
-        passengerEmail: passengerEmail,
-        passengerPhone: passengerPhone,
+        passengerFirstName: passengerNameUpper,
+        passengerLastName: passengerSurnameUpper,
+        passengerEmail: passengerEmail, // E-posta büyük harfe çevrilmez
+        passengerPhone: passengerPhone, // Telefon büyük harfe çevrilmez
         
         // Ana rota bilgileri
         fromCity: window.flightNetwork.airportCoords[firstSegment.departure.airport]?.city || firstSegment.departure.airport,
@@ -611,13 +568,13 @@ prepareTicketData(flight, passengerInfo, searchParams = null) {
         airlineName: firstSegment.airline || "Bilgi Yok",
         airlineCode: firstSegment.carrier || "Bilgi Yok",
         flightNumber: firstSegment.flightNumber || "Bilgi Yok",
-        ...secondAirlineInfo, // Aktarma varsa havayolu bilgisi
+        ...secondAirlineInfo,
         
         // Sınıf bilgisi
         cabinClass: cabinClass,
         flightType: itinerary.isDirect ? "Direkt" : "Aktarmalı",
         
-        // Aktarma bilgileri (eğer varsa)
+        // Aktarma bilgileri
         ...transferInfo,
         
         // Kupon bilgileri
@@ -632,20 +589,22 @@ prepareTicketData(flight, passengerInfo, searchParams = null) {
         price: `${formattedFinalPrice} ${flight.currency}`,
         totalPrice: `${formattedFinalPrice} ${flight.currency}`,
         
-        // PNR (rezervasyon) numarası
+        // PNR numarası
         pnr: this.generatePNR(),
         
         // Segment süreleri
         flightDuration1: this.formatDurationForTicket(firstSegment.duration),
         flightDuration2: itinerary.segments.length > 1 ? this.formatDurationForTicket(itinerary.segments[1].duration) : "Bilgi Yok",
         
-        // Koltuk numarası (varsayılan)
+        // Koltuk numarası
         seatNumber: passengerInfo?.seat || "A001",
         
         // Para birimi
         currency: flight.currency || "TL"
     };
 }
+
+
     // Ticket.html şablonunu al
    getTicketTemplate() {
         return this.loadTemplateFile('templates/ticket.html');
@@ -835,7 +794,53 @@ processConditionBlock(template, conditionName, conditionValue) {
             this.downloadAsHTML(filledTemplate, ticketData);
         }
     }
-
+validateCouponForPDF(coupon, flight, searchParams) {
+    try {
+        // Havayolu uyumluluğu
+        const isCompatible = this.couponManager.isFlightCompatibleWithCoupon(flight, coupon);
+        if (!isCompatible) {
+            return {
+                valid: false,
+                message: 'PDF için: Havayolu uyumsuzluğu'
+            };
+        }
+        
+        // Tarih kontrolleri
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (coupon.expiryDate < today) {
+            return {
+                valid: false,
+                message: 'PDF için: Kupon süresi dolmuş'
+            };
+        }
+        
+        if (searchParams.departureDate) {
+            const departureDate = new Date(searchParams.departureDate);
+            departureDate.setHours(0, 0, 0, 0);
+            
+            if (coupon.expiryDate < departureDate) {
+                return {
+                    valid: false,
+                    message: 'PDF için: Uçuş tarihi uyumsuz'
+                };
+            }
+        }
+        
+        return {
+            valid: true,
+            message: 'PDF için kupon geçerli'
+        };
+        
+    } catch (error) {
+        console.error('PDF kupon doğrulama hatası:', error);
+        return {
+            valid: false,
+            message: 'PDF için: Doğrulama hatası'
+        };
+    }
+}
 downloadPDF(filledTemplate, ticketData) {
     try {
         // HTML'den PDF oluşturmak için jsPDF ve html2canvas kullan
@@ -1227,7 +1232,8 @@ openSimplePreview(filledTemplate) {
     }
 
 
-    generateTicketForPassenger(ticketData) {
+// flight-search.js - generateTicketForPassenger fonksiyonunu güncelleyin
+generateTicketForPassenger(ticketData) {
     try {
         const { passengerInfo, pnr, order, priceInfo, route, searchParams, routeType, validCoupon } = ticketData;
         
@@ -1278,17 +1284,33 @@ openSimplePreview(filledTemplate) {
     }
 }
 
-// Yolcu için bilet verilerini hazırla
-prepareTicketDataForPassenger(flight, passengerInfo, searchParams, pnr, priceInfo, ticketNumber) {
+
+
+prepareTicketDataForPassenger(flight, passengerInfo, searchParams, pnr, priceInfo, ticketNumber, validCoupon = null) {
     const itinerary = flight.itineraries[0];
     const firstSegment = itinerary.segments[0];
     const lastSegment = itinerary.segments[itinerary.segments.length - 1];
     
-    // Kupon bilgilerini kontrol et
-    const hasCoupon = flight.couponApplied || false;
-    const couponCode = flight.couponCode || '';
-    const couponDiscount = priceInfo.discount || 0;
-    const couponAirline = flight.couponAirline || '';
+    // Kupon bilgilerini kontrol et (geçerli kupon parametresi ile)
+    const hasCoupon = validCoupon !== null;
+    const couponCode = hasCoupon ? validCoupon.code : '';
+    const couponDiscount = hasCoupon ? validCoupon.discountAmount : 0;
+    const couponAirline = hasCoupon ? validCoupon.airline : '';
+    
+    // Yolcu bilgileri - BÜYÜK HARF YAPILACAK
+    const passengerName = passengerInfo?.name || "YOLCU ADI SOYADI";
+    const passengerSurname = passengerInfo?.surname || "";
+    const passengerEmail = passengerInfo?.email || "";
+    const passengerPhone = passengerInfo?.phone || "";
+    
+    // Tam adı oluştur ve BÜYÜK HARF YAP
+    const fullName = passengerName && passengerSurname 
+        ? `${passengerName} ${passengerSurname}`.toUpperCase().trim()
+        : passengerName.toUpperCase().trim() || "YOLCU ADI SOYADI";
+    
+    // Ayrı ad ve soyadı da büyük harf yap
+    const passengerNameUpper = passengerName.toUpperCase().trim();
+    const passengerSurnameUpper = passengerSurname.toUpperCase().trim();
     
     // Kabin sınıfı bilgisi
     let cabinClass = "Economy";
@@ -1297,7 +1319,7 @@ prepareTicketDataForPassenger(flight, passengerInfo, searchParams, pnr, priceInf
     } else if (flight.cabinClass) {
         cabinClass = flight.cabinClass === 'ECONOMY' ? 'Ekonomi' : 'Business';
     }
-
+    
     // Aktarmalı uçuş için ekstra bilgiler
     let transferInfo = {};
     let secondAirlineInfo = {};
@@ -1326,14 +1348,25 @@ prepareTicketDataForPassenger(flight, passengerInfo, searchParams, pnr, priceInf
             };
         }
     }
-
+    
+    // Fiyat hesaplamaları
+    const passengerCount = searchParams.adults || 1;
+    const individualGross = priceInfo.gross || flight.price;
+    const individualDiscount = priceInfo.discount || 0;
+    const individualNet = priceInfo.net || flight.price;
+    
+    // Toplam hesaplamalar
+    const totalGross = individualGross * passengerCount;
+    const totalDiscount = individualDiscount * passengerCount;
+    const totalNet = individualNet * passengerCount;
+    
     return {
-        // Yolcu bilgileri
-        passengerName: `${passengerInfo.name} ${passengerInfo.surname}`,
-        passengerFirstName: passengerInfo.name,
-        passengerLastName: passengerInfo.surname,
-        passengerEmail: passengerInfo.email || '',
-        passengerPhone: passengerInfo.phone || '',
+        // Yolcu bilgileri - BÜYÜK HARF YAPILMIŞ HALİ
+        passengerName: fullName,
+        passengerFirstName: passengerNameUpper,
+        passengerLastName: passengerSurnameUpper,
+        passengerEmail: passengerEmail, // E-posta büyük harfe çevrilmez
+        passengerPhone: passengerPhone, // Telefon numarası büyük harfe çevrilmez
         
         // Rezervasyon bilgileri
         pnr: pnr,
@@ -1378,23 +1411,33 @@ prepareTicketDataForPassenger(flight, passengerInfo, searchParams, pnr, priceInf
         // Aktarma bilgileri
         ...transferInfo,
         
-        // Fiyat bilgileri (yolcu bazlı)
+        // Fiyat bilgileri
         hasCoupon: hasCoupon,
         couponCode: couponCode,
-        couponDiscount: couponDiscount.toFixed(2),
+        couponDiscount: individualDiscount.toFixed(2),
         couponAirline: couponAirline,
-        originalPrice: priceInfo.gross.toFixed(2),
-        finalPrice: priceInfo.net.toFixed(2),
+        
+        // Yeni eklenen toplam fiyat bilgileri
+        passengerCount: passengerCount,
+        individualGross: individualGross.toFixed(2),
+        individualNet: individualNet.toFixed(2),
+        totalGross: totalGross.toFixed(2),
+        totalDiscount: totalDiscount.toFixed(2),
+        totalNet: totalNet.toFixed(2),
+        
+        // Geriye dönük uyumluluk için
+        originalPrice: individualGross.toFixed(2),
+        finalPrice: individualNet.toFixed(2),
         
         // Ücret bilgisi
-        price: `${priceInfo.net.toFixed(2)} ${flight.currency}`,
-        totalPrice: `${priceInfo.net.toFixed(2)} ${flight.currency}`,
+        price: `${individualNet.toFixed(2)} ${flight.currency}`,
+        totalPrice: `${individualNet.toFixed(2)} ${flight.currency}`,
         
         // Segment süreleri
         flightDuration1: this.formatDurationForTicket(firstSegment.duration),
         flightDuration2: itinerary.segments.length > 1 ? this.formatDurationForTicket(itinerary.segments[1].duration) : "Bilgi Yok",
         
-        // Koltuk numarası (varsayılan)
+        // Koltuk numarası
         seatNumber: this.generateSeatNumber(),
         
         // Para birimi
@@ -1406,6 +1449,7 @@ prepareTicketDataForPassenger(flight, passengerInfo, searchParams, pnr, priceInf
     };
 }
 
+
 // Yolcu bilet şablonunu doldur
 fillPassengerTicketTemplate(template, data) {
     let filledTemplate = template;
@@ -1416,6 +1460,19 @@ fillPassengerTicketTemplate(template, data) {
     // Kupon kontrolü
     const hasCoupon = data.hasCoupon || false;
     
+    // Sayısal değerleri güvenli şekilde formatla
+    const passengerCount = Number(data.passengerCount) || 1;
+    const individualGross = parseFloat(data.individualGross || data.originalPrice || 0);
+    const individualNet = parseFloat(data.individualNet || data.finalPrice || 0);
+    const totalGross = parseFloat(data.totalGross || (individualGross * passengerCount));
+    const totalDiscount = parseFloat(data.totalDiscount || 0);
+    const totalNet = parseFloat(data.totalNet || (individualNet * passengerCount));
+    
+    // Kupon bilgilerini data'dan al
+    const couponCode = data.couponCode || '';
+    const couponAirline = data.couponAirline || '';
+    const couponDiscount = parseFloat(data.couponDiscount || 0);
+    
     // Tüm değişkenleri değiştir
     const replacements = {
         // Yolcu bilgileri
@@ -1424,6 +1481,11 @@ fillPassengerTicketTemplate(template, data) {
         '{{PASSENGER_LAST_NAME}}': data.passengerLastName,
         '{{PASSENGER_EMAIL}}': data.passengerEmail,
         '{{PASSENGER_PHONE}}': data.passengerPhone,
+        
+        // Kupon bilgileri
+        '{{COUPON_CODE}}': couponCode,
+        '{{COUPON_AIRLINE}}': couponAirline,
+        '{{COUPON_DISCOUNT}}': couponDiscount.toFixed(2),
         
         // Rezervasyon bilgileri
         '{{PNR}}': data.pnr,
@@ -1460,16 +1522,24 @@ fillPassengerTicketTemplate(template, data) {
         '{{TRANSFER_DEPARTURE_TIME}}': data.transferDepartureTime || '',
         '{{TRANSFER_WAIT_TIME}}': data.transferWaitTime || '',
         '{{PRICE}}': data.finalPrice || data.price,
-        '{{ORIGINAL_PRICE}}': data.originalPrice || data.finalPrice || data.price,
-        '{{FINAL_PRICE}}': data.finalPrice || data.price,
-        '{{COUPON_CODE}}': data.couponCode || '',
-        '{{COUPON_DISCOUNT}}': data.couponDiscount || '0.00',
-        '{{COUPON_AIRLINE}}': data.couponAirline || '',
+        '{{ORIGINAL_PRICE}}': individualGross.toFixed(2),
+        '{{FINAL_PRICE}}': individualNet.toFixed(2),
         '{{TOTAL_PRICE}}': data.totalPrice,
         '{{SEAT_NUMBER}}': data.seatNumber || 'A001',
         '{{CURRENCY}}': data.currency || 'TL',
         '{{CURRENT_YEAR}}': data.currentYear,
-        '{{ISSUE_DATE}}': data.issueDate
+        '{{ISSUE_DATE}}': data.issueDate,
+        
+        // Fiyat bilgileri
+        '{{PASSENGER_COUNT}}': passengerCount.toString(),
+        '{{INDIVIDUAL_GROSS}}': individualGross.toFixed(2),
+        '{{INDIVIDUAL_NET}}': individualNet.toFixed(2),
+        '{{TOTAL_GROSS}}': totalGross.toFixed(2),
+        '{{TOTAL_DISCOUNT}}': totalDiscount.toFixed(2),
+        '{{TOTAL_NET}}': totalNet.toFixed(2),
+        
+        // Koşullu değişkenler (template işleme için)
+        '{{HAS_COUPON}}': hasCoupon ? 'true' : ''
     };
 
     // Değişken değiştirme
