@@ -13,6 +13,13 @@
     box-shadow: var(--shadow-md);
 }
 
+/* Harita elementleri */
+.province {
+    fill: var(--background);
+    stroke: var(--border);
+    stroke-width: 0.5;
+}
+
 .node {
     cursor: pointer;
     transition: var(--transition);
@@ -26,12 +33,7 @@
     font-weight: 700;
 }
 
-.province {
-    fill: var(--background);
-    stroke: var(--border);
-    stroke-width: 0.5;
-}
-
+/* Link/Edge stilleri */
 .link {
     stroke: #cbd5e1;
     stroke-width: 1;
@@ -45,123 +47,44 @@
 
 .link.network {
     stroke: #7c3aed;
-    stroke-width: 1.5; /* Sabit ince kalınlık */
+    stroke-width: 1.5;
     opacity: 0.4;
     transition: opacity 0.3s;
 }
 
 .link.network:hover {
     opacity: 0.8;
-    stroke-width: 1.5; /* Hover'da da kalınlık değişmesin */
 }
 
-/* Budama Animasyonu Stilleri */
-.node-initial,
-.node-pruned {
-    transition: all 0.5s ease;
+/* Rota stilleri */
+.link.route {
+    stroke: #10b981 !important;
+    stroke-width: 3 !important;
+    opacity: 1 !important;
+    z-index: 1000 !important;
+    pointer-events: none;
 }
 
-.link-initial,
-.link-pruned {
-    transition: all 0.5s ease;
+.link.transfer {
+    stroke: #ff9800 !important;
+    stroke-width: 3 !important;
+    opacity: 1 !important;
+    z-index: 1000 !important;
+    pointer-events: none;
 }
 
-.link-pruned {
-    stroke-linecap: round;
-    transition: opacity 0.5s ease;
-    animation: linkAppear 0.6s ease-out;
-}
-
-.node-pruned {
-    animation: nodeAppear 0.6s ease-out;
-}
-
-@keyframes nodeAppear {
-    0% {
-        transform: scale(0);
-        opacity: 0;
-    }
-    50% {
-        transform: scale(1.2);
-        opacity: 0.7;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-@keyframes linkAppear {
-    0% {
-        stroke-width: 1.5;
-        opacity: 0;
-    }
-    50% {
-        stroke-width: 1.5;
-        opacity: 0.6;
-    }
-    100% {
-        stroke-width: 1.5;
-        opacity: 0.6;
-    }
-}
-
-/* Rota animasyonları */
-.route-animated {
-    animation: dashMove 1s linear infinite;
-}
-
-@keyframes dashMove {
-    to {
-        stroke-dashoffset: -12;
-    }
-}
-
-/* Optimizasyon bilgi kutusu */
-.optimization-info.animating {
-    background: linear-gradient(90deg, #eff6ff, #f0f9ff);
-    border-left: 4px solid #3b82f6;
-    animation: infoPulse 2s ease-in-out infinite;
-}
-
-@keyframes infoPulse {
-    0%, 100% {
-        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
-    }
-    50% {
-        box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
-    }
-}
-
-/* Buton animasyonları */
-.route-btn.animating {
-    background: linear-gradient(45deg, #3b82f6, #8b5cf6);
-    color: white;
-    animation: buttonPulse 1.5s ease-in-out infinite;
-}
-
-@keyframes buttonPulse {
-    0%, 100% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.05);
-    }
-}
-
-/* Ok stilleri - Üstte görünsün */
 .link-arrow {
     z-index: 1001 !important;
     pointer-events: none;
     stroke-linecap: round;
 }
 
-.link.route {
-    z-index: 1000 !important;
-    pointer-events: none;
-}
+/* SVG katman sıralaması */
+.links { z-index: 1; }
+.nodes { z-index: 2; }
+.routes { z-index: 3; }
 
-/* Node gölge efektleri - SİYAH BORDER ETKİSİ */
+/* Node efektleri */
 .node.start,
 .node.end,
 .node.transfer {
@@ -169,38 +92,122 @@
             drop-shadow(0 0 6px rgba(0, 0, 0, 0.7)) !important;
 }
 
-/* SVG gruplarının sıralaması */
-.links {
-    z-index: 1;
+/* Budama animasyonları */
+.node-initial,
+.node-pruned,
+.link-initial,
+.link-pruned {
+    transition: all 0.5s ease;
 }
 
-.nodes {
-    z-index: 2;
+.link-pruned {
+    stroke-linecap: round;
+    animation: linkAppear 0.6s ease-out;
 }
 
-.routes {
-    z-index: 3;
+.node-pruned {
+    animation: nodeAppear 0.6s ease-out;
 }
 
-/* DİREKT uçuşlar için YEŞİL edge */
-.link.route {
-    stroke: #10b981 !important; /* Yeşil renk - direkt uçuş */
-    stroke-width: 3 !important;
-    opacity: 1 !important;
-    z-index: 1000 !important;
-    pointer-events: none;
+.node-pruned.highlighted {
+    filter: drop-shadow(0 0 8px currentColor);
+    animation: pulse 2s infinite;
 }
 
-/* AKTARMALI uçuşlar için TURUNCU edge */
-.link.transfer {
-    stroke: #ff9800 !important; /* Turuncu renk - aktarmalı uçuş */
-    stroke-width: 3 !important;
-    opacity: 1 !important;
-    z-index: 1000 !important;
-    pointer-events: none;
+.label-pruned {
+    transition: opacity 0.5s ease;
 }
 
-/* Optimizasyon haritası özel stilleri */
+/* Animasyon keyframes */
+@keyframes nodeAppear {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.2); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes linkAppear {
+    0% { stroke-width: 1.5; opacity: 0; }
+    50% { stroke-width: 1.5; opacity: 0.6; }
+    100% { stroke-width: 1.5; opacity: 0.6; }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+@keyframes dashMove {
+    to { stroke-dashoffset: -12; }
+}
+
+@keyframes arrowPulse {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 0.9; transform: scale(1.1); }
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+@keyframes infoPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+    50% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+}
+
+@keyframes buttonPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+}
+
+@keyframes slideInUp {
+    from { transform: translateY(100px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideOutDown {
+    from { transform: translateY(0); opacity: 1; }
+    to { transform: translateY(100px); opacity: 0; }
+}
+
+/* Animasyonlu class'lar */
+.route-animated {
+    animation: dashMove 1s linear infinite;
+}
+
+.optimization-info.animating {
+    background: linear-gradient(90deg, #eff6ff, #f0f9ff);
+    border-left: 4px solid #3b82f6;
+    animation: infoPulse 2s ease-in-out infinite;
+}
+
+.route-btn.animating {
+    background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+    color: white;
+    animation: buttonPulse 1.5s ease-in-out infinite;
+}
+
+/* Optimizasyon haritası */
 .route-line {
     stroke-linecap: round;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
@@ -210,61 +217,18 @@
     stroke-linecap: round;
 }
 
-/* Farklı rota türleri için renkler */
-.route-cheapest {
-    stroke: #10b981;
-}
+/* Rota renkleri */
+.route-cheapest { stroke: #10b981; }
+.route-fastest { stroke: #3b82f6; }
+.route-earliest { stroke: #f59e0b; }
+.route-balanced { stroke: #8b5cf6; }
 
-.route-fastest {
-    stroke: #3b82f6;
-}
-
-.route-earliest {
-    stroke: #f59e0b;
-}
-
-.route-balanced {
-    stroke: #8b5cf6;
-}
-
-/* Okları için marker stilleri */
+/* Marker */
 marker path {
     stroke: none;
 }
 
-/* Havalimanı vurgulama */
-.node-pruned.highlighted {
-    filter: drop-shadow(0 0 8px currentColor);
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-}
-
-/* Label animasyonları */
-.label-pruned {
-    transition: opacity 0.5s ease;
-}
-
-/* Marker animasyonları */
-#pruned-arrowhead {
-    animation: arrowPulse 2s ease-in-out infinite;
-}
-
-@keyframes arrowPulse {
-    0%, 100% {
-        opacity: 0.6;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.9;
-        transform: scale(1.1);
-    }
-}
-
-/* Uyarı mesajı stilleri */
+/* Uyarı mesajı */
 .warning-message {
     background-color: #fff3cd;
     border: 1px solid #ffeaa7;
@@ -289,6 +253,7 @@ marker path {
     margin-bottom: 20px;
 }
 
+/* Buton grupları */
 .warning-actions,
 .action-buttons {
     display: flex;
@@ -313,7 +278,7 @@ marker path {
     background-color: #5a6268;
 }
 
-/* Kabin sınıfı badge */
+/* Kabin sınıfı */
 .cabin-class-badge {
     display: inline-flex;
     align-items: center;
@@ -337,7 +302,7 @@ marker path {
     border: 1px solid #f59e0b;
 }
 
-/* Kart başlığı için düzenleme */
+/* Kart düzenlemeleri */
 .optimization-card-header {
     display: flex;
     justify-content: space-between;
@@ -352,7 +317,7 @@ marker path {
     font-size: 18px;
 }
 
-/* Rota istatistiklerinde kabin sınıfı */
+/* İstatistikler */
 .route-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -382,7 +347,7 @@ marker path {
     color: #1f2937;
 }
 
-/* Segmentlerde kabin sınıfı bilgisi */
+/* Segment kabin sınıfı */
 .segment-cabin {
     display: inline-flex;
     align-items: center;
@@ -394,7 +359,6 @@ marker path {
     margin-left: 10px;
 }
 
-/* Uçuş sonuçlarında kabin sınıfı gösterimi */
 .flight-card .cabin-info {
     display: flex;
     align-items: center;
@@ -408,7 +372,6 @@ marker path {
     border: 1px solid #bae6fd;
 }
 
-/* Arama bilgilerinde kabin sınıfı */
 .search-info .cabin-display {
     display: inline-flex;
     align-items: center;
@@ -458,10 +421,11 @@ marker path {
     margin-left: 10px;
 }
 
-.route-price.coupon-applied {
+.price-comparison {
     display: flex;
-    flex-direction: column;
-    gap: 5px;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .original-price {
@@ -494,7 +458,17 @@ marker path {
     border-left: 4px solid #0ea5e9;
 }
 
-/* Uçuş bulunamadı mesajı */
+.coupon-warning {
+    background-color: #fef3c7;
+    border: 1px solid #fbbf24;
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin: 10px 0;
+    font-size: 14px;
+    color: #92400e;
+}
+
+/* Uçuş bulunamadı */
 .no-flights-message {
     text-align: center;
     padding: 30px 0px;
@@ -531,11 +505,6 @@ marker path {
     content: '✈️';
     font-size: 80px;
     filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
-}
-
-@keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
 }
 
 .no-flights-message h3 {
@@ -613,7 +582,6 @@ marker path {
     font-size: 24px;
     color: #3b82f6;
     font-weight: bold;
-    animation: pulse 2s infinite;
 }
 
 /* Öneriler */
@@ -735,6 +703,284 @@ marker path {
     font-weight: 500;
 }
 
+/* PDF İndirme Butonu */
+.btn-download-pdf {
+    background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 20px;
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.btn-download-pdf:hover {
+    background: linear-gradient(135deg, #4338ca 0%, #2563eb 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-download-pdf i {
+    font-size: 16px;
+}
+
+.download-section {
+    margin-top: 25px;
+    padding-top: 20px;
+}
+
+.optimization-card .download-section {
+    margin: 20px -20px -20px -20px;
+    padding: 20px;
+    border-radius: 0 0 12px 12px;
+}
+
+/* PDF Notification */
+.pdf-notification {
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* Yolcu Bilgileri */
+.passenger-field,
+.passenger-field-group {
+    background: #f8f9fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    animation: fadeIn 0.3s ease;
+}
+
+.passenger-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.passenger-number {
+    background: #3b82f6;
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.passenger-inputs,
+.passenger-fields {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+.passenger-input {
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.passenger-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.passenger-input::placeholder {
+    color: #9ca3af;
+}
+
+.passenger-info-badge {
+    background: #3b82f6;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Özetler */
+.passenger-summary {
+    background: #f8fafc;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid #3b82f6;
+}
+
+.passenger-summary p {
+    margin: 0 0 10px 0;
+    color: #334155;
+    font-size: 14px;
+}
+
+.coupon-summary {
+    background: #d1fae5;
+    padding: 8px 12px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.price-summary {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 25px 0;
+}
+
+.price-summary h4 {
+    margin: 0 0 15px 0;
+    color: #1e293b;
+    font-size: 16px;
+}
+
+.price-details {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.price-row.total {
+    border-top: 2px solid #64748b;
+    padding-top: 15px;
+    margin-top: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: #1e293b;
+}
+
+.price-row.total span:last-child {
+    color: #059669;
+}
+
+.coupon-badge-modal {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Modal stilleri */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.4s ease;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    padding: 20px 25px;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.close-modal {
+    font-size: 28px;
+    cursor: pointer;
+    color: white;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.close-modal:hover {
+    opacity: 1;
+}
+
+.modal-body {
+    padding: 25px;
+}
+
+.modal-body > p {
+    margin-bottom: 20px;
+    color: #64748b;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.passenger-form {
+    display: grid;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e7eb;
+}
+
+#cancel-passenger {
+    padding: 10px 20px;
+}
+
+#submit-passenger {
+    padding: 10px 25px;
+}
+
 /* Responsive Tasarım */
 @media (max-width: 768px) {
     .no-flights-message {
@@ -787,4 +1033,366 @@ marker path {
         width: 100%;
         max-width: 300px;
     }
+    
+    .btn-download-pdf {
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+    
+    .passenger-inputs,
+    .passenger-fields {
+        grid-template-columns: 1fr;
+    }
+    
+    .modal-content {
+        width: 95%;
+        max-height: 85vh;
+    }
+    
+    .modal-body {
+        padding: 20px;
+    }
+    
+    .modal-actions {
+        flex-direction: column;
+    }
+    
+    .modal-actions button {
+        width: 100%;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/* PDF Yükleme Overlay ve Animasyonları */
+.pdf-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: white;
+    z-index: 100000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+    transition: opacity 0.8s ease-in-out;
+}
+
+.pdf-loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.loading-content {
+    text-align: center;
+    max-width: 600px;
+    padding: 40px;
+    animation: fadeInUp 0.5s ease;
+}
+
+.loading-text {
+    font-size: 32px;
+    font-weight: 700;
+    color: #003366;
+    margin-bottom: 40px;
+    font-family: 'Inter', sans-serif;
+}
+
+.completion-text {
+    font-size: 32px;
+    font-weight: 700;
+    color: #27ae60;
+    margin-bottom: 40px;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Progress Bar Stilleri */
+.progress-bar-container {
+    width: 80%;
+    max-width: 500px;
+    height: 8px;
+    background-color: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 0 auto 30px;
+    position: relative;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #003366, #0066cc);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-bar.indeterminate {
+    background: linear-gradient(90deg, #003366, #0066cc, #003366);
+    background-size: 200% 100%;
+    animation: progressIndeterminate 2s infinite linear;
+    width: 100% !important;
+}
+
+.progress-bar.completed {
+    background: #27ae60;
+    width: 100% !important;
+}
+
+/* Animasyonlar */
+@keyframes progressIndeterminate {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+/* PDF oluşturma sırasında sayfayı dondur */
+body.pdf-generating .navbar,
+body.pdf-generating .container {
+    filter: blur(2px);
+    pointer-events: none;
+}
+
+/* Yazdırma için stiller */
+@media print {
+    .pdf-loading-overlay,
+    .pdf-notification {
+        display: none !important;
+    }
+}
+
+
+/* Kupon uyarı modal'ı için stil */
+.coupon-warning-modal {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 8px;
+    padding: 15px 20px;
+    z-index: 10001;
+    max-width: 400px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    animation: slideIn 0.3s ease;
+}
+
+.coupon-warning-modal .warning-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.coupon-warning-modal .warning-content i {
+    color: #ffc107;
+    font-size: 20px;
+}
+
+.coupon-warning-modal .warning-content span {
+    color: #856404;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+/* PDF yükleme overlay'i */
+.pdf-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.95);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+}
+
+.pdf-loading-overlay .loading-content {
+    text-align: center;
+    max-width: 400px;
+    padding: 40px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+}
+
+.pdf-loading-overlay .loading-text {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 30px;
+    color: #1a237e;
+}
+
+.pdf-loading-overlay .completion-text {
+    color: #10b981;
+}
+
+.pdf-loading-overlay .progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.pdf-loading-overlay .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    transition: width 0.3s ease;
+    border-radius: 4px;
+}
+
+.pdf-loading-overlay .progress-bar.indeterminate {
+    animation: indeterminate 1.5s infinite linear;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #10b981);
+    background-size: 200% 100%;
+}
+
+.pdf-loading-overlay .progress-bar.completed {
+    background: #10b981;
+}
+
+.pdf-loading-overlay .loading-status {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+/* Animasyonlar */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+@keyframes slideInUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutDown {
+    from {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+}
+
+@keyframes indeterminate {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* PDF oluşturma sırasında scroll engelleme */
+body.pdf-generating {
+    overflow: hidden !important;
+}
+
+.navbar.pdf-generating {
+    position: relative !important;
+}
+
+/* Kupon başarı/hatası mesajları */
+.coupon-message.success {
+    color: #10b981;
+    background: #d1fae5;
+    border: 1px solid #a7f3d0;
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 10px;
+}
+
+.coupon-message.error {
+    color: #ef4444;
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 10px;
+}
+
+/* Optimizasyon kartlarında kupon göstergesi */
+.coupon-indicator {
+    background: #10b981;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin-left: 10px;
+    font-weight: 500;
+}
+
+.coupon-airline-tag {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    margin-left: 8px;
+    font-weight: 500;
 }
