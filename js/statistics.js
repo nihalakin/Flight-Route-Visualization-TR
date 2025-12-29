@@ -824,59 +824,70 @@ class Statistics {
     }
     
     createComparisonChart(canvasId, label, years, values, colors) {
-        const ctx = document.getElementById(canvasId);
-        if (!ctx) {
-            console.warn(`Karşılaştırma canvas bulunamadı: ${canvasId}`);
-            return null;
-        }
-        
-        // Canvas'ı temizle
-        const context = ctx.getContext('2d');
-        if (context) {
-            context.clearRect(0, 0, ctx.width, ctx.height);
-        }
-        
-        const chart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: years,
-                datasets: [{
-                    label: label,
-                    data: values,
-                    backgroundColor: colors,
-                    borderColor: colors.map(c => this.darkenColor(c, 20)),
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: (context) => {
-                                return `${label}: ${this.formatNumber(context.raw)}`;
-                            }
-                        }
-                    }
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) {
+        console.warn(`Karşılaştırma canvas bulunamadı: ${canvasId}`);
+        return null;
+    }
+    
+    // Canvas'ı temizle
+    const context = ctx.getContext('2d');
+    if (context) {
+        context.clearRect(0, 0, ctx.width, ctx.height);
+    }
+    
+    // Karşılaştırma için daha ince sütunlar
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: years,
+            datasets: [{
+                label: label,
+                data: values,
+                backgroundColor: colors,
+                borderColor: colors.map(c => this.darkenColor(c, 20)),
+                borderWidth: 1,
+                barPercentage: 0.4, // Sütun genişlik oranı (0-1 arası)
+                categoryPercentage: 0.6 // Kategori genişlik oranı
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: (value) => this.formatNumber(value)
+                tooltip: {
+                    callbacks: {
+                        label: (context) => {
+                            return `${label}: ${this.formatNumber(context.raw)}`;
                         }
                     }
                 }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: (value) => this.formatNumber(value)
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                }
             }
-        });
-        
-        // Chart'ı kaydet
-        this.currentComparisonCharts.push(chart);
-        return chart;
+        }
+    });
+    
+    // Chart'ı kaydet
+    this.currentComparisonCharts.push(chart);
+    return chart;
     }
     
     createComparisonTable(year1, year2, data1, data2) {
@@ -1209,7 +1220,7 @@ class Statistics {
         const analysisSection = document.createElement('div');
         analysisSection.className = 'trend-analysis-section';
         analysisSection.innerHTML = `
-            <h3><i class="fas fa-chart-line"></i> Trend Analizi</h3>
+            <h3>Trend Analizi</h3>
             <div class="trend-cards">
                 <div class="trend-card">
                     <h4><i class="fas fa-plane"></i> Uçuş Trafiği Trendi</h4>
@@ -1297,11 +1308,11 @@ class Statistics {
         const densitySection = document.createElement('div');
         densitySection.className = 'density-analysis-section';
         densitySection.innerHTML = `
-            <h3><i class="fas fa-chart-pie"></i> Yoğunluk Analizi</h3>
+            <h3>Yoğunluk Analizi</h3>
             <div class="density-cards">
                 ${this.createDensityCard('Uçuş Başına Yolcu', data1, data2)}
                 ${this.createDensityCard('Kargo Başına Yük', data1, data2)}
-                ${this.createDensityCard('Yolcu Başına Gelir', data1, data2)}
+                <!--${this.createDensityCard('Yolcu Başına Gelir', data1, data2)}-->
                 ${this.createDensityCard('Uçuş Başına Kapasite', data1, data2)}
             </div>
         `;
@@ -1461,7 +1472,7 @@ class Statistics {
         const changeSection = document.createElement('div');
         changeSection.className = 'yearly-change-chart';
         changeSection.innerHTML = `
-            <h3><i class="fas fa-chart-area"></i> Yıllık Değişim Grafiği (${year1}-${year2})</h3>
+            <h3>Yıllık Değişim Grafiği (${year1}-${year2})</h3>
             <div class="custom-chart-container">
                 <canvas id="yearly-change-chart"></canvas>
             </div>
@@ -1577,13 +1588,13 @@ class Statistics {
         summarySection.innerHTML = `
             <h3>Karşılaştırma Özeti</h3>
             <div class="summary-cards">
-                <div class="summary-card">
+                <!--<div class="summary-card">
                     <div class="summary-content">
                         <h4>Toplam Değişim</h4>
                         <div class="summary-value">${this.calculateTotalChange(data1, data2)}</div>
                         <div class="summary-description">Tüm metriklerdeki net değişim</div>
                     </div>
-                </div>
+                </div>-->
                 <div class="summary-card">
                     <div class="summary-content">
                         <h4>En Büyük Artış</h4>
@@ -1618,18 +1629,67 @@ class Statistics {
     }
 
     calculateTotalChange(data1, data2) {
-        const metrics = ['uçak_trafiği', 'yolcu_trafiği', 'kargo_trafiği_ton', 'yük_trafiği_ton'];
-        let totalChange = 0;
+    // Değişken isimlerini daha anlaşılır yapalım
+    const year1Data = data1;
+    const year2Data = data2;
+    
+    // Metrikler ve karşılık gelen veri kaynakları
+    const metrics = [
+        {
+            name: 'Uçuş Trafiği',
+            value1: year1Data.air?.uçak_trafiği || 0,
+            value2: year2Data.air?.uçak_trafiği || 0
+        },
+        {
+            name: 'Yolcu Trafiği',
+            value1: year1Data.passenger?.yolcu_trafiği || 0,
+            value2: year2Data.passenger?.yolcu_trafiği || 0
+        },
+        {
+            name: 'Kargo Trafiği',
+            value1: year1Data.cargo?.kargo_trafiği_ton || 0,
+            value2: year2Data.cargo?.kargo_trafiği_ton || 0
+        },
+        {
+            name: 'Yük Trafiği',
+            value1: year1Data.freight?.yük_trafiği_ton || 0,
+            value2: year2Data.freight?.yük_trafiği_ton || 0
+        }
+    ];
+    
+    let totalPercentageChange = 0;
+    let validMetricsCount = 0;
+    
+    metrics.forEach(metric => {
+        const { value1, value2 } = metric;
         
-        metrics.forEach(metric => {
-            const val1 = data1[metric] || 0;
-            const val2 = data2[metric] || 0;
-            if (val1 > 0) {
-                totalChange += (val2 - val1) / val1 * 100;
-            }
-        });
-        
-        return (totalChange / metrics.length).toFixed(1) + '%';
+        // Sıfırdan büyük değerler için yüzde değişimini hesapla
+        if (value1 > 0 && value2 > 0) {
+            const percentageChange = ((value2 - value1) / value1) * 100;
+            totalPercentageChange += percentageChange;
+            validMetricsCount++;
+            console.log(`${metric.name}: ${value1} → ${value2} = ${percentageChange.toFixed(2)}%`);
+        } else if (value1 === 0 && value2 > 0) {
+            // Sıfırdan pozitif değere geçiş
+            totalPercentageChange += 100; // %100 artış kabul et
+            validMetricsCount++;
+            console.log(`${metric.name}: 0 → ${value2} = 100% artış`);
+        } else if (value1 > 0 && value2 === 0) {
+            // Pozitif değerden sıfıra düşüş
+            totalPercentageChange += -100; // %100 düşüş kabul et
+            validMetricsCount++;
+            console.log(`${metric.name}: ${value1} → 0 = -100% düşüş`);
+        }
+    });
+    
+    // Ortalama değişimi hesapla
+    const averageChange = validMetricsCount > 0 
+        ? (totalPercentageChange / validMetricsCount) 
+        : 0;
+    
+    console.log(`Toplam değişim hesaplandı: ${averageChange.toFixed(2)}% (${validMetricsCount} metrik)`);
+    
+    return `${averageChange.toFixed(1)}%`;
     }
 
     findLargestIncrease(data1, data2) {
@@ -2205,12 +2265,12 @@ class Statistics {
                 <div class="density-label">kg/uçuş</div>
             </div>
             
-            <div class="density-metric animated-card">
+            <!--<div class="density-metric animated-card">
                 <div class="density-label">Yolcu Başına Gelir</div>
                 <div class="density-value">${metrics.revenuePerPassenger.toFixed(1)}</div>
                 <div class="density-label">TL/yolcu</div>
             </div>
-            
+            -->
             <div class="density-metric animated-card">
                 <div class="density-label">Uçuş Yoğunluğu</div>
                 <div class="density-value">${metrics.flightDensity.toFixed(1)}</div>
