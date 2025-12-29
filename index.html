@@ -12,11 +12,12 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="css/visualization.css">
     <link rel="stylesheet" href="css/statistic.css">
+    <link rel="stylesheet" href="css/airline-reviews.css">
 </head>
 <body>
 
@@ -37,6 +38,9 @@
                 </li>
                 <li class="nav-item">
                     <a href="#istatistikler" class="nav-link" data-tab="istatistikler">İstatistikler</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#havayolu-analiz" class="nav-link" data-tab="havayolu-analiz">Havayolu Yorumları</a>
                 </li>
             </ul>
             <div class="hamburger">
@@ -299,6 +303,58 @@
         </div>
     </div>
 </div>
+<!-- index.html - passenger modal'ı güncelleyin -->
+<div id="passenger-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Yolcu Bilgileri</h3>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="passenger-summary">
+                <p><strong>Rezervasyon Bilgisi:</strong> 
+                   <span id="modal-route-info"></span> | 
+                   <span id="modal-date-info"></span> | 
+                   <span id="modal-passenger-count"></span> yolcu
+                </p>
+                <!-- Handlebars etiketlerini kaldır, JavaScript ile kontrol edeceğiz -->
+                <div class="coupon-summary" style="display: none;">
+                    <span class="coupon-badge">Kupon Uygulandı</span>
+                    <span id="modal-coupon-info"></span>
+                </div>
+            </div>
+            
+            <div id="passenger-fields-container">
+                <!-- Dinamik olarak yolcu sayısına göre oluşturulacak -->
+            </div>
+            
+            <div class="price-summary">
+                <h4>Ücret Özeti</h4>
+                <div class="price-details">
+                    <div class="price-row">
+                        <span>Toplam Bilet Ücreti:</span>
+                        <span id="total-price"></span>
+                    </div>
+                    <div id="coupon-discount-row" style="display: none;">
+                        <span>Kupon İndirimi:</span>
+                        <span id="coupon-discount"></span>
+                    </div>
+                    <div class="price-row total">
+                        <span>Ödenecek Toplam:</span>
+                        <span id="final-price"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button id="cancel-passenger" class="btn-secondary">Vazgeç</button>
+                <button id="submit-passenger" class="btn-primary">Biletleri Oluştur</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
     <!-- Havalimanları İçeriği -->
     <div id="havalimanlari" class="tab-content">
         <div class="container">
@@ -357,18 +413,18 @@
             <div id="all-years-mode" class="stats-mode-content active">
                 <!-- Tarihi Analiz Alanı -->
                 <div class="historical-analysis">
-                    <h2><i class="fas fa-history"></i> Tarihi Analiz</h2>
+                    <h2>Tarihi Analiz</h2>
                     
                     <div class="analysis-cards">
                         <div class="analysis-card">
-                            <h3><i class="fas fa-trophy"></i> Tarihi Rekorlar</h3>
+                            <h3>Tarihi Rekorlar</h3>
                             <div id="historical-records" class="records-list">
                                 <!-- Dinamik olarak yüklenecek -->
                             </div>
                         </div>
                         
                         <div class="analysis-card">
-                            <h3><i class="fas fa-exclamation-circle"></i> Önemli Noktalar</h3>
+                            <h3>Önemli Noktalar</h3>
                             <div id="important-points" class="points-list">
                                 <!-- Dinamik olarak yüklenecek -->
                             </div>
@@ -378,7 +434,7 @@
 
                 <!-- Grafikler Bölümü -->
                 <div class="charts-section">
-                    <h2><i class="fas fa-chart-line"></i> Yıllık Trafik Grafikleri</h2>
+                    <h2>Yıllık Trafik Grafikleri</h2>
                     
                     <div class="charts-container">
                         <div class="chart-card">
@@ -413,7 +469,7 @@
 
                 <!-- Detaylı Veri Tabları -->
                 <div class="data-tabs-section">
-                    <h2><i class="fas fa-table"></i> Yıl Bazlı Detaylı Veriler</h2>
+                    <h2>Yıl Bazlı Detaylı Veriler</h2>
                     
                     <div class="tabs-container">
                         <div class="tabs-header">
@@ -507,7 +563,7 @@
             <!-- Karşılaştırma Modu -->
             <div id="compare-mode" class="stats-mode-content">
                 <div class="compare-header">
-                    <h2><i class="fas fa-balance-scale"></i> Detaylı Yıl Karşılaştırması</h2>
+                    <h2>Detaylı Yıl Karşılaştırması</h2>
                     
                     <div class="compare-controls">
                         <div class="year-selector-group">
@@ -529,7 +585,7 @@
                         </div>
                         
                         <button id="run-comparison" class="compare-btn">
-                            <i class="fas fa-chart-bar"></i> Karşılaştırmayı Çalıştır
+                            Karşılaştırmayı Çalıştır
                         </button>
                     </div>
                     
@@ -556,40 +612,29 @@
                                     <input type="checkbox" id="option-yearly-change">
                                     <span>Yıllık Değişim Grafiği</span>
                                 </label>
-                            </div>
-                            <div class="option-group">
-                                <label class="option-checkbox">
-                                    <input type="checkbox" id="option-normalize">
-                                    <span>Verileri Normalize Et</span>
-                                </label>
                                 <label class="option-checkbox">
                                     <input type="checkbox" id="option-percentage" checked>
                                     <span>Yüzde Değişimleri Göster</span>
                                 </label>
                             </div>
+                            <!--<div class="option-group">
+                                <label class="option-checkbox">
+                                    <input type="checkbox" id="option-normalize">
+                                    <span>Verileri Normalize Et</span>
+                                </label>
+
+                            </div>-->
                         </div>
                     </div>
                 </div>
 
                 <!-- KARŞILAŞTIRMA SONUÇLARI BÖLÜMÜ (Başlangıçta gizli) -->
                 <div id="comparison-results" class="comparison-results" style="display: none;">
-                    <!-- Karşılaştırma başlıkları -->
-                    <div class="comparison-headers">
-                        <div class="year-header-card" id="year1-header">
-                            <!-- Yıl 1 başlığı buraya eklenecek -->
-                        </div>
-                        <div class="vs-text">
-                            <i class="fas fa-balance-scale"></i>
-                            <span>Karşılaştırma</span>
-                        </div>
-                        <div class="year-header-card" id="year2-header">
-                            <!-- Yıl 2 başlığı buraya eklenecek -->
-                        </div>
-                    </div>
+
 
                     <!-- Karşılaştırma Grafikleri -->
                     <div class="comparison-charts-section">
-                        <h3><i class="fas fa-chart-bar"></i> Karşılaştırma Grafikleri</h3>
+                        <h3>Karşılaştırma Grafikleri</h3>
                         <div class="comparison-charts">
                             <div class="comparison-chart-card">
                                 <h4>Uçuş Trafiği</h4>
@@ -620,7 +665,7 @@
 
                     <!-- Detaylı Karşılaştırma Tablosu -->
                     <div class="detailed-comparison">
-                        <h3><i class="fas fa-table"></i> Detaylı Karşılaştırma Tablosu</h3>
+                        <h3>Detaylı Karşılaştırma Tablosu</h3>
                         <div class="data-table-container">
                             <table id="comparison-table" class="data-table">
                                 <thead>
@@ -643,6 +688,188 @@
         </div>
     </div>
 
+ 
+<!-- Havayolu Analiz İçeriği -->
+<div id="havayolu-analiz" class="tab-content">
+    <div class="container">
+        <header>
+            <h1>Havayolu Yorum Analizi</h1>
+            <div class="subtitle">Havayollarına ait yorumların detaylı analizi ve istatistikleri</div>
+        </header>
+
+        <!-- Havayolu Seçimi -->
+        <div class="airline-selection-section">
+            <div class="selection-card">
+                <h3>Havayolu Seçimi</h3>
+                <div class="airline-selection">
+                    <label for="airline-select">Analiz Edilecek Havayolu:</label>
+                    <select id="airline-select" class="form-select">
+                        <option value="">Tüm Havayolları</option>
+                        <!-- Havayolları dinamik olarak yüklenecek -->
+                    </select>
+                    <button id="analyze-airline" class="btn-primary analyze-btn">
+                        <i class="fas fa-chart-line"></i> Analiz Et
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Genel İstatistikler -->
+        <div class="overall-stats-section">
+            <h2>Genel İstatistikler</h2>
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="total-reviews">0</h3>
+                        <p>Toplam Yorum</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon positive">
+                        <i class="fas fa-thumbs-up"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="positive-reviews">0</h3>
+                        <p>Olumlu Yorum</p>
+                        <span id="positive-percentage" class="stat-percentage">0%</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon negative">
+                        <i class="fas fa-thumbs-down"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="negative-reviews">0</h3>
+                        <p>Olumsuz Yorum</p>
+                        <span id="negative-percentage" class="stat-percentage">0%</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon neutral">
+                        <i class="fas fa-minus-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="neutral-reviews">0</h3>
+                        <p>Nötr Yorum</p>
+                        <span id="neutral-percentage" class="stat-percentage">0%</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="average-rating">0.0</h3>
+                        <p>Ortalama Puan</p>
+                        <div class="rating-stars">
+                            <div class="stars-empty">★★★★★</div>
+                            <div class="stars-filled" id="stars-filled">★★★★★</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sentiment Analiz Grafiği -->
+        <div class="sentiment-section">
+            <h2>Duygu Dağılımı ve Son Yorumlar</h2>
+            <div class="sentiment-content">
+                <div class="sentiment-chart-container">
+                    <canvas id="sentiment-chart"></canvas>
+                </div>
+                
+                <div class="sentiment-examples">
+                    <!-- Dinamik olarak yüklenecek -->
+                    <div class="placeholder-text">
+                        Havayolu seçerek duygu analizi ve son yorumları görüntüleyin
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- En Çok Şikayet Edilen ve Beğenilen Özellikler -->
+        <div class="features-analysis">
+            <div class="features-grid">
+                <!-- En Çok Şikayet Edilenler -->
+                <div class="features-card">
+                    <h3>
+                        <i class="fas fa-exclamation-triangle negative-icon"></i>
+                        En Çok Şikayet Edilen Konular
+                    </h3>
+                    <div class="complaints-list" id="complaints-list">
+                        <!-- Dinamik olarak yüklenecek -->
+                        <div class="placeholder-text">Havayolu seçerek analiz sonuçlarını görüntüleyin</div>
+                    </div>
+                </div>
+
+                <!-- En Çok Beğenilenler -->
+                <div class="features-card">
+                    <h3>
+                        <i class="fas fa-heart positive-icon"></i>
+                        En Çok Beğenilen Özellikler
+                    </h3>
+                    <div class="praises-list" id="praises-list">
+                        <!-- Dinamik olarak yüklenecek -->
+                        <div class="placeholder-text">Havayolu seçerek analiz sonuçlarını görüntüleyin</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Puan Dağılımı ve Trend Analizi - Yan Yana -->
+<div class="charts-row">
+    <div class="rating-distribution">
+        <h2>Puan Dağılımı</h2>
+        <div class="distribution-chart">
+            <canvas id="rating-chart"></canvas>
+        </div>
+    </div>
+
+    <div class="trend-analysis">
+        <h2>Yıllara Göre Yorum Trendi</h2>
+        <div class="trend-chart">
+            <canvas id="trend-chart"></canvas>
+        </div>
+    </div>
+</div>
+
+        <!-- Detaylı Yorum Listesi -->
+        <div class="detailed-reviews">
+            <h2>Yorumlar</h2>
+            <div class="reviews-filter">
+                <div class="filter-options">
+                    <label>Filtrele:</label>
+                    <button class="filter-btn active" data-filter="all">Tümü</button>
+                    <button class="filter-btn" data-filter="positive">Olumlu</button>
+                    <button class="filter-btn" data-filter="negative">Olumsuz</button>
+                    <button class="filter-btn" data-filter="neutral">Nötr</button>
+                </div>
+                <div class="sort-options">
+                    <label for="sort-select">Sırala:</label>
+                    <select id="sort-select" class="form-select">
+                        <option value="date-desc">En Yeni</option>
+                        <option value="date-asc">En Eski</option>
+                        <option value="rating-desc">Yüksek Puan</option>
+                        <option value="rating-asc">Düşük Puan</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="reviews-list" id="reviews-list">
+                <!-- Yorumlar dinamik olarak yüklenecek -->
+                <div class="placeholder-message">
+                    <h3>Yorumları Görüntüle</h3>
+                    <p>Bir havayolu seçerek ilgili yorumları görüntüleyebilirsiniz.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
     <script src="js/utils.js"></script>
     <script src="js/flight-network.js"></script>
     <script src="js/visualization.js"></script>
@@ -654,5 +881,6 @@
     <script src="js/navigation.js"></script>
     <script src="js/app.js"></script>
     <script src="js/statistics.js"></script>
+    <script src="js/airline-reviews.js"></script>
 </body>
 </html>

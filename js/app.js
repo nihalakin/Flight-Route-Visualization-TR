@@ -110,6 +110,16 @@ let flightNetwork, visualization, flightFilter, voiceCommands;
 
 // DOM yüklendikten sonra çalıştır
 document.addEventListener('DOMContentLoaded', function() {
+    // PDF oluşturma class'larını temizle (eğer kalıcı olarak kalmışsa)
+    const navbar = document.querySelector('.navbar');
+    const body = document.body;
+    if (navbar && navbar.classList.contains('pdf-generating')) {
+        navbar.classList.remove('pdf-generating');
+    }
+    if (body && body.classList.contains('pdf-generating')) {
+        body.classList.remove('pdf-generating');
+    }
+    
     // Uçuş ağı oluştur
     flightNetwork = new FlightNetwork(airportData);
     window.flightNetwork = flightNetwork; // Global erişim için
@@ -132,4 +142,64 @@ document.addEventListener('DOMContentLoaded', function() {
         // Harita yüklenemezse bile havalimanlarını çiz
         visualization.drawAirports(flightNetwork.airportData, flightNetwork.flightCounts, flightNetwork.airportCoords, flightNetwork.links);
     });
+// Ana uygulama başlatıcı
+document.addEventListener('DOMContentLoaded', function() {
+    // Navbar hamburger menü toggle
+    const hamburger = document.querySelector(".hamburger");
+    const navMenu = document.querySelector(".nav-menu");
+    
+    if (hamburger && navMenu) {
+        hamburger.addEventListener("click", () => {
+            hamburger.classList.toggle("active");
+            navMenu.classList.toggle("active");
+        });
+        
+        // Hamburger menü kapatma
+        document.querySelectorAll(".nav-link").forEach(n => n.addEventListener("click", () => {
+            hamburger.classList.remove("active");
+            navMenu.classList.remove("active");
+        }));
+    }
+    
+    // Sayfalar arası geçiş
+    const navLinks = document.querySelectorAll('.nav-link');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    navLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const targetTab = this.getAttribute('data-tab');
+            
+            // Aktif linki güncelle
+            navLinks.forEach(l => l.classList.remove('active'));
+            this.classList.add('active');
+            
+            // İlgili tab içeriğini göster
+            tabContents.forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.id === targetTab) {
+                    tab.classList.add('active');
+                }
+            });
+            
+            // Tab değiştiğinde özel işlemler
+            if (targetTab === 'havayolu-analiz') {
+                // Havayolu analiz sayfasına geçildiğinde
+                if (typeof window.airlineReviews === 'undefined') {
+                    // AirlineReviews sınıfını global yap
+                    window.airlineReviews = new AirlineReviews();
+                }
+            }
+        });
+    });
+    
+    // Başlangıçta ilk tab'ı göster
+    if (navLinks.length > 0) {
+        const firstTab = navLinks[0].getAttribute('data-tab');
+        document.getElementById(firstTab)?.classList.add('active');
+        navLinks[0].classList.add('active');
+    }
+});
+
 });
