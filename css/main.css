@@ -85,6 +85,57 @@ h4 {
     z-index: 1000;
 }
 
+/* PDF oluşturma sırasında sayfayı dondur */
+body.pdf-generating {
+    overflow: hidden !important;
+    position: relative !important;
+}
+
+body.pdf-generating .navbar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    transform: none !important;
+    will-change: auto !important;
+}
+
+body.pdf-generating .navbar .nav-container {
+    max-width: 1200px !important;
+    margin: 0 auto !important;
+}
+
+body.pdf-generating .tab-content {
+    position: relative !important;
+    transform: none !important;
+}
+
+body.pdf-generating .flight-search-container {
+    position: relative !important;
+    transform: none !important;
+}
+
+body.pdf-generating .search-card {
+    position: relative !important;
+    top: auto !important;
+    transform: none !important;
+}
+
+body.pdf-generating * {
+    animation: none !important;
+    transition: none !important;
+}
+
+body.pdf-generating .flight-card,
+body.pdf-generating .optimization-card,
+body.pdf-generating .info-panel,
+body.pdf-generating .map-container {
+    position: relative !important;
+    transform: none !important;
+    will-change: auto !important;
+}
+
 .nav-container {
     max-width: 1200px;
     margin: 0 auto;
@@ -940,9 +991,31 @@ h1 {
 .airport-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    position: relative;
+    gap: 10px; /* İsim ve kod arasına boşluk */
 }
+
+.airport-header h4 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1.3;
+    flex: 1;
+    /* Taşmayı önleyen stil */
+    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    max-height: 3.9em; /* 3 satır yüksekliği */
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3; /* Maksimum 3 satır göster */
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
 
 .airport-code {
     background: #eef2ff;
@@ -1208,22 +1281,7 @@ h1 {
     border-color: var(--primary);
 }
 
-.airport-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 20px;
-    position: relative;
-}
 
-.airport-header h4 {
-    margin: 0;
-    color: var(--text-primary);
-    font-size: 1.3rem;
-    font-weight: 700;
-    line-height: 1.3;
-    flex: 1;
-}
 
 .airport-code {
     /*background: linear-gradient(135deg, var(--primary), var(--primary-600));*/
@@ -1436,3 +1494,4 @@ marker path {
     stroke-width: 1;
     stroke-linejoin: round;
 }
+
