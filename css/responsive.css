@@ -25,6 +25,14 @@
         margin: 15px 0;
     }
     
+    .nav-auth {
+        gap: 6px;
+    }
+    .nav-auth .nav-btn {
+        padding: 6px 10px;
+        font-size: 0.85rem;
+    }
+    
     .hamburger.active .bar:nth-child(2) {
         opacity: 0;
     }
