@@ -1,4 +1,8 @@
+/* Ortak bileşen stilleri */
+@import url("components.css");
+
 /* Design Tokens */
+:root {
 :root {
     --background: #f7f8fa;
     --surface: #ffffff;
@@ -7,8 +11,8 @@
     --text-muted: #64748b;
     --border: #e5e7eb;
 
-    --primary: #2563eb;
-    --primary-600: #1d4ed8;
+    --primary: #007e8a;
+    --primary-600: #016b75;
     --success: #10b981;
     --warning: #f59e0b;
     --danger: #ef4444;
@@ -151,7 +155,9 @@ body.pdf-generating .map-container {
     list-style: none;
     margin: 0;
     padding: 0;
-    gap: 30px;
+    gap: 24px;
+    flex-wrap: nowrap;
+    align-items: center;
 }
 
 .nav-link {
@@ -161,12 +167,58 @@ body.pdf-generating .map-container {
     border-radius: 999px;
     transition: var(--transition);
     font-weight: 600;
+    white-space: nowrap;
 }
 
 .nav-link:hover,
 .nav-link.active {
     background: #eef2ff;
     color: var(--primary);
+}
+
+.nav-auth {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: var(--transition);
+    font-size: 0.9rem;
+}
+
+.nav-btn-register {
+    color: var(--primary);
+    background: #eef2ff;
+}
+
+.nav-btn-register:hover {
+    background: #e0e7ff;
+    color: var(--primary-600);
+}
+
+.nav-btn-login {
+    color: #fff;
+    background: var(--primary);
+}
+
+.nav-btn-login:hover {
+    background: var(--primary-600);
+    color: #fff;
+}
+
+.nav-logo a.nav-logo-link {
+    text-decoration: none;
+    color: inherit;
 }
 
 .hamburger {
@@ -808,7 +860,7 @@ h1 {
 .stat-value {
     color: var(--text-primary);
     font-weight: 700;
-    font-size: 0.85rem;
+    font-size: 0.85rem!important;
 }
 
 /* Flight Segments */
@@ -1495,3 +1547,141 @@ marker path {
     stroke-linejoin: round;
 }
 
+/* Navbar logo ve yazı stili */
+.nav-logo-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+}
+
+.nav-logo-link img {
+    height: 36px;
+    width: auto;
+    border-radius: 5px;
+    transition: var(--transition);
+}
+
+
+
+.nav-logo-link span {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: -0.5px;
+    background:  var(--primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Mobil görünüm için */
+@media (max-width: 768px) {
+    .nav-logo-link span {
+        font-size: 1.4rem;
+    }
+    
+    .nav-logo-link img {
+        height: 30px;
+    }
+}
+
+/* Navbar düzenlemeleri */
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 70px;
+}
+
+.nav-logo {
+    flex-shrink: 0; /* Logonun küçülmesini engeller */
+}
+
+.nav-logo-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+}
+
+
+.nav-menu {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 24px;
+    flex-wrap: nowrap;
+    align-items: center;
+    flex: 1;
+    justify-content: center;
+}
+
+.nav-auth {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0; /* Auth butonlarının küçülmesini engeller */
+    margin-left: auto; /* Sağa yaslar */
+}
+
+/* Mobil görünüm */
+@media (max-width: 768px) {
+    .nav-container {
+        flex-wrap: wrap;
+    }
+    
+    .nav-logo-link span {
+        font-size: 1.4rem;
+    }
+    
+    .nav-logo-link img {
+        height: 30px;
+    }
+    
+    .nav-menu {
+        position: fixed;
+        left: -100%;
+        top: 70px;
+        flex-direction: column;
+        background: var(--surface);
+        width: 100%;
+        text-align: center;
+        transition: 0.3s;
+        box-shadow: var(--shadow-lg);
+        padding: 20px 0;
+        gap: 0;
+        flex: none;
+        justify-content: flex-start;
+    }
+    
+    .nav-menu.active {
+        left: 0;
+    }
+    
+    .nav-item {
+        margin: 15px 0;
+    }
+    
+    .nav-auth {
+        margin-left: 0;
+    }
+}
+
+/* Hamburger menü butonu */
+.hamburger {
+    display: none;
+    flex-direction: column;
+    cursor: pointer;
+    margin-left: auto; /* Hamburger menüyü sağa yaslar */
+}
+
+@media (max-width: 768px) {
+    .hamburger {
+        display: flex;
+    }
+}
