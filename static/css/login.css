@@ -1,0 +1,12 @@
+/**
+ * Giriş sayfası stilleri.
+ * base.css + components.css ile birlikte kullanılır.
+ */
+/* Login form merkezleme vb. */
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}

@@ -1070,24 +1070,25 @@
                     <div class="price-row total-row">
                         <span>Toplam Bilet Ücreti:</span>
                         <span class="price-value">{{TOTAL_GROSS}} {{CURRENCY}}</span>
+                    </div>                   
+                     <div class="price-row">
+                        <span>Tek Yolcu Ücreti:</span>
+                        <span class="price-value">{{ORIGINAL_PRICE}} {{CURRENCY}}</span>
                     </div>
+                    
 
-                    <div class="price-row total-row">
-                        <span>Toplam İndirim:</span>
-                        <span class="price-value">-{{TOTAL_DISCOUNT}} {{CURRENCY}}</span>
-                    </div>
+                    
                 </div>
                     
                 <!-- KUPON İNDİRİMLERİ -->
                 {{#if HAS_COUPON}}
                 <div class="price-group discount-group">
                     <div class="group-title">Kupon Detayları</div>
-                    
-                    <div class="price-row">
-                        <span>Tek Yolcu Ücreti:</span>
-                        <span class="price-value">{{ORIGINAL_PRICE}} {{CURRENCY}}</span>
+                    <div class="price-row total-row">
+                        <span>Toplam İndirim:</span>
+                        <span class="price-value">-{{TOTAL_DISCOUNT}} {{CURRENCY}}</span>
                     </div>
-                    
+
                     <div class="price-row">
                         <span>Tek Yolcu İndirimi:</span>
                         <span class="price-value">-{{COUPON_DISCOUNT}} {{CURRENCY}}</span>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hesap Oluştur · Nodia</title>
+    <link rel="stylesheet" href="/static/css/register.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="auth-body">
+    <div class="auth-wrapper">
+        <!-- Başlık -->
+        <div class="auth-header">
+            <h1 class="auth-logo">nodia</h1>
+            <p class="auth-subtitle">Yeni hesap oluştur</p>
+        </div>
+
+        <!-- Kart -->
+        <div class="auth-card">
+            <form id="registerForm" class="auth-form">
+                <!-- Ad Soyad grid -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstname" class="form-label">Ad</label>
+                        <input 
+                            type="text" 
+                            id="firstname" 
+                            name="firstname" 
+                            required
+                            class="form-input"
+                            placeholder="Ad"
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="lastname" class="form-label">Soyad</label>
+                        <input 
+                            type="text" 
+                            id="lastname" 
+                            name="lastname" 
+                            required
+                            class="form-input"
+                            placeholder="Soyad"
+                        >
+                    </div>
+                </div>
+
+                <!-- Kullanıcı adı -->
+                <div class="form-group">
+                    <label for="username" class="form-label">Kullanıcı adı</label>
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        required
+                        class="form-input"
+                        placeholder="ornek_kullanici"
+                    >
+                    <p class="form-hint">En az 3 karakter, yalnızca harf, rakam ve _ . - karakterleri.</p>
+                </div>
+                
+                <!-- E-posta -->
+                <div class="form-group">
+                    <label for="email" class="form-label">E-posta adresi</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        required
+                        class="form-input"
+                        placeholder="ornek@email.com"
+                    >
+                </div>
+                
+                <!-- Şifre -->
+                <div class="form-group">
+                    <label for="password" class="form-label">Şifre</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        required
+                        class="form-input"
+                        placeholder="••••••••"
+                    >
+                    <p class="form-hint">En az 8 karakter, 1 büyük harf ve 1 rakam içermeli</p>
+                </div>
+                
+                <!-- Hata mesajı -->
+                <div id="errorMessage" class="alert alert-error hidden" role="alert">
+                    <span id="errorText" class="alert-message"></span>
+                </div>
+                
+                <!-- Başarı mesajı -->
+                <div id="successMessage" class="alert alert-success hidden" role="alert">
+                    <span id="successText" class="alert-message"></span>
+                </div>
+                
+                <!-- Kayıt butonu -->
+                <button 
+                    type="submit" 
+                    class="btn btn-primary btn-block"
+                >
+                    Hesap oluştur
+                </button>
+            </form>
+            
+            <!-- Giriş yap bağlantısı -->
+            <p class="auth-footer">
+                Zaten hesabın var mı?
+                <a href="#" id="loginLink" class="auth-link">Giriş yap</a>
+            </p>
+        </div>
+
+        <!-- Alt bilgi -->
+        <p class="auth-bottom-text">
+            Hesap oluşturarak Nodia'nın kullanım koşullarını kabul etmiş olursun
+        </p>
+    </div>
+
+    <script src="/static/js/register.js"></script>
+</body>
+</html>

@@ -1,0 +1,277 @@
+/**
+ * components.css – Buton, kart, badge, navbar vb. ortak bileşenler
+ */
+/* Navbar */
+.navbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 70px;
+}
+
+.nav-logo a.nav-logo-link {
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nav-logo-link img {
+    height: 36px;
+    width: auto;
+    border-radius: 5px;
+}
+
+.nav-menu {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 24px;
+    flex-wrap: nowrap;
+    align-items: center;
+}
+
+.nav-link {
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 8px 12px;
+    border-radius: 999px;
+    transition: var(--transition);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    background: #eef2ff;
+    color: var(--primary);
+}
+
+.nav-auth {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: var(--transition);
+    font-size: 0.9rem;
+}
+
+.nav-btn-register {
+    color: var(--primary);
+    background: #eef2ff;
+}
+
+.nav-btn-register:hover {
+    background: #e0e7ff;
+    color: var(--primary-600);
+}
+
+.nav-btn-login {
+    color: #fff;
+    background: var(--primary);
+}
+
+.nav-btn-login:hover {
+    background: var(--primary-600);
+    color: #fff;
+}
+
+.hamburger {
+    display: none;
+    flex-direction: column;
+    cursor: pointer;
+}
+
+.hamburger .bar {
+    width: 25px;
+    height: 3px;
+    background: var(--text-primary);
+    margin: 3px 0;
+    transition: 0.3s;
+}
+
+/* Butonlar */
+.btn-primary,
+.search-btn,
+.route-controls button,
+.voice-controls button,
+.route-btn {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
+    font-weight: 600;
+}
+
+.btn-primary:hover,
+.search-btn:hover,
+.route-controls button:hover,
+.voice-controls button:hover,
+.route-btn:hover {
+    background: var(--primary-600);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: #e2e8f0;
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    padding: 10px 16px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-secondary:hover {
+    background: #cbd5e1;
+}
+
+/* Kart */
+.card,
+.search-card,
+.map-container,
+.flight-card,
+.optimization-card,
+.stat-card {
+    background: var(--surface);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+    padding: 30px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+}
+
+.card:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+/* Badge */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-primary {
+    background: #eef2ff;
+    color: var(--primary);
+}
+
+.badge-success {
+    background: #ecfdf5;
+    color: var(--success);
+}
+
+/* Form */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+.form-select,
+.form-input,
+.search-input,
+.filter-select {
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--background);
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: var(--transition);
+}
+
+.form-select:focus,
+.form-input:focus,
+.search-input:focus,
+.filter-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0, 126, 138, 0.1);
+}
+
+/* Footer */
+.site-footer {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 24px;
+    margin-top: auto;
+}
+
+.footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.footer-content {
+    text-align: center;
+}
+
+.footer-brand {
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 8px;
+}
+
+.footer-copy {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+.footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.footer-links a:hover {
+    color: var(--primary);
+}

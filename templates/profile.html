@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil · Nodia </title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css">
+    <!-- Inter font - standart weightler -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <!-- Ana CSS (orijinal) -->
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/profile.css">
+    <style>
+        /* ===== MODERN PROFİL - DENGELİ FONT BOYUTLARI ===== */
+        .profile-modern {
+            font-family: "Inter", system-ui, sans-serif;
+            background: #f1f5f9;
+        }
+
+        /* container geniş (isteğe bağlı) */
+        .profile-modern .container {
+            max-width: 1200px !important;
+            padding-left: 32px;
+            padding-right: 32px;
+        }
+
+        /* Kartlar - geniş ama fontlar küçüldü */
+        .profile-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(229, 231, 235, 0.4);
+            border-radius: 32px;
+            box-shadow: 0 30px 60px -15px rgba(2, 6, 23, 0.15), 0 0 0 1px rgba(0,0,0,0.02);
+            padding: 2rem 2.5rem;          /* yatay padding geniş, dikey orta */
+            width: 100%;
+            margin-bottom: 2rem;
+            transition: transform 0.2s, box-shadow 0.3s;
+        }
+
+        .profile-card:hover {
+            box-shadow: 0 35px 65px -15px rgba(2, 6, 23, 0.2);
+            transform: translateY(-3px);
+        }
+
+        /* Profil başlık (avatar + yazı) */
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        /* avatar - daha küçük ama orantılı */
+        .avatar-lg {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(145deg, #2563eb, #7c3aed);
+            border-radius: 28px;            /* köşeli ama modern */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2.2rem;              /* ikon/baş harf boyutu */
+            font-weight: 500;
+            box-shadow: 0 20px 35px -10px #2563eb;
+            border: 3px solid white;
+            flex-shrink: 0;
+        }
+
+        /* HOŞGELDİN yazısı - standart ölçü */
+        .greeting h1 {
+            font-size: 1.8rem;               /* büyük değil, dengeli */
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            -webkit-text-fill-color: transparent;
+            margin: 0 0 0.25rem 0;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+
+        /* e-posta rozeti */
+        .badge {
+            background: #eef2ff;
+            color: #2563eb;
+            padding: 0.35rem 1.2rem;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 0.85rem;              /* standart küçük rozet */
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 3'lü bilgi kutuları - yazılar sakin */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin: 2rem 0 0.5rem 0;
+        }
+
+        .info-item {
+            background: #f8fafc;
+            border-radius: 24px;
+            padding: 1.2rem 1.5rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .info-item .label {
+            font-size: 0.75rem;               /* küçük etiket */
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: #64748b;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .info-item .value {
+            font-size: 1.1rem;                /* normal metin boyutu */
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+
+        /* Bölüm başlıkları (Kişisel Bilgileri Güncelle, Şifre Değiştir) */
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.25rem;                /* h2 benzeri ama küçük */
+            font-weight: 650;
+            color: #0f172a;
+            margin-bottom: 1.8rem;
+        }
+
+        .section-title i {
+            background: #2563eb15;
+            padding: 8px;
+            border-radius: 18px;
+            color: #2563eb;
+            font-size: 1.1rem;
+        }
+
+        /* inputlar standart yükseklik, padding az */
+        .input-modern {
+            border: 2px solid #e2e8f0;
+            border-radius: 40px;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.95rem;                /* normal form yazısı */
+            transition: 0.2s;
+            background: white;
+            width: 100%;
+            font-weight: 500;
+        }
+
+        .input-modern:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 4px #2563eb20;
+            outline: none;
+        }
+
+        /* butonlar standart font */
+        .btn-modern {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 0.9rem;                  /* buton yazısı küçük */
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.2s;
+            box-shadow: 0 12px 22px -10px #2563eb;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+
+        .btn-modern:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+            box-shadow: 0 18px 28px -12px #1d4ed8;
+        }
+
+        .btn-outline-modern {
+            background: white;
+            border: 2px solid #cbd5e1;
+            color: #1e293b;
+            box-shadow: none;
+        }
+        .btn-outline-modern:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -8px #94a3b8;
+        }
+
+        /* mesaj kutuları */
+        .msg-modern {
+            border-radius: 60px;
+            padding: 0.7rem 1.5rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin: 1rem 0 0.2rem 0;
+        }
+
+        /* ikili kolonlar */
+        .dual-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .password-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.8rem;
+            margin-bottom: 1rem;
+        }
+
+        /* küçük ikon */
+        .inline-icon {
+            background: white;
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #2563eb;
+            box-shadow: 0 6px 16px -6px #94a3b8;
+        }
+
+        /* form etiketleri */
+        label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 0.75rem;
+            color: #334155;
+        }
+
+        /* mobil uyum */
+        @media (max-width: 900px) {
+            .profile-card {
+                padding: 1.8rem 1.5rem;
+            }
+            .info-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            .greeting h1 {
+                font-size: 1.6rem;
+                white-space: normal;
+            }
+            .dual-col, .password-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            .profile-header {
+                flex-direction: column;
+                text-align: center;
+                gap: 1.2rem;
+            }
+        }
+
+        /* navbar'da h2 küçültülebilir (isteğe bağlı) */
+        .nav-container h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        /* Biletler listesi */
+        .tickets-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .ticket-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            padding: 1rem 1.25rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+        }
+        .ticket-item .ticket-title {
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 0.95rem;
+            flex: 1;
+            min-width: 0;
+        }
+        .ticket-item .ticket-date {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+        .ticket-item .btn-preview {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 60px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+        }
+        .ticket-item .btn-preview:hover {
+            background: #1d4ed8;
+        }
+        .ticket-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0.45rem 0.9rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            color: #475569;
+        }
+        .ticket-status-pill--info {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            color: #1d4ed8;
+        }
+        .ticket-status-pill--muted {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+            color: #6b7280;
+        }
+        .tickets-loading .loading-spinner-inline {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e2e8f0;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Yorum modalı */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+        .modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(6px);
+        }
+        .modal-dialog {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 520px;
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 30px 60px -20px rgba(15, 23, 42, 0.6);
+            padding: 1.75rem 1.75rem 1.5rem;
+            margin: 0 auto;
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        .modal-header h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .modal-header h3 i {
+            color: #f59e0b;
+        }
+        .modal-close {
+            border: none;
+            background: transparent;
+            color: #64748b;
+            cursor: pointer;
+            border-radius: 999px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-close:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+        .modal-body .form-group {
+            margin-bottom: 0.9rem;
+        }
+        .modal-body textarea.input-modern {
+            border-radius: 20px;
+            resize: vertical;
+        }
+
+        /* Yıldızlı rating alanı */
+        .rating-stars {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            margin-top: 0.35rem;
+        }
+        .rating-star {
+            width: 32px;
+            height: 32px;
+            border-radius: 999px;
+            border: none;
+            background: transparent;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #e5e7eb; /* boş yıldız rengi */
+            transition: color 0.15s ease, transform 0.1s ease, background-color 0.15s ease;
+        }
+        .rating-star i {
+            font-size: 1.25rem;
+        }
+        .rating-star:hover {
+            transform: translateY(-1px) scale(1.05);
+            background-color: #fef9c3;
+        }
+        .rating-star.rating-star--active {
+            color: #f59e0b; /* dolu yıldız rengi */
+        }
+        .rating-star.rating-star--hover {
+            color: #fbbf24;
+        }
+    </style>
+</head>
+<body class="profile-modern">
+
+    <div id="navbar-container"></div>
+
+    <!-- ANA İÇERİK -->
+    <main class="page-content" style="padding: 2rem 0 4rem;">
+        <div class="container">
+
+            <!-- GİRİŞ YAPMAMIŞ UYARISI -->
+            <div id="profileRequireLogin" class="profile-card" style="display:none; text-align: center;">
+                <div class="avatar-lg" style="margin: 0 auto 1.8rem; background: #f1f5f9; color: #2563eb; border: none; box-shadow: none;">
+                    <i class="fas fa-lock text-3xl"></i>
+                </div>
+                <h2 style="font-size: 1.9rem; font-weight: 700; margin-bottom: 0.5rem;">Profiliniz kilitli</h2>
+                <p style="font-size: 1rem; color: #475569; margin: 0.5rem 0 2rem;">Profili görüntülemek için giriş yapın.</p>
+                <div style="display: flex; gap: 1.2rem; justify-content: center; flex-wrap: wrap;">
+                    <a href="/login?next=/profile" class="btn-modern" style="text-decoration: none;"><i class="fas fa-sign-in-alt"></i> Giriş Yap</a>
+                    <a href="/register" class="btn-modern btn-outline-modern" style="text-decoration: none;"><i class="fas fa-user-plus"></i> Üye Ol</a>
+                </div>
+            </div>
+
+            <!-- GİRİŞ YAPMIŞ PROFİL İÇERİĞİ -->
+            <div id="profileContent" style="display:none;">
+
+                <!-- KART 1: HOŞGELDİN + ÖZET BİLGİLER -->
+                <div class="profile-card">
+                    <div class="profile-header">
+                        <div class="avatar-lg" id="avatarInitial">👤</div>
+                        <div>
+                            <div class="greeting">
+                                <h1>Merhaba, <span id="profileFirstNameDisplay"></span> <span id="profileLastNameDisplay"></span></h1>
+                            </div>
+                            <div class="badge" style="margin-bottom: 0.4rem;">
+                                <i class="fas fa-circle-check"></i> <span id="profileEmailBadge"></span>
+                            </div>
+                            <div style="font-size: 0.85rem; color: #64748b;">
+                                <i class="fas fa-at" style="margin-right: 4px; color: #94a3b8;"></i>
+                                <span style="font-weight: 600; color: #0f172a;">Kullanıcı adı:</span>
+                                <span id="profileUsernameDisplay" style="margin-left: 4px;">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3'lü bilgi kartları - fontlar dengeli -->
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="label"><i class="far fa-envelope"></i> E-posta</div>
+                            <div class="value" id="profileEmailInfo">---</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="label"><i class="far fa-user"></i> Ad</div>
+                            <div class="value" id="profileFirstNameInfo">---</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="label"><i class="far fa-user"></i> Soyad</div>
+                            <div class="value" id="profileLastNameInfo">---</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KART 2: KİŞİSEL BİLGİ GÜNCELLEME -->
+                <div class="profile-card">
+                    <div class="section-title">
+                        <i class="fas fa-pen-to-square"></i> 
+                        <span>Kişisel Bilgileri Güncelle</span>
+                    </div>
+                    <form id="profileUpdateForm">
+                        <div class="dual-col">
+                            <div>
+                                <label>Ad</label>
+                                <input type="text" id="editFirstName" class="input-modern" placeholder="Ahmet" required>
+                            </div>
+                            <div>
+                                <label>Soyad</label>
+                                <input type="text" id="editLastName" class="input-modern" placeholder="Yılmaz" required>
+                            </div>
+                        </div>
+                        <div id="profileUpdateMessage" class="msg-modern hidden"></div>
+                        <div style="display: flex; gap: 1.2rem; flex-wrap: wrap; margin-top: 0.8rem;">
+                            <button type="submit" class="btn-modern"><i class="fas fa-check"></i> Bilgileri Güncelle</button>
+                            <button type="reset" class="btn-modern btn-outline-modern" id="cancelUpdateBtn"><i class="fas fa-undo-alt"></i> Vazgeç</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- KART 3: ŞİFRE DEĞİŞTİRME -->
+                <div class="profile-card">
+                    <div class="section-title">
+                        <i class="fas fa-lock"></i>
+                        <span>Şifre Değiştir</span>
+                    </div>
+                    <form id="passwordChangeForm">
+                        <div style="margin-bottom: 1.5rem;">
+                            <label>Mevcut Şifre</label>
+                            <input type="password" id="currentPassword" class="input-modern" placeholder="••••••••" required>
+                        </div>
+                        <div class="password-grid">
+                            <div>
+                                <label>Yeni Şifre (en az 6)</label>
+                                <input type="password" id="newPassword" class="input-modern" placeholder="••••••••" minlength="6" required>
+                            </div>
+                            <div>
+                                <label>Yeni Şifre Tekrar</label>
+                                <input type="password" id="newPasswordConfirm" class="input-modern" placeholder="••••••••" minlength="6" required>
+                            </div>
+                        </div>
+                        <div id="passwordChangeMessage" class="msg-modern hidden"></div>
+                        <button type="submit" class="btn-modern" style="margin-top: 1rem;"><i class="fas fa-key"></i> Şifreyi Güncelle</button>
+                    </form>
+                </div>
+
+                <!-- KART 4: BİLETLERİM -->
+                <div class="profile-card">
+                    <div class="section-title">
+                        <i class="fas fa-ticket-alt"></i>
+                        <span>Biletlerim</span>
+                    </div>
+                    <p style="color: #64748b; margin-bottom: 1.2rem; font-size: 0.9rem;">Rota oluştur sayfasından oluşturduğunuz biletler burada listelenir.</p>
+                    <div id="ticketsListContainer">
+                        <div id="ticketsLoading" class="tickets-loading" style="display: none;">
+                            <span class="loading-spinner-inline"></span> Biletler yükleniyor...
+                        </div>
+                        <div id="ticketsList" class="tickets-list"></div>
+                        <div id="ticketsEmpty" class="tickets-empty" style="display: none;">
+                            <i class="fas fa-ticket-alt" style="font-size: 2rem; color: #cbd5e1; margin-bottom: 0.5rem;"></i>
+                            <p style="color: #64748b; margin: 0;">Henüz bilet oluşturmadınız.</p>
+                            <a href="/create-route.html" class="btn-modern" style="margin-top: 1rem; text-decoration: none; display: inline-flex;"><i class="fas fa-plus"></i> Rota Oluştur</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KART 5: YORUMLARIM -->
+                <div class="profile-card">
+                    <div class="section-title">
+                        <i class="fas fa-comment-dots"></i>
+                        <span>Yorumlarım</span>
+                    </div>
+                    <p style="color:#64748b; margin-bottom:1.2rem; font-size:0.9rem;">
+                        Daha önce bıraktığın uçuş değerlendirmelerini burada görebilirsin.
+                    </p>
+                    <div id="myReviewsLoading" class="tickets-loading" style="display:none;">
+                        <span class="loading-spinner-inline"></span> Yorumlar yükleniyor...
+                    </div>
+                    <div id="myReviewsList" class="tickets-list"></div>
+                    <div id="myReviewsEmpty" class="tickets-empty" style="display:none;">
+                        <i class="fas fa-comments" style="font-size: 2rem; color: #cbd5e1; margin-bottom: 0.5rem;"></i>
+                        <p style="color:#64748b; margin:0;">Henüz bir yorum bırakmadın.</p>
+                    </div>
+                </div>
+
+                <!-- YORUM MODALI -->
+                <div id="reviewModal" class="modal-overlay" style="display:none;">
+                    <div class="modal-backdrop"></div>
+                    <div class="modal-dialog">
+                        <div class="modal-header">
+                            <h3 id="reviewModalTitle"><i class="fas fa-star-half-alt"></i> Uçuşunu Değerlendir</h3>
+                            <button type="button" id="reviewModalCloseBtn" class="modal-close">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="reviewForm">
+                                <input type="hidden" id="reviewTicketId">
+                                <div class="form-group">
+                                    <label>Puanın (1–5)</label>
+                                    <div class="rating-stars" id="reviewRatingStars">
+                                        <button type="button" class="rating-star" data-value="1" aria-label="1 yıldız">
+                                            <i class="fa-regular fa-star"></i>
+                                        </button>
+                                        <button type="button" class="rating-star" data-value="2" aria-label="2 yıldız">
+                                            <i class="fa-regular fa-star"></i>
+                                        </button>
+                                        <button type="button" class="rating-star" data-value="3" aria-label="3 yıldız">
+                                            <i class="fa-regular fa-star"></i>
+                                        </button>
+                                        <button type="button" class="rating-star" data-value="4" aria-label="4 yıldız">
+                                            <i class="fa-regular fa-star"></i>
+                                        </button>
+                                        <button type="button" class="rating-star" data-value="5" aria-label="5 yıldız">
+                                            <i class="fa-regular fa-star"></i>
+                                        </button>
+                                    </div>
+                                    <input type="hidden" id="reviewRatingValue">
+                                </div>
+                                <div class="form-group">
+                                    <label for="reviewTitle">Başlık</label>
+                                    <input type="text" id="reviewTitle" class="input-modern" maxlength="255" placeholder="Uçuş deneyimini birkaç kelimeyle özetle" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="reviewContent">Yorumun</label>
+                                    <textarea id="reviewContent" class="input-modern" rows="4" placeholder="Kolay biniş, zamanında kalkış, kabin ekibi deneyimin gibi detayları yazabilirsin." required></textarea>
+                                </div>
+                                <div id="reviewMessage" class="msg-modern hidden"></div>
+                                <div style="display:flex; gap:0.75rem; margin-top:0.75rem; justify-content:flex-end; flex-wrap:wrap;">
+                                    <button type="button" id="reviewCancelBtn" class="btn-modern btn-outline-modern">
+                                        Vazgeç
+                                    </button>
+                                    <button type="submit" class="btn-modern">
+                                        <i class="fas fa-paper-plane"></i> Yorumu Gönder
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+            </div> <!-- #profileContent -->
+        </div> <!-- container -->
+    </main>
+
+    <script src="/static/js/navbar-loader.js"></script>
+
+    <!-- Aynı işlevsellik, sadece görsel fontlar küçültüldü -->
+    <script>
+        (function() {
+            const token = localStorage.getItem('access_token');
+            const apiBase = window.location.origin;
+
+            const requireLoginDiv = document.getElementById('profileRequireLogin');
+            const profileContentDiv = document.getElementById('profileContent');
+
+            // Eski span'ler (orijinal isimlerle uyum)
+            const profileEmailSpan = document.getElementById('profileEmail');
+            const profileFirstNameSpan = document.getElementById('profileFirstName');
+            const profileLastNameSpan = document.getElementById('profileLastName');
+            const editFirstName = document.getElementById('editFirstName');
+            const editLastName = document.getElementById('editLastName');
+
+            // modern gösterim alanları
+            const profileFirstNameDisplay = document.getElementById('profileFirstNameDisplay');
+            const profileLastNameDisplay = document.getElementById('profileLastNameDisplay');
+            const profileEmailBadge = document.getElementById('profileEmailBadge');
+            const profileEmailInfo = document.getElementById('profileEmailInfo');
+            const profileFirstNameInfo = document.getElementById('profileFirstNameInfo');
+            const profileLastNameInfo = document.getElementById('profileLastNameInfo');
+            const profileUsernameDisplay = document.getElementById('profileUsernameDisplay');
+            const avatarInitial = document.getElementById('avatarInitial');
+
+            const profileUpdateMessage = document.getElementById('profileUpdateMessage');
+            const passwordChangeMessage = document.getElementById('passwordChangeMessage');
+
+            function showMsg(el, text, isError) {
+                el.textContent = text;
+                el.className = 'msg-modern ' + (isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700');
+                el.classList.remove('hidden');
+            }
+            function hideMsg(el) { if(el) el.classList.add('hidden'); }
+
+            if (!token) {
+                if (requireLoginDiv) requireLoginDiv.style.display = 'block';
+                if (profileContentDiv) profileContentDiv.style.display = 'none';
+                return;
+            } else {
+                if (requireLoginDiv) requireLoginDiv.style.display = 'none';
+                if (profileContentDiv) profileContentDiv.style.display = 'block';
+            }
+
+            function loadProfile() {
+                fetch(apiBase + '/api/me', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                })
+                .then(r => {
+                    if (r.status === 401) {
+                        localStorage.removeItem('access_token');
+                        window.location.href = '/login?next=/profile';
+                        return;
+                    }
+                    return r.json();
+                })
+                .then(user => {
+                    if (!user) return;
+
+                    if (profileEmailSpan) profileEmailSpan.textContent = user.email;
+                    if (profileFirstNameSpan) profileFirstNameSpan.textContent = user.first_name || '';
+                    if (profileLastNameSpan) profileLastNameSpan.textContent = user.last_name || '';
+
+                    if (profileFirstNameDisplay) profileFirstNameDisplay.textContent = user.first_name || '';
+                    if (profileLastNameDisplay) profileLastNameDisplay.textContent = user.last_name || '';
+                    if (profileEmailBadge) profileEmailBadge.textContent = user.email;
+                    if (profileEmailInfo) profileEmailInfo.textContent = user.email;
+                    if (profileFirstNameInfo) profileFirstNameInfo.textContent = user.first_name || '—';
+                    if (profileLastNameInfo) profileLastNameInfo.textContent = user.last_name || '—';
+                    if (profileUsernameDisplay) profileUsernameDisplay.textContent = user.username || '—';
+
+                    if (avatarInitial) {
+                        const f = (user.first_name?.[0] || '').toUpperCase();
+                        const l = (user.last_name?.[0] || '').toUpperCase();
+                        avatarInitial.innerHTML = f && l ? `${f}${l}` : (f || l || '👤');
+                    }
+
+                    if (editFirstName) editFirstName.value = user.first_name || '';
+                    if (editLastName) editLastName.value = user.last_name || '';
+                })
+                .catch(() => {
+                    if (requireLoginDiv) requireLoginDiv.style.display = 'block';
+                    if (profileContentDiv) profileContentDiv.style.display = 'none';
+                });
+            }
+            loadProfile();
+            loadTickets();
+            loadMyReviews();
+
+            function loadTickets() {
+                var container = document.getElementById('ticketsList');
+                var loadingEl = document.getElementById('ticketsLoading');
+                var emptyEl = document.getElementById('ticketsEmpty');
+                if (!container) return;
+                loadingEl.style.display = 'block';
+                emptyEl.style.display = 'none';
+                container.innerHTML = '';
+                fetch(apiBase + '/api/tickets', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                })
+                .then(function(r) {
+                    if (r.status === 401) return [];
+                    return r.json();
+                })
+                .then(function(tickets) {
+                    loadingEl.style.display = 'none';
+                    if (!tickets || tickets.length === 0) {
+                        emptyEl.style.display = 'block';
+                        return;
+                    }
+                    emptyEl.style.display = 'none';
+                    tickets.forEach(function(t) {
+                        var dateStr = t.created_at ? new Date(t.created_at).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+                        var item = document.createElement('div');
+                        item.className = 'ticket-item';
+
+                        var actionsHtml = '<a href="/ticket-preview?id=' + t.id + '" target="_blank" class="btn-preview"><i class="fas fa-external-link-alt"></i> Bilet Önizleme</a>';
+
+                        if (t.has_review) {
+                            actionsHtml += '<span class="ticket-status-pill ticket-status-pill--info"><i class="fas fa-check-circle"></i> Bu uçuş için değerlendirme yapılmıştır.</span>';
+                        } else if (t.can_review) {
+                            actionsHtml += '<button class="btn-preview btn-rate" data-ticket-id="' + t.id + '"><i class="fas fa-star"></i> Uçuşunu Değerlendir</button>';
+                        } else {
+                            actionsHtml += '<span class="ticket-status-pill ticket-status-pill--muted"><i class="fas fa-clock"></i> Uçuş tamamlandıktan sonra değerlendirme yapabilirsiniz.</span>';
+                        }
+
+                        item.innerHTML =
+                            '<div><div class="ticket-title">' + (t.title || 'Bilet') + '</div><div class="ticket-date">' + dateStr + '</div></div>' +
+                            '<div style="display:flex; gap:0.5rem; flex-wrap:wrap;">' +
+                            actionsHtml +
+                            '</div>';
+
+                        container.appendChild(item);
+                    });
+
+                    // Değerlendirme butonları için click handler (sadece uygun olanlarda var)
+                    container.querySelectorAll('.btn-rate').forEach(function(btn) {
+                        btn.addEventListener('click', function() {
+                            var ticketId = this.getAttribute('data-ticket-id');
+                            openReviewModal(ticketId);
+                        });
+                    });
+                })
+                .catch(function() {
+                    loadingEl.style.display = 'none';
+                    emptyEl.style.display = 'block';
+                });
+            }
+
+            let currentRating = 0;
+            const ratingStarsContainer = document.getElementById('reviewRatingStars');
+            const ratingStars = ratingStarsContainer ? ratingStarsContainer.querySelectorAll('.rating-star') : null;
+            const ratingHiddenInput = document.getElementById('reviewRatingValue');
+
+            function updateRatingVisual(value) {
+                if (!ratingStars) return;
+                ratingStars.forEach(function(star) {
+                    var starValue = parseInt(star.getAttribute('data-value'), 10) || 0;
+                    star.classList.remove('rating-star--active', 'rating-star--hover');
+                    if (value && starValue <= value) {
+                        star.classList.add('rating-star--active');
+                    }
+                });
+            }
+
+            if (ratingStarsContainer && ratingStars) {
+                ratingStars.forEach(function(star) {
+                    var val = parseInt(star.getAttribute('data-value'), 10) || 0;
+                    star.addEventListener('mouseenter', function() {
+                        ratingStars.forEach(function(s) { s.classList.remove('rating-star--hover'); });
+                        ratingStars.forEach(function(s) {
+                            var sv = parseInt(s.getAttribute('data-value'), 10) || 0;
+                            if (sv <= val) {
+                                s.classList.add('rating-star--hover');
+                            }
+                        });
+                    });
+                    star.addEventListener('click', function() {
+                        currentRating = val;
+                        if (ratingHiddenInput) ratingHiddenInput.value = String(val);
+                        updateRatingVisual(currentRating);
+                    });
+                });
+                ratingStarsContainer.addEventListener('mouseleave', function() {
+                    ratingStars.forEach(function(s) { s.classList.remove('rating-star--hover'); });
+                    updateRatingVisual(currentRating);
+                });
+            }
+
+            function openReviewModal(ticketId) {
+                var modal = document.getElementById('reviewModal');
+                var ticketIdInput = document.getElementById('reviewTicketId');
+                var titleInput = document.getElementById('reviewTitle');
+                var contentInput = document.getElementById('reviewContent');
+                var msg = document.getElementById('reviewMessage');
+                if (!modal) return;
+                ticketIdInput.value = ticketId;
+                currentRating = 0;
+                if (ratingHiddenInput) ratingHiddenInput.value = '';
+                updateRatingVisual(0);
+                titleInput.value = '';
+                contentInput.value = '';
+                hideMsg(msg);
+                // Flex ile tam ortada konumlandır
+                modal.style.display = 'flex';
+            }
+
+            function closeReviewModal() {
+                var modal = document.getElementById('reviewModal');
+                if (modal) modal.style.display = 'none';
+            }
+
+            function loadMyReviews() {
+                var listEl = document.getElementById('myReviewsList');
+                var loadingEl = document.getElementById('myReviewsLoading');
+                var emptyEl = document.getElementById('myReviewsEmpty');
+                if (!listEl) return;
+                loadingEl.style.display = 'block';
+                emptyEl.style.display = 'none';
+                listEl.innerHTML = '';
+
+                fetch(apiBase + '/api/reviews/me', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                })
+                .then(function(r) {
+                    if (r.status === 401) return [];
+                    return r.json();
+                })
+                .then(function(reviews) {
+                    loadingEl.style.display = 'none';
+                    if (!reviews || !Array.isArray(reviews) || reviews.length === 0) {
+                        emptyEl.style.display = 'block';
+                        return;
+                    }
+                    emptyEl.style.display = 'none';
+
+                    reviews.forEach(function(rv) {
+                        var createdStr = rv.created_at ? new Date(rv.created_at).toLocaleString('tr-TR') : '';
+                        var statusLabel = (rv.status === 'approved') ? 'Onaylı' : (rv.status === 'rejected' ? 'Reddedildi' : 'İncelemede');
+                        var statusClass = (rv.status === 'approved')
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : (rv.status === 'rejected'
+                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                : 'bg-amber-50 text-amber-700 border-amber-200');
+
+                        var div = document.createElement('div');
+                        div.className = 'ticket-item';
+                        div.innerHTML =
+                            '<div style="flex:1; min-width:0;">' +
+                                '<div class="ticket-title">' + (rv.title || 'Başlıksız yorum') + '</div>' +
+                                '<div class="ticket-date">' + createdStr + '</div>' +
+                                '<div style="margin-top:0.4rem; font-size:0.8rem; color:#6b7280;">' +
+                                    '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] ' + statusClass + '">' +
+                                        '<i class="fas ' + (rv.status === 'approved' ? 'fa-check-circle' : (rv.status === 'rejected' ? 'fa-times-circle' : 'fa-clock')) + '"></i>' +
+                                        '<span>' + statusLabel + '</span>' +
+                                    '</span>' +
+                                    '<span style="margin-left:0.5rem; display:inline-flex; align-items:center; gap:4px; color:#f59e0b;">' +
+                                        '<i class="fas fa-star"></i>' +
+                                        '<span>' + rv.rating + '/5</span>' +
+                                    '</span>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div style="flex-basis:100%; margin-top:0.6rem; font-size:0.85rem; color:#4b5563; white-space:pre-wrap;">' +
+                                (rv.content || '') +
+                            '</div>';
+
+                        listEl.appendChild(div);
+                    });
+                })
+                .catch(function() {
+                    loadingEl.style.display = 'none';
+                    emptyEl.style.display = 'block';
+                });
+            }
+
+            const updateForm = document.getElementById('profileUpdateForm');
+            if (updateForm) {
+                updateForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    hideMsg(profileUpdateMessage);
+                    const first = editFirstName.value.trim();
+                    const last = editLastName.value.trim();
+
+                    fetch(apiBase + '/api/me', {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + token
+                        },
+                        body: JSON.stringify({ first_name: first, last_name: last })
+                    })
+                    .then(r => r.json().then(data => ({ ok: r.ok, data })))
+                    .then(({ ok, data }) => {
+                        if (ok) {
+                            showMsg(profileUpdateMessage, 'Bilgileriniz güncellendi.', false);
+                            if (profileFirstNameSpan) profileFirstNameSpan.textContent = data.first_name;
+                            if (profileLastNameSpan) profileLastNameSpan.textContent = data.last_name;
+                            if (profileFirstNameDisplay) profileFirstNameDisplay.textContent = data.first_name;
+                            if (profileLastNameDisplay) profileLastNameDisplay.textContent = data.last_name;
+                            if (profileFirstNameInfo) profileFirstNameInfo.textContent = data.first_name;
+                            if (profileLastNameInfo) profileLastNameInfo.textContent = data.last_name;
+                            if (avatarInitial) {
+                                const f = (data.first_name?.[0] || '').toUpperCase();
+                                const l = (data.last_name?.[0] || '').toUpperCase();
+                                avatarInitial.innerHTML = f && l ? `${f}${l}` : (f || l || '👤');
+                            }
+                        } else {
+                            showMsg(profileUpdateMessage, data.detail || 'Güncelleme başarısız.', true);
+                        }
+                    })
+                    .catch(() => showMsg(profileUpdateMessage, 'Bağlantı hatası.', true));
+                });
+
+                document.getElementById('cancelUpdateBtn')?.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (editFirstName && editLastName) {
+                        editFirstName.value = profileFirstNameSpan ? profileFirstNameSpan.textContent : '';
+                        editLastName.value = profileLastNameSpan ? profileLastNameSpan.textContent : '';
+                    }
+                    hideMsg(profileUpdateMessage);
+                });
+            }
+
+            const pwdForm = document.getElementById('passwordChangeForm');
+            if (pwdForm) {
+                pwdForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    hideMsg(passwordChangeMessage);
+                    const current = document.getElementById('currentPassword').value;
+                    const newP = document.getElementById('newPassword').value;
+                    const newPC = document.getElementById('newPasswordConfirm').value;
+
+                    if (newP !== newPC) {
+                        showMsg(passwordChangeMessage, 'Yeni şifreler eşleşmiyor.', true);
+                        return;
+                    }
+
+                    fetch(apiBase + '/api/me/change-password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + token
+                        },
+                        body: JSON.stringify({ current_password: current, new_password: newP })
+                    })
+                    .then(r => r.json().then(data => ({ ok: r.ok, data })))
+                    .then(({ ok, data }) => {
+                        if (ok) {
+                            showMsg(passwordChangeMessage, 'Şifreniz güncellendi.', false);
+                            document.getElementById('currentPassword').value = '';
+                            document.getElementById('newPassword').value = '';
+                            document.getElementById('newPasswordConfirm').value = '';
+                        } else {
+                            showMsg(passwordChangeMessage, data.detail || 'Şifre güncellenemedi.', true);
+                        }
+                    })
+                    .catch(() => showMsg(passwordChangeMessage, 'Bağlantı hatası.', true));
+                });
+            }
+
+            // Yorum formu
+            const reviewForm = document.getElementById('reviewForm');
+            const reviewModalCloseBtn = document.getElementById('reviewModalCloseBtn');
+            const reviewCancelBtn = document.getElementById('reviewCancelBtn');
+            const reviewMessage = document.getElementById('reviewMessage');
+
+            if (reviewModalCloseBtn) {
+                reviewModalCloseBtn.addEventListener('click', function() {
+                    closeReviewModal();
+                });
+            }
+            if (reviewCancelBtn) {
+                reviewCancelBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    closeReviewModal();
+                });
+            }
+
+            if (reviewForm) {
+                reviewForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    hideMsg(reviewMessage);
+                    var ticketId = document.getElementById('reviewTicketId').value;
+                    var rating = parseInt(document.getElementById('reviewRatingValue').value, 10);
+                    var title = document.getElementById('reviewTitle').value.trim();
+                    var content = document.getElementById('reviewContent').value.trim();
+
+                    if (!ticketId || !rating || !title || !content) {
+                        showMsg(reviewMessage, 'Lütfen tüm alanları doldurun.', true);
+                        return;
+                    }
+
+                    fetch(apiBase + '/api/reviews', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + token
+                        },
+                        body: JSON.stringify({
+                            ticket_id: parseInt(ticketId, 10),
+                            rating: rating,
+                            title: title,
+                            content: content
+                        })
+                    })
+                    .then(function(r) {
+                        return r.json().then(function(data) {
+                            return { ok: r.ok, status: r.status, data: data };
+                        });
+                    })
+                    .then(function(result) {
+                        if (result.ok) {
+                            showMsg(reviewMessage, 'Yorumun alındı, onaydan sonra yayınlanacak.', false);
+                            setTimeout(function() {
+                                closeReviewModal();
+                            }, 1200);
+                        } else {
+                            var detail = result.data && result.data.detail ? result.data.detail : 'Yorum kaydedilemedi.';
+                            showMsg(reviewMessage, detail, true);
+                        }
+                    })
+                    .catch(function() {
+                        showMsg(reviewMessage, 'Bağlantı hatası, lütfen tekrar deneyin.', true);
+                    });
+                });
+            }
+        })();
+    </script>
+</body>
+</html>

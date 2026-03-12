@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bilet Önizleme · Nodia</title>
+    <style>
+        body { font-family: 'Inter', sans-serif; padding: 2rem; text-align: center; background: #f1f5f9; }
+        .loading { color: #64748b; }
+        .error { color: #dc2626; margin-top: 1rem; }
+        .back { margin-top: 1.5rem; }
+        .back a { color: #2563eb; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <p id="status" class="loading">Bilet yükleniyor...</p>
+    <div id="error" class="error" style="display:none;"></div>
+    <div class="back" style="display:none;"><a href="#" id="backLink">Profil sayfasına dön</a></div>
+    <script>
+        (function() {
+            var params = new URLSearchParams(window.location.search);
+            var id = params.get('id');
+            var token = localStorage.getItem('access_token');
+            var statusEl = document.getElementById('status');
+            var errorEl = document.getElementById('error');
+            var backEl = document.querySelector('.back');
+            var backLink = document.getElementById('backLink');
+
+            backLink.href = window.location.origin + '/profile';
+
+            if (!id) {
+                statusEl.style.display = 'none';
+                errorEl.textContent = 'Geçersiz bilet adresi.';
+                errorEl.style.display = 'block';
+                backEl.style.display = 'block';
+                return;
+            }
+            if (!token) {
+                statusEl.style.display = 'none';
+                errorEl.textContent = 'Bilet önizlemesi için giriş yapmanız gerekiyor.';
+                errorEl.style.display = 'block';
+                backEl.style.display = 'block';
+                return;
+            }
+
+            var apiBase = window.location.origin;
+            fetch(apiBase + '/api/tickets/' + id + '/preview', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            })
+            .then(function(r) {
+                if (!r.ok) throw new Error(r.status === 404 ? 'Bilet bulunamadı.' : 'Yüklenemedi.');
+                return r.text();
+            })
+            .then(function(html) {
+                document.open();
+                document.write(html);
+                document.close();
+            })
+            .catch(function(err) {
+                statusEl.style.display = 'none';
+                errorEl.textContent = err.message || 'Bilet yüklenirken hata oluştu.';
+                errorEl.style.display = 'block';
+                backEl.style.display = 'block';
+            });
+        })();
+    </script>
+</body>
+</html>
