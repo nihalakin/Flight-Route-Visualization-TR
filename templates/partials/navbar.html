@@ -1,0 +1,33 @@
+<nav class="navbar">
+    <div class="nav-container">
+        <div class="nav-logo">
+            <a href="/" class="nav-logo-link">
+                <img src="/static/img/nodia-logo.png" alt="Nodia Logo">
+                <span>Nodia</span>
+            </a>
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item"><a href="/" class="nav-link" data-nav-path="/">Ana Sayfa</a></li>
+            <li class="nav-item"><a href="/create-route.html" class="nav-link" data-nav-path="/create-route.html">Rota Oluştur</a></li>
+            <li class="nav-item"><a href="/airports.html" class="nav-link" data-nav-path="/airports.html">Havalimanları</a></li>
+            <li class="nav-item"><a href="/analytics.html" class="nav-link" data-nav-path="/analytics.html">İstatistikler</a></li>
+            <li class="nav-item"><a href="/airline-reviews.html" class="nav-link" data-nav-path="/airline-reviews.html">Havayolu Yorumları</a></li>
+        </ul>
+        <div class="nav-auth">
+            <span id="navGuest">
+                <a href="/register" class="nav-btn nav-btn-register"><i class="fas fa-user-plus"></i> Üye Ol</a>
+                <a href="/login" class="nav-btn nav-btn-login"><i class="fas fa-sign-in-alt"></i> Giriş Yap</a>
+            </span>
+            <span id="navUser" style="display:none;">
+                <a href="/profile" class="nav-btn nav-btn-register"><i class="fas fa-user"></i> Profil</a>
+                <a href="/admin/dashboard" id="navAdminDashboard" class="nav-btn nav-btn-register" style="display:none;"><i class="fas fa-gauge-high"></i> Admin Dashboard</a>
+                <a href="#" id="navLogout" class="nav-btn nav-btn-login"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
+            </span>
+        </div>
+        <div class="hamburger">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </div>
+    </div>
+</nav>
