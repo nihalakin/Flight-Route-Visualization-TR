@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Havalimanları - Türkiye Uçuş Ağı</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/responsive.css">
+</head>
+<body>
+
+    <div id="navbar-container"></div>
+
+    <main class="page-content">
+        <div class="container">
+            <header>
+                <h1>Türkiye Havalimanları</h1>
+                <div class="subtitle">Tüm havalimanları hakkında detaylı bilgiler</div>
+            </header>
+            <div class="airports-section">
+                <div class="search-filter">
+                    <input type="text" id="airport-search" placeholder="Havalimanı ara..." class="search-input">
+                    <select id="region-filter" class="filter-select">
+                        <option value="">Tüm Bölgeler</option>
+                        <option value="marmara">Marmara</option>
+                        <option value="ege">Ege</option>
+                        <option value="akdeniz">Akdeniz</option>
+                        <option value="icanadolu">İç Anadolu</option>
+                        <option value="karadeniz">Karadeniz</option>
+                        <option value="dogu">Doğu Anadolu</option>
+                        <option value="guneydogu">Güneydoğu Anadolu</option>
+                    </select>
+                    <select id="type-filter" class="filter-select">
+                        <option value="">Tüm Türler</option>
+                        <option value="sivil">Sivil</option>
+                        <option value="askeri">Askerî</option>
+                        <option value="karma">Karma</option>
+                    </select>
+                </div>
+                <div id="airports-list" class="airports-list"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/static/js/navbar-loader.js"></script>
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/flight-network.js"></script>
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/navigation.js"></script>
+</body>
+</html>
