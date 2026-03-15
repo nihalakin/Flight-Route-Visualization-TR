@@ -1,0 +1,67 @@
+{% extends "admin/layout.html" %}
+
+{% block page_heading %}Kullanıcı Yönetimi{% endblock %}
+{% block page_subtitle %}Kullanıcıları listeleyin, arayın ve silin.{% endblock %}
+
+{% block content %}
+    <section class="space-y-4">
+        <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+                <h2 class="text-sm font-semibold text-slate-900">Kullanıcı Yönetimi</h2>
+                <p class="text-xs text-slate-500">Kullanıcıları listeleyin, arayın ve silin.</p>
+            </div>
+            <div class="flex flex-wrap gap-2 items-center">
+                <input id="userSearchInput" type="search" placeholder="İsim veya e-posta ara..."
+                       class="w-full sm:w-52 border border-slate-200 rounded-full px-3 py-1.5 text-xs text-slate-700 placeholder-slate-400" />
+                <select id="userRoleFilter" class="border border-slate-200 rounded-full px-3 py-1.5 text-xs text-slate-700 bg-slate-50">
+                    <option value="all">Tüm roller</option>
+                    <option value="admin">Sadece admin</option>
+                    <option value="user">Sadece kullanıcı</option>
+                </select>
+                <select id="userSortSelect" class="border border-slate-200 rounded-full px-3 py-1.5 text-xs text-slate-700 bg-slate-50">
+                    <option value="created_desc">Yeni kayıtlar önce</option>
+                    <option value="created_asc">Eski kayıtlar önce</option>
+                    <option value="name_asc">İsme göre (A-Z)</option>
+                    <option value="name_desc">İsme göre (Z-A)</option>
+                </select>
+            </div>
+        </header>
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100 text-xs text-slate-500">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span id="userCountText">Kullanıcılar yükleniyor...</span>
+                </div>
+                <div id="userPaginationInfo" class="hidden sm:inline text-[11px] text-slate-500"></div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-50 text-xs font-semibold text-slate-500 border-b border-slate-100">
+                        <tr>
+                            <th class="py-3.5 pl-4 pr-3 text-left">Ad</th>
+                            <th class="px-3 py-3.5 text-left">Soyad</th>
+                            <th class="px-3 py-3.5 text-left">E-posta</th>
+                            <th class="px-3 py-3.5 text-left">Kayıt Tarihi</th>
+                            <th class="px-3 py-3.5 text-left">Rol</th>
+                            <th class="py-3.5 pl-3 pr-4 text-right">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody" class="divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
+            <div id="loadingRow" class="px-4 py-6 text-sm text-slate-500 flex items-center gap-2">
+                <span class="w-4 h-4 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin"></span>
+                Kullanıcılar yükleniyor...
+            </div>
+            <div id="emptyRow" class="hidden px-4 py-6 text-sm text-slate-500">Filtreye uygun kullanıcı bulunamadı.</div>
+            <div class="flex items-center justify-between px-4 py-3 border-t border-slate-100 text-xs text-slate-500">
+                <div id="userPaginationInfoBottom" class="sm:hidden"></div>
+                <div class="flex items-center gap-1">
+                    <button id="userPrevPage" class="px-2 py-1 rounded-lg border border-slate-200 text-[11px] hover:bg-slate-50" disabled>Önceki</button>
+                    <button id="userNextPage" class="px-2 py-1 rounded-lg border border-slate-200 text-[11px] hover:bg-slate-50" disabled>Sonraki</button>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
