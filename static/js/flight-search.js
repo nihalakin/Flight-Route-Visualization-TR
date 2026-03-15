@@ -7,7 +7,7 @@ class CouponManager {
 
     async loadCoupons() {
         try {
-            const response = await fetch('assets/data/sentetik_iade_biletleri_turkiye.csv');
+            const response = await fetch('/data/sentetik_iade_biletleri_turkiye.csv');
             const csvText = await response.text();
             this.parseCSV(csvText);
             console.log(` ${this.coupons.size} adet kupon yüklendi`);
@@ -238,7 +238,7 @@ applyCouponToSingleFlight(flight, coupon) {
 
 class FlightSearch {
     constructor() {
-        this.backendUrl = 'http://localhost:5000/api';
+        this.backendUrl = (typeof window !== 'undefined' && window.location.origin ? window.location.origin : '') + '/api';
         this.couponManager = new CouponManager();
         this.airlineDict = {
             "TK": "Türk Hava Yolları",
@@ -261,7 +261,7 @@ class FlightSearch {
         originSelect.innerHTML = '<option value="">Seçiniz</option>';
         destinationSelect.innerHTML = '<option value="">Seçiniz</option>';
         
-        const airports = window.flightNetwork.airportData;
+        const airports = (window.flightNetwork && window.flightNetwork.airportData) ? window.flightNetwork.airportData : [];
         
         airports.forEach(airport => {
             const option = document.createElement('option');
@@ -283,9 +283,9 @@ async searchFlights(searchParams) {
             const queryParams = new URLSearchParams({
                 origin: searchParams.origin,
                 destination: searchParams.destination,
-                departureDate: searchParams.departureDate,
-                adults: searchParams.adults || 1,
-                travelClass: searchParams.cabinClass || 'ECONOMY'
+                departure_date: searchParams.departureDate,
+                adults: String(searchParams.adults || 1),
+                travel_class: searchParams.cabinClass || 'ECONOMY'
             });
 
             const response = await fetch(`${this.backendUrl}/flights?${queryParams}`, {
@@ -294,8 +294,13 @@ async searchFlights(searchParams) {
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `Backend hatası: ${response.status}`);
+                let msg = `Backend hatası: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    const d = errorData.detail || errorData.error || errorData.message;
+                    msg = Array.isArray(d) ? d.map(x => x.msg || x.loc?.join('.')).join(', ') : (d || msg);
+                } catch (_) {}
+                throw new Error(msg);
             }
 
             const data = await response.json();
@@ -1277,10 +1282,38 @@ generateTicketForPassenger(ticketData) {
         const fileName = `E-Bilet_${pnr}_${passenger.ticketNumber}_${passenger.name}_${passenger.surname}.pdf`;
         this.downloadPassengerPDF(filledTemplate, preparedData, fileName);
         
-        return true;
+        return { success: true, filledHtml: filledTemplate };
     } catch (error) {
         console.error('Yolcu bilet oluşturma hatası:', error);
-        return false;
+        return { success: false, filledHtml: null };
+    }
+}
+
+/**
+ * Profil için bilet HTML'ini döndürür (API'ye kaydetmek için). İndirme yapmaz.
+ * @param {Object} ticketData - generateTicketForPassenger ile aynı yapı
+ * @returns {{ success: boolean, filledHtml: string|null }}
+ */
+getFilledTicketHtml(ticketData) {
+    try {
+        const { passengerInfo, pnr, priceInfo, route, searchParams, validCoupon } = ticketData;
+        let finalCoupon = validCoupon;
+        if (validCoupon) {
+            const pdfValidation = this.validateCouponForPDF(validCoupon, route.flight, searchParams);
+            if (!pdfValidation.valid) finalCoupon = null;
+        }
+        const flight = route.flight;
+        const passenger = passengerInfo;
+        const preparedData = this.prepareTicketDataForPassenger(
+            flight, passenger, searchParams, pnr,
+            priceInfo, passengerInfo.ticketNumber, finalCoupon
+        );
+        const template = this.getTicketTemplate();
+        const filledTemplate = this.fillPassengerTicketTemplate(template, preparedData, finalCoupon);
+        return { success: true, filledHtml: filledTemplate };
+    } catch (error) {
+        console.error('Bilet HTML alınamadı:', error);
+        return { success: false, filledHtml: null };
     }
 }
 

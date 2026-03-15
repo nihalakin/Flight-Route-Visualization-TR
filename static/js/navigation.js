@@ -8,20 +8,45 @@ class Navigation {
     }
     
     initializeNavigation() {
-        // Navbar linklerine event listener ekle
+        // Navbar linklerine event listener ekle (data-tab varsa sayfa içi tab, yoksa normal link)
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const tab = e.target.getAttribute('data-tab');
-                this.switchTab(tab);
+                const tab = link.getAttribute('data-tab');
+                if (tab) {
+                    e.preventDefault();
+                    this.switchTab(tab);
+                }
             });
         });
         
         // Hamburger menü için
         this.initializeMobileMenu();
         
-        // Sayfa yüklendiğinde aktif tab'ı göster
-        this.showTab(this.currentTab);
+        // Sayfa yüklendiğinde: tab yapısı varsa aktif tab'ı göster, yoksa tek sayfa ise ilgili modülü başlat
+        if (document.getElementById('anasayfa') && document.querySelector('.tab-content')) {
+            this.showTab(this.currentTab);
+        } else if (document.getElementById('origin') && document.getElementById('destination') && !document.getElementById('anasayfa')) {
+            // Rota oluştur sayfası (create-route.html): flightNetwork hazır olunca kalkış/varış listesini doldur
+            var self = this;
+            function initFlightSearchWhenReady() {
+                if (window.flightNetwork) {
+                    self.initializeFlightSearch();
+                } else {
+                    setTimeout(initFlightSearchWhenReady, 50);
+                }
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initFlightSearchWhenReady);
+            } else {
+                initFlightSearchWhenReady();
+            }
+        } else if (document.getElementById('airports-list') && !document.getElementById('anasayfa')) {
+            this.initializeAirportsPage();
+        } else if (document.getElementById('flight-traffic-chart') || document.getElementById('show-all-years')) {
+            this.initializeStatisticsPage();
+        } else if (document.getElementById('airline-select') && document.getElementById('reviews-list')) {
+            this.initializeAirlineReviewsPage();
+        }
     }
 
     showTab(tabName) {
@@ -938,9 +963,16 @@ attachDownloadButtonListener(container, route, routeType) {
     }
 }
 
-downloadTicketAsPDF(route, routeType) {
+async downloadTicketAsPDF(route, routeType) {
     if (!route || !route.flight) {
         this.showError('Bilet oluşturma için uçuş bilgisi bulunamadı.');
+        return;
+    }
+
+    // Giriş yapmamışsa Giriş Yap sayfasına yönlendir (girişten sonra bu sayfaya dönülecek)
+    if (!localStorage.getItem('access_token')) {
+        const returnUrl = encodeURIComponent(window.location.pathname || '/create-route.html');
+        window.location.href = '/login?next=' + returnUrl;
         return;
     }
 
@@ -948,8 +980,8 @@ downloadTicketAsPDF(route, routeType) {
         // Arama parametrelerini al (kabin sınıfı için)
         const searchParams = this.getFlightSearchParams();
         
-        // Yolcu bilgileri modal'ını göster
-        this.showPassengerModal(route, routeType, searchParams);
+        // Yolcu bilgileri modal'ını göster (kupon doğrulama async olabilir)
+        await this.showPassengerModal(route, routeType, searchParams);
         
     } catch (error) {
         console.error('PDF indirme hatası:', error);
@@ -957,20 +989,20 @@ downloadTicketAsPDF(route, routeType) {
     }
 }
 
-showPassengerModal(route, routeType, searchParams) {
+async showPassengerModal(route, routeType, searchParams) {
     const modal = document.getElementById('passenger-modal');
     if (!modal) {
         console.error('Passenger modal bulunamadı');
         return;
     }
     
-    // 1. AŞAMA: Modal açılmadan önce kuponu doğrula
+    // 1. AŞAMA: Modal açılmadan önce kuponu doğrula (API çağrısı async)
     const couponCode = searchParams.couponCode || '';
     let validCoupon = null;
     let couponValidationResult = null;
     
     if (couponCode.trim() !== '') {
-        couponValidationResult = this.validateCouponForFlightStep1(route.flight, searchParams, couponCode);
+        couponValidationResult = await this.validateCouponForFlightStep1(route.flight, searchParams, couponCode);
         
         if (!couponValidationResult.valid) {
             // Geçersiz kupon için uyarı göster
@@ -1001,9 +1033,9 @@ showPassengerModal(route, routeType, searchParams) {
     // Event listener'ları ekle (geçerli kupon bilgisi ile)
     this.attachModalListeners(route, routeType, searchParams, validCoupon);
 }
-validateCouponForFlightStep1(flight, searchParams, couponCode) {
+async validateCouponForFlightStep1(flight, searchParams, couponCode) {
     try {
-        const validation = this.flightSearch.couponManager.validateCouponForFlight(
+        const validation = await this.flightSearch.couponManager.validateCouponForFlight(
             couponCode, 
             flight, 
             searchParams
@@ -1090,7 +1122,7 @@ updatePriceSummary(route, searchParams, validCoupon = null) {
             // Kupon bilgilerini göster
             document.getElementById('modal-coupon-info').textContent = 
                 `${validCoupon.airline} - ${couponDiscount} TL indirim`;
-            document.getElementById('coupon-discount-row').style.display = 'block';
+            document.getElementById('coupon-discount-row').style.display = '';
             document.getElementById('coupon-discount').textContent = `-${couponDiscount.toFixed(2)} TL`;
         } else {
             // 2. aşamada geçersiz çıkarsa
@@ -1601,16 +1633,123 @@ generateSingleTicket(route, routeType, searchParams, passengerInfo, pnr, order) 
             validCoupon: this.currentPriceInfo?.validCoupon || null // Kupon bilgisini ekleyin
         };
         
-        // FlightSearch sınıfını kullanarak bilet oluştur
-        const success = this.flightSearch.generateTicketForPassenger(ticketData);
+        // FlightSearch sınıfını kullanarak bilet oluştur (indir + profil için HTML al)
+        const result = this.flightSearch.generateTicketForPassenger(ticketData);
         
-        if (success) {
+        if (result && result.success) {
             console.log(`✅ Yolcu ${passengerInfo.id} bilet oluşturuldu: ${passengerInfo.ticketNumber}`);
+            // Profile kaydetmek için API'ye gönder
+            const filledHtml = result.filledHtml || (this.flightSearch.getFilledTicketHtml(ticketData).filledHtml);
+            if (filledHtml) {
+                const title = this.buildTicketTitle(searchParams, pnr, passengerInfo);
+                const details = this.buildTicketDetails(ticketData);
+                this.saveTicketToProfile(title, filledHtml, details);
+            }
         }
         
     } catch (error) {
         console.error(`Yolcu ${passengerInfo.id} bilet oluşturma hatası:`, error);
     }
+}
+
+// Bilet başlığı: Rota | Tarih | PNR
+buildTicketTitle(searchParams, pnr, passengerInfo) {
+    const fromSelect = document.getElementById('origin');
+    const toSelect = document.getElementById('destination');
+    const fromText = fromSelect?.options[fromSelect?.selectedIndex]?.textContent || searchParams?.origin || '';
+    const toText = toSelect?.options[toSelect?.selectedIndex]?.textContent || searchParams?.destination || '';
+    const dateStr = searchParams?.departureDate ? new Date(searchParams.departureDate).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+    const part = [fromText, toText].filter(Boolean).join(' → ');
+    return (part ? part + ' | ' : '') + (dateStr || '') + (pnr ? ' | PNR ' + pnr : '');
+}
+
+// ticket_details tablosu için detay objesi (raporlama/analiz)
+buildTicketDetails(ticketData) {
+    const { passengerInfo, pnr, priceInfo, route, searchParams, validCoupon } = ticketData || {};
+    const flight = route?.flight;
+    const itinerary = flight?.itineraries?.[0];
+    const segments = itinerary?.segments || [];
+    const firstSegment = segments[0];
+    const lastSegment = segments[segments.length - 1];
+    const getCity = (code) => (window.flightNetwork && window.flightNetwork.airportCoords && window.flightNetwork.airportCoords[code] && window.flightNetwork.airportCoords[code].city) ? window.flightNetwork.airportCoords[code].city : (code || '');
+    const toTimeStr = (t) => t ? new Date(t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : null;
+    const depTimeRaw = firstSegment?.departure?.time || null;
+    const arrTimeRaw = lastSegment?.arrival?.time || null;
+    const depTime = depTimeRaw ? toTimeStr(depTimeRaw) : null;
+    const arrTime = arrTimeRaw ? toTimeStr(arrTimeRaw) : null;
+    const depCode = firstSegment?.departure?.airport || null;
+    const arrCode = lastSegment?.arrival?.airport || null;
+    let transferCity = null;
+    let transferCode = null;
+    if (segments.length > 1 && segments[0].arrival) {
+        transferCode = segments[0].arrival.airport || null;
+        transferCity = getCity(transferCode) || null;
+    }
+    const cabinClass = searchParams?.cabinClass === 'BUSINESS' ? 'Business' : (searchParams?.cabinClass === 'ECONOMY' ? 'Economy' : (searchParams?.cabinClass || null));
+    return {
+        passenger_first_name: (passengerInfo?.name || '').trim() || 'Yolcu',
+        passenger_last_name: (passengerInfo?.surname || '').trim() || '',
+        passenger_email: (passengerInfo?.email || '').trim() || null,
+        passenger_phone: (passengerInfo?.phone || '').trim() || null,
+        pnr: pnr || '',
+        ticket_number: passengerInfo?.ticketNumber || '',
+        flight_number: firstSegment?.flightNumber || null,
+        airline_name: firstSegment?.airline || null,
+        cabin_class: cabinClass,
+        departure_city: depCode ? getCity(depCode) : null,
+        departure_airport_code: depCode,
+        departure_datetime: depTimeRaw || null,
+        arrival_city: arrCode ? getCity(arrCode) : null,
+        arrival_airport_code: arrCode,
+        arrival_datetime: arrTimeRaw || null,
+        transfer_city: transferCity,
+        transfer_airport_code: transferCode,
+        total_duration_minutes: route?.summary?.duration != null ? route.summary.duration : null,
+        passenger_count: searchParams?.adults != null ? searchParams.adults : null,
+        ticket_amount: priceInfo?.net != null ? priceInfo.net : null,
+        coupon_code: validCoupon?.code || null,
+        coupon_discount_amount: validCoupon?.discountAmount != null ? validCoupon.discountAmount : null
+    };
+}
+
+// Bilet HTML ve isteğe bağlı detayları API'ye kaydeder (profil + ticket_details)
+saveTicketToProfile(title, htmlContent, details) {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        console.warn('Bilet kaydedilemedi: access_token bulunamadı (giriş yapılmamış olabilir).');
+        return;
+    }
+    // Geliştirme sırasında farklı portları desteklemek için (örn. 5500/5501 -> 8000)
+    const apiBase = window.location.origin
+        .replace(':5501', ':8000')
+        .replace(':5500', ':8000');
+    const body = { title: title || 'Bilet', html_content: htmlContent };
+    if (details) body.details = details;
+    fetch(apiBase + '/api/tickets', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify(body)
+    }).then(async (r) => {
+        if (r.ok) {
+            console.log('✅ Bilet profilinize kaydedildi.');
+        } else {
+            let msg = `Bilet kaydedilemedi. HTTP ${r.status}`;
+            try {
+                const data = await r.json();
+                if (data && (data.detail || data.message || data.error)) {
+                    msg += ` - ${data.detail || data.message || data.error}`;
+                }
+            } catch (_) {
+                // JSON parse hatası önemli değil, temel mesajı göster
+            }
+            console.warn(msg);
+        }
+    }).catch((err) => {
+        console.error('Bilet kaydedilirken ağ hatası:', err);
+    });
 }
 // PNR üret (6 haneli)
 generatePNR() {
@@ -2098,6 +2237,11 @@ formatDuration(durationStr) {
             statistics = new Statistics();
         }, 100);
     }
+}
+
+initializeAirlineReviewsPage() {
+    // Havayolu yorumları sayfası - airline-reviews.js kendi DOMContentLoaded ile başlar
+    console.log('Havayolu yorumları sayfası');
 }
 
 loadChartJS() {

@@ -17,7 +17,7 @@ class AirlineReviews {
 
     async loadCSVData() {
         try {
-            const response = await fetch('assets/data/turkish_airlines_reviews.csv');
+            const response = await fetch('/data/turkish_airlines_reviews.csv');
             const csvText = await response.text();
             this.parseCSV(csvText);
             this.populateAirlines();

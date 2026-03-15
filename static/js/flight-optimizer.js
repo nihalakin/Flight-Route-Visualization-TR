@@ -3,43 +3,88 @@ class FlightOptimizer {
     constructor(flightNetwork) {
         this.flightNetwork = flightNetwork;
         this.optimizedRoutes = {};
+        this.excludedAirlines = ['SunExpress', 'XQ']; // SunExpress havayolunu engelle
     }
 
     // Ana optimizasyon fonksiyonu
-    optimizeFlights(flights, searchParams) {
-    // Kupon uyarısı kontrolü
-    if (flights.cabinClassWarning) {
+       optimizeFlights(flights, searchParams) {
+        // Kupon uyarısı kontrolü
+        if (flights.cabinClassWarning) {
+            return {
+                routes: { cheapest: null, fastest: null, earliest: null, balanced: null },
+                prunedGraph: {},
+                filteredCount: 0,
+                cabinClassWarning: flights.cabinClassWarning,
+                message: flights.message
+            };
+        }
+        
+        // SunExpress uçuşlarını filtrele
+        const filteredFlights = this.filterSunExpressFlights(flights);
+        
+        // Kuponlu uçuşları önceliklendir
+        const sortedFlights = this.prioritizeCouponFlights(filteredFlights);
+        
+        // Zaman filtresi
+        const timeFilteredFlights = this.filterByTime(sortedFlights, searchParams);
+            
+        this.optimizedRoutes = {
+            cheapest: this.findCheapestRoute(timeFilteredFlights),
+            fastest: this.findFastestRoute(timeFilteredFlights),
+            earliest: this.findEarliestArrivalRoute(timeFilteredFlights),
+            balanced: this.findBalancedRoute(timeFilteredFlights)
+        };
+
+        const prunedGraph = this.pruneGraph(timeFilteredFlights, searchParams);
+        
         return {
-            routes: { cheapest: null, fastest: null, earliest: null, balanced: null },
-            prunedGraph: {},
-            filteredCount: 0,
-            cabinClassWarning: flights.cabinClassWarning,
-            message: flights.message
+            routes: this.optimizedRoutes,
+            prunedGraph: prunedGraph,
+            filteredCount: timeFilteredFlights.length,
+            couponStatus: flights.couponStatus // Kupon durumunu da döndür
         };
     }
-    
-    // Kuponlu uçuşları önceliklendir
-    const sortedFlights = this.prioritizeCouponFlights(flights);
-    
-    // Zaman filtresi
-    const filteredFlights = this.filterByTime(sortedFlights, searchParams);
-        
-    this.optimizedRoutes = {
-        cheapest: this.findCheapestRoute(filteredFlights),
-        fastest: this.findFastestRoute(filteredFlights),
-        earliest: this.findEarliestArrivalRoute(filteredFlights),
-        balanced: this.findBalancedRoute(filteredFlights)
-    };
 
-    const prunedGraph = this.pruneGraph(filteredFlights, searchParams);
-    
-    return {
-        routes: this.optimizedRoutes,
-        prunedGraph: prunedGraph,
-        filteredCount: filteredFlights.length,
-        couponStatus: flights.couponStatus // Kupon durumunu da döndür
-    };
-}
+     filterSunExpressFlights(flights) {
+        if (!flights || !Array.isArray(flights)) {
+            return [];
+        }
+        
+        return flights.filter(flight => {
+            // Uçuşun tüm segmentlerini kontrol et
+            const hasSunExpress = flight.itineraries.some(itinerary => {
+                return itinerary.segments.some(segment => {
+                    return this.isSunExpressAirline(segment.airline, segment.carrier);
+                });
+            });
+            
+            // SunExpress içermeyen uçuşları döndür
+            return !hasSunExpress;
+        });
+    }
+
+    // Havayolunun SunExpress olup olmadığını kontrol et
+    isSunExpressAirline(airlineName, carrierCode) {
+        const sunExpressIdentifiers = ['SunExpress', 'XQ', 'Sun Express', 'sunexpress'];
+        
+        // Havayolu adına göre kontrol
+        if (airlineName) {
+            const airlineLower = airlineName.toLowerCase();
+            if (sunExpressIdentifiers.some(id => airlineLower.includes(id.toLowerCase()))) {
+                return true;
+            }
+        }
+        
+        // Carrier koduna göre kontrol
+        if (carrierCode) {
+            const carrierUpper = carrierCode.toUpperCase();
+            if (carrierUpper === 'XQ') {
+                return true;
+            }
+        }
+        
+        return false;
+    }
 
 prioritizeCouponFlights(flights) {
     // Kupon uygulanan uçuşları başa al

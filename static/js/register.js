@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const formData = {
                 first_name: document.getElementById('firstname').value.trim(),
                 last_name: document.getElementById('lastname').value.trim(),
+                username: document.getElementById('username').value.trim(),
                 email: document.getElementById('email').value.trim(),
                 password: document.getElementById('password').value
             };
