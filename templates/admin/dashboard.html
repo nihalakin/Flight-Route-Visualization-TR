@@ -1,0 +1,130 @@
+{% extends "admin/layout.html" %}
+
+{% block page_heading %}Dashboard{% endblock %}
+{% block page_subtitle %}Kullanıcılar, yorumlar ve kuponlar için özet görünüm.{% endblock %}
+
+{% block content %}
+    <!-- Özet kartlar -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <article class="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xs font-medium text-slate-500 uppercase tracking-wide">Toplam Kullanıcı</h2>
+                    <p id="dashboardUserTotal" class="mt-1 text-2xl font-semibold text-slate-900">-</p>
+                </div>
+                <div class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-blue-50 text-blue-600">
+                    <svg class="w-4 h-4" viewBox="0 0 20 20" fill="none">
+                        <path d="M10 11.5c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zM4.5 16.5c0-2.21 2.24-4 5.5-4s5.5 1.79 5.5 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                    </svg>
+                </div>
+            </div>
+            <div class="flex items-center justify-between text-xs text-slate-500">
+                <span id="dashboardUser24h" class="inline-flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    Son 24 saatte -
+                </span>
+                <span id="dashboardUser7d" class="text-emerald-600 font-medium">Son 7 gün: -</span>
+            </div>
+        </article>
+        <article class="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xs font-medium text-slate-500 uppercase tracking-wide">Toplam Yorum</h2>
+                    <p id="dashboardReviewTotal" class="mt-1 text-2xl font-semibold text-slate-900">-</p>
+                </div>
+                <div class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-amber-50 text-amber-600">
+                    <svg class="w-4 h-4" viewBox="0 0 20 20" fill="none">
+                        <path d="M4 4h12v8H6l-2 2V4z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+            </div>
+            <div class="flex items-center justify-between text-xs text-slate-500">
+                <span id="dashboardReview24h">Son 24 saatte -</span>
+                <span id="dashboardReview7d" class="text-emerald-600 font-medium">Son 7 gün: -</span>
+            </div>
+        </article>
+        <article class="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xs font-medium text-slate-500 uppercase tracking-wide">Toplam Kupon</h2>
+                    <p id="dashboardCouponTotal" class="mt-1 text-2xl font-semibold text-slate-900">-</p>
+                </div>
+                <div class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-violet-50 text-violet-600">
+                    <svg class="w-4 h-4" viewBox="0 0 20 20" fill="none">
+                        <path d="M4 6h12v4a2 2 0 110 4H4a2 2 0 110-4V6z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+            </div>
+            <div class="flex items-center justify-between text-xs text-slate-500">
+                <span id="dashboardCouponActive">Aktif kupon: -</span>
+                <span id="dashboardCouponUsage" class="text-slate-500">Kullanım oranı: -</span>
+            </div>
+        </article>
+        <article class="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xs font-medium text-slate-500 uppercase tracking-wide">Sistem Sağlığı</h2>
+                    <p id="dashboardSystemStatus" class="mt-1 text-2xl font-semibold text-slate-900">İyi</p>
+                </div>
+                <div class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                </div>
+            </div>
+            <p class="text-xs text-slate-500">
+                API yetkilendirmesi ve temel admin uç noktaları çalışır durumda.
+            </p>
+        </article>
+    </div>
+
+    <!-- Grafikler -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
+        <section class="lg:col-span-2 bg-white border border-slate-200 rounded-2xl shadow-sm p-4">
+            <header class="flex items-center justify-between mb-3">
+                <div>
+                    <h2 class="text-sm font-semibold text-slate-900">Kullanıcı Büyümesi</h2>
+                    <p class="text-xs text-slate-500">Zaman bazlı yeni kullanıcı sayısı</p>
+                </div>
+            </header>
+            <div class="h-56">
+                <canvas id="userGrowthChart"></canvas>
+            </div>
+        </section>
+        <section class="bg-white border border-slate-200 rounded-2xl shadow-sm p-4">
+            <header class="flex items-center justify-between mb-3">
+                <div>
+                    <h2 class="text-sm font-semibold text-slate-900">Yorum Puan Dağılımı</h2>
+                    <p class="text-xs text-slate-500">1–5 arası rating dağılımı</p>
+                </div>
+            </header>
+            <div class="h-56">
+                <canvas id="reviewRatingChart"></canvas>
+            </div>
+        </section>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+        <section class="bg-white border border-slate-200 rounded-2xl shadow-sm p-4">
+            <header class="flex items-center justify-between mb-3">
+                <div>
+                    <h2 class="text-sm font-semibold text-slate-900">Kupon Durumları</h2>
+                    <p class="text-xs text-slate-500">Aktif / pasif / kullanımı dolmuş</p>
+                </div>
+            </header>
+            <div class="h-56">
+                <canvas id="couponStatusChart"></canvas>
+            </div>
+        </section>
+        <section class="lg:col-span-2 bg-white border border-slate-200 rounded-2xl shadow-sm p-4">
+            <header class="flex items-center justify-between mb-3">
+                <div>
+                    <h2 class="text-sm font-semibold text-slate-900">Son İşlemler</h2>
+                    <p class="text-xs text-slate-500">Paneldeki en güncel CRUD hareketleri (geliştirilebilir alan).</p>
+                </div>
+            </header>
+            <p class="text-xs text-slate-500">
+                Kullanıcı, yorum ve kupon verileri yüklendiğinde bu alan JS tarafında gerçek son işlemlerle doldurulabilir.
+            </p>
+        </section>
+    </div>
+{% endblock %}
+
