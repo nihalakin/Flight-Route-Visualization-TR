@@ -1,0 +1,57 @@
+{% extends "admin/layout.html" %}
+
+{% block page_heading %}Yorum Yönetimi{% endblock %}
+{% block page_subtitle %}Kullanıcı yorumlarını filtreleyin, onaylayın veya reddedin.{% endblock %}
+
+{% block content %}
+    <section class="space-y-4">
+        <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+                <h2 class="text-sm font-semibold text-slate-900">Yorum Yönetimi</h2>
+                <p class="text-xs text-slate-500">Kullanıcı yorumlarını filtreleyin, onaylayın veya reddedin.</p>
+            </div>
+            <div class="flex flex-wrap gap-2 items-center">
+                <input id="reviewSearchInput" type="search" placeholder="Kullanıcı veya başlık ara..."
+                       class="w-full sm:w-52 border border-slate-200 rounded-full px-3 py-1.5 text-xs text-slate-700 placeholder-slate-400" />
+                <label for="reviewStatusFilter" class="text-xs text-slate-500">Durum:</label>
+                <select id="reviewStatusFilter" class="border border-slate-200 rounded-full px-3 py-1.5 text-xs text-slate-700 bg-slate-50">
+                    <option value="all">Tümü</option>
+                    <option value="pending">Bekleyen</option>
+                    <option value="approved">Onaylı</option>
+                    <option value="rejected">Reddedilen</option>
+                </select>
+            </div>
+        </header>
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100 text-xs text-slate-500">
+                <span id="reviewCountText">Yorumlar yükleniyor...</span>
+                <div class="flex items-center gap-1">
+                    <button id="reviewPrevPage" class="px-2 py-1 rounded-lg border border-slate-200 text-[11px] hover:bg-slate-50" disabled>Önceki</button>
+                    <button id="reviewNextPage" class="px-2 py-1 rounded-lg border border-slate-200 text-[11px] hover:bg-slate-50" disabled>Sonraki</button>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-50 text-xs font-semibold text-slate-500 border-b border-slate-100">
+                        <tr>
+                            <th class="py-3.5 pl-4 pr-3 text-left">ID</th>
+                            <th class="px-3 py-3.5 text-left">Kullanıcı</th>
+                            <th class="px-3 py-3.5 text-left">Puan</th>
+                            <th class="px-3 py-3.5 text-left">İçerik</th>
+                            <th class="px-3 py-3.5 text-left">Tarih</th>
+                            <th class="px-3 py-3.5 text-left">Durum</th>
+                            <th class="py-3.5 pl-3 pr-4 text-right">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reviewsTableBody" class="divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
+            <div id="reviewsLoadingRow" class="px-4 py-6 text-sm text-slate-500 flex items-center gap-2">
+                <span class="w-4 h-4 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin"></span>
+                Yorumlar yükleniyor...
+            </div>
+            <div id="reviewsEmptyRow" class="hidden px-4 py-6 text-sm text-slate-500">Filtreye uygun yorum bulunamadı.</div>
+        </div>
+    </section>
+{% endblock %}
+
