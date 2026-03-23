@@ -38,7 +38,13 @@
                 <div>
                     <div class="flex items-center justify-between mb-1.5">
                         <label for="password" class="block text-sm font-medium text-gray-700">Şifre</label>
-                        <button type="button" class="text-xs text-blue-600 hover:text-blue-700 font-medium">Şifremi unuttum</button>
+                        <button 
+                            type="button" 
+                            id="forgotPasswordBtn"
+                            class="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                        >
+                            Şifremi unuttum
+                        </button>
                     </div>
                     <input 
                         type="password" 
@@ -99,6 +105,49 @@
             }
 
             var apiBase = window.location.origin;
+
+            var forgotBtn = document.getElementById('forgotPasswordBtn');
+            if (forgotBtn) {
+                forgotBtn.addEventListener('click', async function () {
+                    var errorDiv = document.getElementById('errorMessage');
+                    var successDiv = document.getElementById('successMessage');
+                    var errorText = document.getElementById('errorText');
+                    var successText = document.getElementById('successText');
+                    errorDiv.classList.add('hidden');
+                    successDiv.classList.add('hidden');
+
+                    var emailInput = document.getElementById('email');
+                    var email = (emailInput.value || '').trim();
+                    if (!email) {
+                        errorText.textContent = 'Lütfen önce e-posta adresinizi girin.';
+                        errorDiv.classList.remove('hidden');
+                        emailInput.focus();
+                        return;
+                    }
+
+                    try {
+                        var resp = await fetch(apiBase + '/api/forgot-password', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: email })
+                        });
+                        var data;
+                        try { data = await resp.json(); } catch (_) { data = {}; }
+
+                        if (resp.ok) {
+                            successText.textContent = data.message || 'Eğer bu email sistemimizde kayıtlı ise, şifre sıfırlama bağlantısı gönderildi.';
+                            successDiv.classList.remove('hidden');
+                        } else {
+                            var msg = data.detail || data.message || 'İşlem gerçekleştirilemedi. Lütfen daha sonra tekrar deneyin.';
+                            errorText.textContent = msg;
+                            errorDiv.classList.remove('hidden');
+                        }
+                    } catch (err) {
+                        errorText.textContent = 'Bağlantı hatası: ' + (err.message || 'Sunucuya ulaşılamadı.');
+                        errorDiv.classList.remove('hidden');
+                    }
+                });
+            }
 
             document.getElementById('loginForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
