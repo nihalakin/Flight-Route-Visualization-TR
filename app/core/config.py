@@ -1,16 +1,35 @@
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+from pydantic import BaseModel
+
+
 """
 Uygulama ayarları. .env proje kökünden yüklenir.
 """
-import os
-from pathlib import Path
-from dotenv import load_dotenv
 
-# Proje kökü (Nodia/) - tek .env dosyası burada
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 load_dotenv(ROOT_DIR / ".env")
 
-# Veritabanı (boşlukları temizle)
-DATABASE_URL = (os.getenv("DATABASE_URL") or "postgresql://postgres:123456@localhost/nodia_db").strip()
+
+class Settings(BaseModel):
+    app_name: str = os.getenv("APP_NAME", "MyFastAPIApp")
+    database_url: str = (os.getenv("DATABASE_URL") or "postgresql://postgres:123456@localhost/nodia_db").strip()
+    smtp_host: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    smtp_port: int = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user: str = os.getenv("SMTP_USER", "")
+    smtp_password: str = os.getenv("SMTP_PASSWORD", "")
+    email_from: str = os.getenv("EMAIL_FROM", "")
+    frontend_reset_url: str = os.getenv(
+        "FRONTEND_RESET_URL", "https://yourdomain.com/reset-password"
+    )
+
+
+settings = Settings()
+
+# Veritabanı (SQLAlchemy ve legacy kod için)
+DATABASE_URL = settings.database_url
 
 # JWT / Auth (SECRET_KEY veya JWT_SECRET_KEY, ALGORITHM veya JWT_ALGORITHM)
 SECRET_KEY = os.getenv("SECRET_KEY") or os.getenv("JWT_SECRET_KEY") or "supersecretkey"
@@ -26,3 +45,4 @@ ADMIN_LAST_NAME = (os.getenv("ADMIN_LAST_NAME") or "Admin").strip()
 # Amadeus API
 AMADEUS_API_KEY = os.getenv("AMADEUS_API_KEY", "")
 AMADEUS_API_SECRET = os.getenv("AMADEUS_API_SECRET", "")
+
