@@ -1,3 +1,20 @@
+from fastapi import FastAPI
+
+from app.db.database import Base, engine
+from app.routers import auth
+
+
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(title="MyFastAPIApp")
+
+app.include_router(auth.router)
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
 """
 Nodia FastAPI uygulaması.
 Auth, uçuş arama ve statik sayfalar tek uygulamada.
@@ -18,6 +35,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.templating import Jinja2Templates
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.core.config import (
     ADMIN_EMAIL,
@@ -26,7 +44,7 @@ from app.core.config import (
     ADMIN_PASSWORD,
 )
 from app.database import SessionLocal, engine, Base
-from app.models import User, Ticket, TicketDetail, Airline, UserReview, Airport
+from app.models import User, Ticket, TicketDetail, Airline, UserReview, Airport, PasswordReset
 from app.routes import auth, flights, tickets, admin, reviews, public_reviews, coupons, airports_public
 
 logging.basicConfig(
@@ -34,6 +52,7 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+scheduler: AsyncIOScheduler | None = None
 
 def ensure_username_column_and_fill():
     """
@@ -514,6 +533,71 @@ def ensure_default_airports():
     finally:
         db.close()
 
+
+def cleanup_inactive_password_resets():
+    """
+    is_active = False olan password_resets kayıtlarını temizler.
+    Her gün saat 06:00'da APScheduler ile çalıştırılır.
+    """
+    db = SessionLocal()
+    try:
+        deleted = (
+            db.query(PasswordReset)
+            .filter(PasswordReset.is_active.is_(False))
+            .delete(synchronize_session=False)
+        )
+        db.commit()
+        if deleted:
+            logger.info("Cleaned up %d inactive password reset records", deleted)
+    except Exception as e:
+        db.rollback()
+        logger.warning("Failed to cleanup password_resets: %s", e)
+    finally:
+        db.close()
+
+
+def ensure_password_reset_is_active_column():
+    """
+    password_resets tablosuna is_active kolonunu ekler (varsa dokunma).
+    Varsayılan değer True (aktif) olur.
+    """
+    from sqlalchemy import text
+
+    try:
+        dialect = engine.dialect.name
+
+        if dialect == "sqlite":
+            with engine.begin() as conn:
+                rows = conn.execute(text("PRAGMA table_info('password_resets')")).mappings().all()
+                has_column = any(r.get("name") == "is_active" for r in rows)
+                if not has_column:
+                    logger.info("Adding is_active column to password_resets table (sqlite)")
+                    conn.execute(
+                        text(
+                            "ALTER TABLE password_resets "
+                            "ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1"
+                        )
+                    )
+            return
+
+        if dialect in {"postgresql", "postgres"}:
+            with engine.begin() as conn:
+                logger.info("Ensuring is_active column on password_resets (postgres)")
+                conn.execute(
+                    text(
+                        "ALTER TABLE password_resets "
+                        "ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE"
+                    )
+                )
+            return
+
+        logger.info(
+            "password_resets.is_active migration skipped (unsupported dialect=%s)",
+            dialect,
+        )
+    except Exception as e:
+        logger.warning("password_resets.is_active migration step failed: %s", e)
+
 app = FastAPI(
     title="Nodia",
     description="Uçuş arama ve kullanıcı kimlik doğrulama API",
@@ -523,7 +607,10 @@ app = FastAPI(
 
 @app.on_event("startup")
 def on_startup():
-    """Startup: admin yoksa .env'den tek admin oluştur. DB yoksa uygulama yine de ayağa kalkar."""
+    """Startup: admin yoksa .env'den tek admin oluştur. DB yoksa uygulama yine de ayağa kalkar.
+    Ayrıca password_resets cleanup job'unu zamanlar.
+    """
+    global scheduler
     try:
         ensure_username_column_and_fill()
         ensure_user_contribution_count_column()
@@ -534,8 +621,34 @@ def on_startup():
         ensure_ticket_detail_datetime_columns()
         drop_ticket_detail_legacy_time_columns()
         ensure_ticket_detail_route_category_column()
+        ensure_password_reset_is_active_column()
     except Exception as e:
         logger.warning("Startup admin check skipped (veritabanı bağlantısı yok veya hata): %s", e)
+
+    try:
+        scheduler = AsyncIOScheduler(timezone="UTC")
+        scheduler.add_job(
+            cleanup_inactive_password_resets,
+            "cron",
+            hour=6,
+            minute=0,
+        )
+        scheduler.start()
+        logger.info("APScheduler started for password_reset cleanup (06:00 UTC).")
+    except Exception as e:
+        logger.warning("Failed to start APScheduler: %s", e)
+
+
+@app.on_event("shutdown")
+def on_shutdown():
+    """Uygulama kapanırken scheduler'ı güvenli şekilde durdur."""
+    global scheduler
+    if scheduler is not None:
+        try:
+            scheduler.shutdown()
+            logger.info("APScheduler shutdown successfully.")
+        except Exception as e:
+            logger.warning("Failed to shutdown APScheduler: %s", e)
 
 app.add_middleware(
     CORSMiddleware,
@@ -618,6 +731,12 @@ async def register_page(request: Request):
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
+
+
+@app.get("/reset-password", response_class=HTMLResponse)
+async def reset_password_page(request: Request):
+    """Şifre sıfırlama formu (emaildeki linkten gelinir)."""
+    return templates.TemplateResponse("reset-password.html", {"request": request})
 
 
 @app.get("/profile", response_class=HTMLResponse)
