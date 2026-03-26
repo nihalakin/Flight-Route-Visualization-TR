@@ -1,13 +1,15 @@
 """
-Kullanıcı kayıt, giriş ve JWT auth.
+Kullanıcı kayıt, giriş, JWT auth ve şifre sıfırlama.
 - Register: email, username, first_name, last_name, password. is_admin alınmaz ve oluşturulmaz.
 - Username: sistem genelinde benzersiz ve değiştirilemez (sadece kayıt sırasında alınır).
 - Role-based: get_current_user, get_current_admin. Admin rolü endpoint ile değiştirilemez.
 """
+import hashlib
 import logging
-from datetime import timedelta
+import secrets
+from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -17,10 +19,21 @@ from app.core.config import (
     SECRET_KEY,
 )
 from app.database import get_db
-from app.models import User
-from app.schemas.auth import PasswordChange, Token, UserRegister, UserResponse, UserUpdate
+from app.models import PasswordReset, User
+from app.schemas.auth import (
+    ForgotPasswordRequest,
+    MessageResponse,
+    PasswordChange,
+    ResetPasswordRequest,
+    Token,
+    UserRegister,
+    UserResponse,
+    UserUpdate,
+)
 import bcrypt
 from jose import JWTError, jwt
+from app.core.config import settings
+from app.core.email import send_reset_email
 
 logger = logging.getLogger(__name__)
 
@@ -41,11 +54,21 @@ def get_password_hash(password: str) -> str:
 
 
 def create_access_token(sub: str, expires_delta: timedelta | None = None) -> str:
-    from datetime import datetime
     to_encode = {"sub": sub}
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode["exp"] = expire
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def hash_reset_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def create_reset_token(expires_minutes: int = 30) -> tuple[str, str, datetime]:
+    raw_token = secrets.token_urlsafe(32)
+    token_hash = hash_reset_token(raw_token)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
+    return raw_token, token_hash, expires_at
 
 
 def get_user_by_email(db: Session, email: str) -> User | None:
@@ -148,7 +171,7 @@ async def login(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail="E-posta veya şifre hatalı",
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token = create_access_token(
@@ -213,6 +236,111 @@ async def change_password(
     db.commit()
     logger.info("Password changed for user: %s", current_user.email)
     return {"message": "Şifre başarıyla güncellendi"}
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+async def forgot_password(
+    payload: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """
+    Şifre sıfırlama isteği.
+    - Email sistemde kayıtlı olsun/olmasın her zaman aynı mesaj döner (email enumeration koruması).
+    - Token tek kullanımlık ve 30 dakika geçerlidir.
+    """
+    email = payload.email
+
+    user = get_user_by_email(db, email)
+
+    if user:
+        raw_token, token_hash, expires_at = create_reset_token(expires_minutes=30)
+
+        # Bu kullanıcıya ait eski token kayıtlarını pasif et / sil
+        db.query(PasswordReset).filter(PasswordReset.user_id == user.id).delete()
+
+        reset_entry = PasswordReset(
+            user_id=user.id,
+            token_hash=token_hash,
+            expires_at=expires_at,
+            is_active=True,
+        )
+        db.add(reset_entry)
+        db.commit()
+
+        reset_url = f"{settings.frontend_reset_url}?token={raw_token}"
+
+        # Maili arka planda gönder
+        background_tasks.add_task(send_reset_email, user.email, reset_url)
+
+    return MessageResponse(
+        message=(
+            "Eğer bu email sistemimizde kayıtlı ise, "
+            "şifre sıfırlama bağlantısı gönderildi."
+        )
+    )
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+async def reset_password(
+    payload: ResetPasswordRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Şifreyi resetler:
+    - Token hash'lenir ve veritabanındaki token_hash ile karşılaştırılır.
+    - Token süresi (30 dakika) ve is_active alanı kontrol edilir.
+    - Yeni şifre bcrypt ile hashlenir ve kullanıcı güncellenir.
+    - Kullanılan token kaydı pasif edilir (is_active = False), cleanup job ile silinir.
+    """
+    now = datetime.now(timezone.utc)
+
+    token_hash = hash_reset_token(payload.token)
+
+    reset_entry = (
+        db.query(PasswordReset)
+        .filter(
+            PasswordReset.token_hash == token_hash,
+        )
+        .first()
+    )
+
+    if not reset_entry or not reset_entry.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Geçersiz veya süresi dolmuş şifre sıfırlama bağlantısı.",
+        )
+
+    if reset_entry.expires_at < now:
+        reset_entry.is_active = False
+        db.add(reset_entry)
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Geçersiz veya süresi dolmuş şifre sıfırlama bağlantısı.",
+        )
+
+    user = db.query(User).filter(User.id == reset_entry.user_id).first()
+    if not user:
+        reset_entry.is_active = False
+        db.add(reset_entry)
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Geçersiz veya süresi dolmuş şifre sıfırlama bağlantısı.",
+        )
+
+    # Yeni şifreyi bcrypt ile hashle
+    user.hashed_password = get_password_hash(payload.new_password)
+    db.add(user)
+
+    # Token tek kullanımlık: pasif hale getir (cleanup job ile silinecek)
+    reset_entry.is_active = False
+    db.add(reset_entry)
+
+    db.commit()
+
+    return MessageResponse(message="Şifreniz başarıyla güncellendi.")
 
 
 @router.get("/admin/me", response_model=UserResponse)
