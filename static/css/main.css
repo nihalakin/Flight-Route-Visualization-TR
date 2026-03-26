@@ -171,6 +171,7 @@ body.pdf-generating .map-container {
 .nav-link.active {
     background: #eef2ff;
     color: var(--primary);
+    text-decoration: none;
 }
 
 .nav-auth {
@@ -196,11 +197,14 @@ body.pdf-generating .map-container {
 .nav-btn-register {
     color: var(--primary);
     background: #eef2ff;
+    
 }
 
 .nav-btn-register:hover {
     background: #e0e7ff;
     color: var(--primary-600);
+    text-decoration: none;
+    
 }
 
 .nav-btn-login {
@@ -211,6 +215,7 @@ body.pdf-generating .map-container {
 .nav-btn-login:hover {
     background: var(--primary-600);
     color: #fff;
+    text-decoration: none;
 }
 
 .nav-logo a.nav-logo-link {
