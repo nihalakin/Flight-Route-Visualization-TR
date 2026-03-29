@@ -5,5 +5,15 @@ from app.models.airline import Airline
 from app.models.user_review import UserReview
 from app.models.coupon import Coupon
 from app.models.airport import Airport
+from app.models.password_reset import PasswordReset
 
-__all__ = ["User", "Ticket", "TicketDetail", "Airline", "UserReview", "Coupon", "Airport"]
+__all__ = [
+    "User",
+    "Ticket",
+    "TicketDetail",
+    "Airline",
+    "UserReview",
+    "Coupon",
+    "Airport",
+    "PasswordReset",
+]
