@@ -621,6 +621,7 @@
                         <div class="modal-body">
                             <form id="reviewForm">
                                 <input type="hidden" id="reviewTicketId">
+                                <input type="hidden" id="reviewSegmentId">
                                 <div class="form-group">
                                     <label>Puanın (1–5)</label>
                                     <div class="rating-stars" id="reviewRatingStars">
@@ -641,10 +642,6 @@
                                         </button>
                                     </div>
                                     <input type="hidden" id="reviewRatingValue">
-                                </div>
-                                <div class="form-group">
-                                    <label for="reviewTitle">Başlık</label>
-                                    <input type="text" id="reviewTitle" class="input-modern" maxlength="255" placeholder="Uçuş deneyimini birkaç kelimeyle özetle" required>
                                 </div>
                                 <div class="form-group">
                                     <label for="reviewContent">Yorumun</label>
@@ -787,21 +784,37 @@
                         var item = document.createElement('div');
                         item.className = 'ticket-item';
 
-                        var actionsHtml = '<a href="/ticket-preview?id=' + t.id + '" target="_blank" class="btn-preview"><i class="fas fa-external-link-alt"></i> Bilet Önizleme</a>';
+                        var topActions = '<a href="/ticket-preview?id=' + t.id + '" target="_blank" class="btn-preview"><i class="fas fa-external-link-alt"></i> Bilet Önizleme</a>';
 
-                        if (t.has_review) {
-                            actionsHtml += '<span class="ticket-status-pill ticket-status-pill--info"><i class="fas fa-check-circle"></i> Bu uçuş için değerlendirme yapılmıştır.</span>';
-                        } else if (t.can_review) {
-                            actionsHtml += '<button class="btn-preview btn-rate" data-ticket-id="' + t.id + '"><i class="fas fa-star"></i> Uçuşunu Değerlendir</button>';
+                        var segmentsHtml = '';
+                        var segments = t.segments || [];
+                        if (segments.length > 0) {
+                            segments.forEach(function(seg, idx) {
+                                var routeLabel = (seg.departure_city || seg.departure_airport_code || '?') + ' → ' + (seg.arrival_city || seg.arrival_airport_code || '?');
+                                if (seg.flight_number || seg.airline_name) {
+                                    routeLabel += ' (' + (seg.airline_name || '') + (seg.flight_number ? ' ' + seg.flight_number : '') + ')';
+                                }
+                                var segAction = '';
+                                if (seg.has_comment) {
+                                    segAction = '<span class="ticket-status-pill ticket-status-pill--info"><i class="fas fa-check-circle"></i> Yorum yapıldı</span>';
+                                } else if (seg.can_review) {
+                                    segAction = '<button class="btn-preview btn-rate" data-ticket-id="' + t.id + '" data-segment-id="' + seg.id + '"><i class="fas fa-star"></i> Bu uçuş için değerlendir</button>';
+                                } else {
+                                    segAction = '<span class="ticket-status-pill ticket-status-pill--muted"><i class="fas fa-clock"></i> Uçuş tamamlandıktan sonra değerlendirebilirsiniz</span>';
+                                }
+                                segmentsHtml += '<div class="ticket-segment-row" style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; padding:0.5rem 0; border-bottom:1px solid #e2e8f0;">' +
+                                    '<span style="font-size:0.9rem; color:#475569;">' + (idx + 1) + '. ' + routeLabel + '</span>' +
+                                    '<span>' + segAction + '</span>' +
+                                    '</div>';
+                            });
                         } else {
-                            actionsHtml += '<span class="ticket-status-pill ticket-status-pill--muted"><i class="fas fa-clock"></i> Uçuş tamamlandıktan sonra değerlendirme yapabilirsiniz.</span>';
+                            segmentsHtml = '<div style="padding:0.4rem 0; color:#64748b; font-size:0.85rem;">Bu bilet için segment bilgisi yok.</div>';
                         }
 
                         item.innerHTML =
                             '<div><div class="ticket-title">' + (t.title || 'Bilet') + '</div><div class="ticket-date">' + dateStr + '</div></div>' +
-                            '<div style="display:flex; gap:0.5rem; flex-wrap:wrap;">' +
-                            actionsHtml +
-                            '</div>';
+                            '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.5rem;">' + topActions + '</div>' +
+                            '<div class="ticket-segments" style="margin-top:0.5rem;">' + segmentsHtml + '</div>';
 
                         container.appendChild(item);
                     });
@@ -810,7 +823,8 @@
                     container.querySelectorAll('.btn-rate').forEach(function(btn) {
                         btn.addEventListener('click', function() {
                             var ticketId = this.getAttribute('data-ticket-id');
-                            openReviewModal(ticketId);
+                            var segmentId = this.getAttribute('data-segment-id');
+                            openReviewModal(ticketId, segmentId);
                         });
                     });
                 })
@@ -860,21 +874,20 @@
                 });
             }
 
-            function openReviewModal(ticketId) {
+            function openReviewModal(ticketId, segmentId) {
                 var modal = document.getElementById('reviewModal');
                 var ticketIdInput = document.getElementById('reviewTicketId');
-                var titleInput = document.getElementById('reviewTitle');
+                var segmentIdInput = document.getElementById('reviewSegmentId');
                 var contentInput = document.getElementById('reviewContent');
                 var msg = document.getElementById('reviewMessage');
                 if (!modal) return;
-                ticketIdInput.value = ticketId;
+                ticketIdInput.value = ticketId || '';
+                if (segmentIdInput) segmentIdInput.value = segmentId || '';
                 currentRating = 0;
                 if (ratingHiddenInput) ratingHiddenInput.value = '';
                 updateRatingVisual(0);
-                titleInput.value = '';
                 contentInput.value = '';
                 hideMsg(msg);
-                // Flex ile tam ortada konumlandır
                 modal.style.display = 'flex';
             }
 
@@ -909,27 +922,19 @@
 
                     reviews.forEach(function(rv) {
                         var createdStr = rv.created_at ? new Date(rv.created_at).toLocaleString('tr-TR') : '';
-                        var statusLabel = (rv.status === 'approved') ? 'Onaylı' : (rv.status === 'rejected' ? 'Reddedildi' : 'İncelemede');
-                        var statusClass = (rv.status === 'approved')
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : (rv.status === 'rejected'
-                                ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                : 'bg-amber-50 text-amber-700 border-amber-200');
+                        var shortTitle = (rv.content || '').substring(0, 60);
+                        if ((rv.content || '').length > 60) shortTitle += '…';
 
                         var div = document.createElement('div');
                         div.className = 'ticket-item';
                         div.innerHTML =
                             '<div style="flex:1; min-width:0;">' +
-                                '<div class="ticket-title">' + (rv.title || 'Başlıksız yorum') + '</div>' +
+                                '<div class="ticket-title">' + (shortTitle || 'Yorum') + '</div>' +
                                 '<div class="ticket-date">' + createdStr + '</div>' +
                                 '<div style="margin-top:0.4rem; font-size:0.8rem; color:#6b7280;">' +
-                                    '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] ' + statusClass + '">' +
-                                        '<i class="fas ' + (rv.status === 'approved' ? 'fa-check-circle' : (rv.status === 'rejected' ? 'fa-times-circle' : 'fa-clock')) + '"></i>' +
-                                        '<span>' + statusLabel + '</span>' +
-                                    '</span>' +
-                                    '<span style="margin-left:0.5rem; display:inline-flex; align-items:center; gap:4px; color:#f59e0b;">' +
+                                    '<span style="display:inline-flex; align-items:center; gap:4px; color:#f59e0b;">' +
                                         '<i class="fas fa-star"></i>' +
-                                        '<span>' + rv.rating + '/5</span>' +
+                                        '<span>' + (rv.rating || 0) + '/5</span>' +
                                     '</span>' +
                                 '</div>' +
                             '</div>' +
@@ -1053,13 +1058,13 @@
                 reviewForm.addEventListener('submit', function(e) {
                     e.preventDefault();
                     hideMsg(reviewMessage);
-                    var ticketId = document.getElementById('reviewTicketId').value;
+                    var segmentIdInput = document.getElementById('reviewSegmentId');
+                    var segmentId = segmentIdInput ? segmentIdInput.value : '';
                     var rating = parseInt(document.getElementById('reviewRatingValue').value, 10);
-                    var title = document.getElementById('reviewTitle').value.trim();
                     var content = document.getElementById('reviewContent').value.trim();
 
-                    if (!ticketId || !rating || !title || !content) {
-                        showMsg(reviewMessage, 'Lütfen tüm alanları doldurun.', true);
+                    if (!segmentId || !rating || !content) {
+                        showMsg(reviewMessage, 'Lütfen puan ve yorumu doldurun.', true);
                         return;
                     }
 
@@ -1070,9 +1075,8 @@
                             'Authorization': 'Bearer ' + token
                         },
                         body: JSON.stringify({
-                            ticket_id: parseInt(ticketId, 10),
+                            ticket_segment_id: parseInt(segmentId, 10),
                             rating: rating,
-                            title: title,
                             content: content
                         })
                     })
@@ -1083,7 +1087,7 @@
                     })
                     .then(function(result) {
                         if (result.ok) {
-                            showMsg(reviewMessage, 'Yorumun alındı, onaydan sonra yayınlanacak.', false);
+                            showMsg(reviewMessage, 'Yorumun kaydedildi.', false);
                             setTimeout(function() {
                                 closeReviewModal();
                             }, 1200);
