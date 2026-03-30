@@ -44,7 +44,17 @@ from app.core.config import (
     ADMIN_PASSWORD,
 )
 from app.database import SessionLocal, engine, Base
-from app.models import User, Ticket, TicketDetail, Airline, UserReview, Airport, PasswordReset
+from app.models import (
+    User,
+    Ticket,
+    TicketDetail,
+    TicketSegment,
+    Comment,
+    Airline,
+    UserReview,
+    Airport,
+    PasswordReset,
+)
 from app.routes import auth, flights, tickets, admin, reviews, public_reviews, coupons, airports_public
 
 logging.basicConfig(
@@ -102,56 +112,10 @@ def ensure_username_column_and_fill():
         logger.warning("Username column/backfill step failed: %s", e)
 
 
-def ensure_ticket_detail_airline_column():
+def drop_ticket_detail_segment_columns():
     """
-    ticket_details tablosuna airline_id kolonunu ekle (varsa dokunma).
-    Mevcut bilet verileri korunur; yeni kolon NULL olarak eklenir.
-    """
-    from sqlalchemy import text
-
-    try:
-        dialect = engine.dialect.name
-
-        # SQLite: PRAGMA ile kontrol et, yoksa normal ALTER TABLE ekle
-        if dialect == "sqlite":
-            with engine.begin() as conn:
-                rows = conn.execute(text("PRAGMA table_info('ticket_details')")).mappings().all()
-                has_airline_id = any(r.get("name") == "airline_id" for r in rows)
-                if not has_airline_id:
-                    logger.info("Adding airline_id column to ticket_details table (sqlite)")
-                    conn.execute(
-                        text(
-                            "ALTER TABLE ticket_details "
-                            "ADD COLUMN airline_id INTEGER REFERENCES airlines(id)"
-                        )
-                    )
-            return
-
-        # PostgreSQL: IF NOT EXISTS ile idempotent DDL
-        if dialect in {"postgresql", "postgres"}:
-            with engine.begin() as conn:
-                logger.info("Ensuring airline_id column on ticket_details (postgres)")
-                conn.execute(
-                    text(
-                        "ALTER TABLE ticket_details "
-                        "ADD COLUMN IF NOT EXISTS airline_id INTEGER REFERENCES airlines(id)"
-                    )
-                )
-            return
-
-        logger.info(
-            "ticket_details.airline_id migration skipped (unsupported dialect=%s)",
-            dialect,
-        )
-    except Exception as e:
-        logger.warning("ticket_details.airline_id migration step failed: %s", e)
-
-
-def ensure_ticket_detail_datetime_columns():
-    """
-    ticket_details tablosuna departure_datetime ve arrival_datetime kolonlarını ekle
-    veya eski departure_date/arrival_date kolonlarını yeniden adlandır.
-    Mevcut veriler korunur; yeni kolonlar NULL olarak eklenir.
+    ticket_details tablosundan airline_id, departure_datetime, arrival_datetime kaldırır.
+    Bu bilgiler artık sadece ticket_segments tablosunda tutulur.
     """
     from sqlalchemy import text
 
@@ -161,94 +125,29 @@ def ensure_ticket_detail_datetime_columns():
         if dialect == "sqlite":
             with engine.begin() as conn:
                 rows = conn.execute(text("PRAGMA table_info('ticket_details')")).mappings().all()
-                column_names = {r.get("name") for r in rows}
-
-                # Eski isimleri yeni isimlere taşı
-                if "departure_date" in column_names and "departure_datetime" not in column_names:
-                    logger.info("Renaming departure_date to departure_datetime (sqlite)")
-                    conn.execute(
-                        text("ALTER TABLE ticket_details RENAME COLUMN departure_date TO departure_datetime")
-                    )
-                    column_names.discard("departure_date")
-                    column_names.add("departure_datetime")
-                if "arrival_date" in column_names and "arrival_datetime" not in column_names:
-                    logger.info("Renaming arrival_date to arrival_datetime (sqlite)")
-                    conn.execute(
-                        text("ALTER TABLE ticket_details RENAME COLUMN arrival_date TO arrival_datetime")
-                    )
-                    column_names.discard("arrival_date")
-                    column_names.add("arrival_datetime")
-
-                # Eksikse yeni kolon ekle
-                if "departure_datetime" not in column_names:
-                    logger.info("Adding departure_datetime column to ticket_details table (sqlite)")
-                    conn.execute(
-                        text("ALTER TABLE ticket_details ADD COLUMN departure_datetime TIMESTAMP")
-                    )
-                if "arrival_datetime" not in column_names:
-                    logger.info("Adding arrival_datetime column to ticket_details table (sqlite)")
-                    conn.execute(
-                        text("ALTER TABLE ticket_details ADD COLUMN arrival_datetime TIMESTAMP")
-                    )
+                names = {r.get("name") for r in rows}
+                for col in ("airline_id", "departure_datetime", "arrival_datetime"):
+                    if col in names:
+                        try:
+                            conn.execute(text(f"ALTER TABLE ticket_details DROP COLUMN {col}"))
+                            logger.info("Dropped column ticket_details.%s (sqlite)", col)
+                        except Exception as inner:
+                            logger.warning("Could not drop ticket_details.%s (sqlite): %s", col, inner)
             return
 
         if dialect in {"postgresql", "postgres"}:
             with engine.begin() as conn:
-                logger.info("Ensuring departure_datetime/arrival_datetime columns on ticket_details (postgres)")
-
-                # Eski kolon adlarını kontrol et
-                rows = conn.execute(
-                    text(
-                        """
-                        SELECT column_name
-                        FROM information_schema.columns
-                        WHERE table_name = 'ticket_details'
-                          AND column_name IN ('departure_date', 'arrival_date',
-                                              'departure_datetime', 'arrival_datetime')
-                        """
-                    )
-                ).fetchall()
-                existing = {r[0] for r in rows}
-
-                # departure_date -> departure_datetime
-                if "departure_date" in existing and "departure_datetime" not in existing:
-                    logger.info("Renaming departure_date to departure_datetime (postgres)")
-                    conn.execute(
-                        text("ALTER TABLE ticket_details RENAME COLUMN departure_date TO departure_datetime")
-                    )
-                    existing.discard("departure_date")
-                    existing.add("departure_datetime")
-
-                # arrival_date -> arrival_datetime
-                if "arrival_date" in existing and "arrival_datetime" not in existing:
-                    logger.info("Renaming arrival_date to arrival_datetime (postgres)")
-                    conn.execute(
-                        text("ALTER TABLE ticket_details RENAME COLUMN arrival_date TO arrival_datetime")
-                    )
-                    existing.discard("arrival_date")
-                    existing.add("arrival_datetime")
-
-                # Eksikse yeni kolonu ekle
-                conn.execute(
-                    text(
-                        "ALTER TABLE ticket_details "
-                        "ADD COLUMN IF NOT EXISTS departure_datetime TIMESTAMP"
-                    )
-                )
-                conn.execute(
-                    text(
-                        "ALTER TABLE ticket_details "
-                        "ADD COLUMN IF NOT EXISTS arrival_datetime TIMESTAMP"
-                    )
-                )
+                for col in ("airline_id", "departure_datetime", "arrival_datetime"):
+                    try:
+                        conn.execute(text(f"ALTER TABLE ticket_details DROP COLUMN IF EXISTS {col}"))
+                        logger.info("Dropped column ticket_details.%s (postgres)", col)
+                    except Exception as inner:
+                        logger.warning("Could not drop ticket_details.%s: %s", col, inner)
             return
 
-        logger.info(
-            "ticket_details datetime columns migration skipped (unsupported dialect=%s)",
-            dialect,
-        )
+        logger.info("drop_ticket_detail_segment_columns skipped (dialect=%s)", dialect)
     except Exception as e:
-        logger.warning("ticket_details datetime columns migration step failed: %s", e)
+        logger.warning("drop_ticket_detail_segment_columns failed: %s", e)
 
 
 def drop_ticket_detail_legacy_time_columns():
@@ -334,6 +233,25 @@ def ensure_user_contribution_count_column():
         )
     except Exception as e:
         logger.warning("users.contribution_count migration step failed: %s", e)
+
+
+def ensure_ticket_segments_and_comments_tables():
+    """
+    ticket_segments ve comments tablolarını oluşturur (yoksa).
+    Yeni bilet/segment/yorum yapısı için gerekli.
+    """
+    try:
+        from sqlalchemy import inspect
+        insp = inspect(engine)
+        existing = set(insp.get_table_names())
+        if "ticket_segments" not in existing:
+            Base.metadata.tables["ticket_segments"].create(bind=engine, checkfirst=True)
+            logger.info("Created table ticket_segments")
+        if "comments" not in existing:
+            Base.metadata.tables["comments"].create(bind=engine, checkfirst=True)
+            logger.info("Created table comments")
+    except Exception as e:
+        logger.warning("ensure_ticket_segments_and_comments_tables failed: %s", e)
 
 
 def ensure_ticket_detail_route_category_column():
@@ -617,11 +535,11 @@ def on_startup():
         ensure_single_admin()
         ensure_default_airlines()
         ensure_default_airports()
-        ensure_ticket_detail_airline_column()
-        ensure_ticket_detail_datetime_columns()
         drop_ticket_detail_legacy_time_columns()
+        drop_ticket_detail_segment_columns()
         ensure_ticket_detail_route_category_column()
         ensure_password_reset_is_active_column()
+        ensure_ticket_segments_and_comments_tables()
     except Exception as e:
         logger.warning("Startup admin check skipped (veritabanı bağlantısı yok veya hata): %s", e)
 
