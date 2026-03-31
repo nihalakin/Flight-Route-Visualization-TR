@@ -1663,52 +1663,52 @@ buildTicketTitle(searchParams, pnr, passengerInfo) {
     return (part ? part + ' | ' : '') + (dateStr || '') + (pnr ? ' | PNR ' + pnr : '');
 }
 
-// ticket_details tablosu için detay objesi (raporlama/analiz)
+// ticket_details + ticket_segments: her uçuş bacağı ayrı segment (direkt=1, aktarmalı=2+)
 buildTicketDetails(ticketData) {
     const { passengerInfo, pnr, priceInfo, route, searchParams, validCoupon } = ticketData || {};
     const flight = route?.flight;
     const itinerary = flight?.itineraries?.[0];
     const segments = itinerary?.segments || [];
-    const firstSegment = segments[0];
-    const lastSegment = segments[segments.length - 1];
     const getCity = (code) => (window.flightNetwork && window.flightNetwork.airportCoords && window.flightNetwork.airportCoords[code] && window.flightNetwork.airportCoords[code].city) ? window.flightNetwork.airportCoords[code].city : (code || '');
-    const toTimeStr = (t) => t ? new Date(t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : null;
-    const depTimeRaw = firstSegment?.departure?.time || null;
-    const arrTimeRaw = lastSegment?.arrival?.time || null;
-    const depTime = depTimeRaw ? toTimeStr(depTimeRaw) : null;
-    const arrTime = arrTimeRaw ? toTimeStr(arrTimeRaw) : null;
-    const depCode = firstSegment?.departure?.airport || null;
-    const arrCode = lastSegment?.arrival?.airport || null;
-    let transferCity = null;
-    let transferCode = null;
-    if (segments.length > 1 && segments[0].arrival) {
-        transferCode = segments[0].arrival.airport || null;
-        transferCity = getCity(transferCode) || null;
-    }
     const cabinClass = searchParams?.cabinClass === 'BUSINESS' ? 'Business' : (searchParams?.cabinClass === 'ECONOMY' ? 'Economy' : (searchParams?.cabinClass || null));
+
+    // Her bacak için ayrı segment (Segment 1: GZT→IST, Segment 2: IST→YKO vb.)
+    const toIso = (t) => {
+        if (t == null) return null;
+        if (typeof t === 'string') return t;
+        try { return (t instanceof Date ? t : new Date(t)).toISOString(); } catch (_) { return null; }
+    };
+    const toMinutes = (d) => {
+        if (d == null || typeof d === 'number') return d;
+        if (typeof d !== 'string') return null;
+        const m = d.match(/PT(?:(\d+)H)?(?:(\d+)M)?/i);
+        if (m) return (parseInt(m[1] || 0, 10) * 60) + parseInt(m[2] || 0, 10);
+        const n = parseInt(d, 10); return isNaN(n) ? null : n;
+    };
+    const segmentsPayload = segments.map((seg, index) => ({
+        segment_order: index + 1,
+        flight_number: seg.flightNumber || seg.number || null,
+        airline_name: seg.airline || null,
+        departure_city: seg.departure?.airport ? getCity(seg.departure.airport) : null,
+        departure_airport_code: seg.departure?.airport || null,
+        arrival_city: seg.arrival?.airport ? getCity(seg.arrival.airport) : null,
+        arrival_airport_code: seg.arrival?.airport || null,
+        departure_datetime: toIso(seg.departure?.time),
+        arrival_datetime: toIso(seg.arrival?.time),
+        segment_duration_minutes: toMinutes(seg.duration),
+        ticket_number: passengerInfo?.ticketNumber || null
+    }));
+
     return {
-        passenger_first_name: (passengerInfo?.name || '').trim() || 'Yolcu',
-        passenger_last_name: (passengerInfo?.surname || '').trim() || '',
-        passenger_email: (passengerInfo?.email || '').trim() || null,
-        passenger_phone: (passengerInfo?.phone || '').trim() || null,
         pnr: pnr || '',
-        ticket_number: passengerInfo?.ticketNumber || '',
-        flight_number: firstSegment?.flightNumber || null,
-        airline_name: firstSegment?.airline || null,
         cabin_class: cabinClass,
-        departure_city: depCode ? getCity(depCode) : null,
-        departure_airport_code: depCode,
-        departure_datetime: depTimeRaw || null,
-        arrival_city: arrCode ? getCity(arrCode) : null,
-        arrival_airport_code: arrCode,
-        arrival_datetime: arrTimeRaw || null,
-        transfer_city: transferCity,
-        transfer_airport_code: transferCode,
-        total_duration_minutes: route?.summary?.duration != null ? route.summary.duration : null,
+        route_category: segments.length > 1 ? 'connecting' : 'direct',
+        total_duration_minutes: toMinutes(route?.summary?.duration) ?? (route?.summary?.duration != null ? route.summary.duration : null),
         passenger_count: searchParams?.adults != null ? searchParams.adults : null,
         ticket_amount: priceInfo?.net != null ? priceInfo.net : null,
         coupon_code: validCoupon?.code || null,
-        coupon_discount_amount: validCoupon?.discountAmount != null ? validCoupon.discountAmount : null
+        coupon_discount_amount: validCoupon?.discountAmount != null ? validCoupon.discountAmount : null,
+        segments: segmentsPayload.length ? segmentsPayload : []
     };
 }
 
@@ -1739,12 +1739,16 @@ saveTicketToProfile(title, htmlContent, details) {
             let msg = `Bilet kaydedilemedi. HTTP ${r.status}`;
             try {
                 const data = await r.json();
-                if (data && (data.detail || data.message || data.error)) {
-                    msg += ` - ${data.detail || data.message || data.error}`;
+                const detail = data?.detail ?? data?.message ?? data?.error;
+                if (detail != null) {
+                    if (Array.isArray(detail)) {
+                        const parts = detail.map(d => (d.msg && d.loc ? d.loc.join('.') + ': ' + d.msg : (d.msg || String(d))));
+                        msg += ' - ' + (parts.length ? parts.join('; ') : JSON.stringify(detail));
+                    } else {
+                        msg += ' - ' + (typeof detail === 'string' ? detail : JSON.stringify(detail));
+                    }
                 }
-            } catch (_) {
-                // JSON parse hatası önemli değil, temel mesajı göster
-            }
+            } catch (_) {}
             console.warn(msg);
         }
     }).catch((err) => {
