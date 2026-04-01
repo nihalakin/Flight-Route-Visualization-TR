@@ -1,12 +1,7 @@
 """
-Public yorum API'si.
-
-Kurallar:
-- Sadece status = approved ve deleted_at IS NULL olan yorumlar döndürülür.
-- Kullanıcı adı, havayolu adı, rota, rota kategorisi, seyahat ve yorum tarihi,
-  rating ve 'Verified Flight Experience' etiketi gösterilir.
+Public yorum API'si (segment bazlı comments).
+Tüm segment yorumları listelenir; rota ve havayolu bilgisi segmentten alınır.
 """
-
 from datetime import datetime
 from typing import Optional
 
@@ -15,8 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import User, UserReview, TicketDetail, Airline
-from app.models.user_review import ReviewStatus
+from app.models import User, Comment, TicketSegment, TicketDetail
 
 router = APIRouter(prefix="/public", tags=["public-reviews"])
 
@@ -37,58 +31,39 @@ async def list_public_reviews(
     db: Session = Depends(get_db),
 ):
     """
-    Public yorum listesi:
-    - status = approved
-    - deleted_at IS NULL
+    Public yorum listesi: comments tablosundaki tüm yorumlar.
+    Rota ve havayolu segmentten (ticket_segments) alınır.
     """
-    reviews = (
-        db.query(UserReview)
-        .filter(
-            UserReview.status == ReviewStatus.APPROVED,
-            UserReview.deleted_at.is_(None),
-        )
-        .order_by(UserReview.created_at.desc())
+    rows = (
+        db.query(Comment, User, TicketSegment, TicketDetail)
+        .join(User, User.id == Comment.user_id)
+        .join(TicketSegment, TicketSegment.id == Comment.ticket_segment_id)
+        .join(TicketDetail, TicketDetail.id == TicketSegment.ticket_detail_id)
+        .order_by(Comment.created_at.desc())
         .all()
     )
 
     cards: list[PublicReviewCard] = []
-    for r in reviews:
-        user = db.query(User).filter(User.id == r.user_id).first()
-        airline = db.query(Airline).filter(Airline.id == r.airline_id).first()
-        detail = (
-            db.query(TicketDetail)
-            .filter(TicketDetail.ticket_id == r.ticket_id)
-            .first()
-        )
+    for c, u, seg, detail in rows:
+        username = u.username if u and u.username else None
+        if not username and u:
+            username = f"{u.first_name} {u.last_name[0]}." if u.last_name else u.first_name
 
-        username = user.username if user and user.username else None
-        if not username and user:
-            username = f"{user.first_name} {user.last_name[0]}." if user.last_name else user.first_name
-
-        route_str = ""
-        route_category = None
-        travel_date: Optional[datetime] = None
-
-        if detail:
-            dep = detail.departure_city or detail.departure_airport_code or ""
-            arr = detail.arrival_city or detail.arrival_airport_code or ""
-            if dep or arr:
-                route_str = f"{dep} – {arr}".strip(" –")
-            if detail.route_category is not None:
-                route_category = detail.route_category.value
-            travel_date = detail.departure_datetime
+        dep = seg.departure_city or seg.departure_airport_code or ""
+        arr = seg.arrival_city or seg.arrival_airport_code or ""
+        route_str = f"{dep} – {arr}".strip(" –") if dep or arr else ""
+        route_category = detail.route_category if detail else None
+        travel_date = seg.departure_datetime
 
         cards.append(
             PublicReviewCard(
                 username=username or "Anonim",
-                airline_name=airline.name if airline else "",
+                airline_name=seg.airline_name or "",
                 route=route_str,
                 route_category=route_category,
                 travel_date=travel_date,
-                review_date=r.created_at,
-                rating=r.rating,
+                review_date=c.created_at,
+                rating=c.rating,
             )
         )
-
     return cards
-
