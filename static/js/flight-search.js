@@ -526,13 +526,35 @@ prepareTicketData(flight, passengerInfo, searchParams = null) {
             transferFlightDuration2: secondSegment?.duration ? this.formatDurationForTicket(secondSegment.duration) : "Bilgi Yok"
         };
         
-        // İkinci segment havayolu bilgisi
+        // İkinci segment havayolu ve uçuş numarası
         if (secondSegment) {
             secondAirlineInfo = {
                 airlineName2: secondSegment.airline || "Bilgi Yok",
-                airlineCode2: secondSegment.carrier || "Bilgi Yok"
+                airlineCode2: secondSegment.carrier || "Bilgi Yok",
+                flightNumber2: secondSegment.flightNumber || secondSegment.number || "Bilgi Yok"
             };
         }
+    }
+
+    // 2. aktarma (3 segment): ikinci aktarma noktası ve üçüncü bacak bilgileri
+    let transferInfo2 = {};
+    let thirdAirlineInfo = {};
+    if (itinerary.segments.length >= 3) {
+        const secondTransferSeg = itinerary.segments[1];  // 2. segmentin varışı = 2. aktarma
+        const thirdSegment = itinerary.segments[2];
+        transferInfo2 = {
+            transferCity2: window.flightNetwork.airportCoords[secondTransferSeg.arrival.airport]?.city || secondTransferSeg.arrival.airport,
+            transferCode2: secondTransferSeg.arrival.airport,
+            transferAirport2: window.flightNetwork.airportCoords[secondTransferSeg.arrival.airport]?.name || secondTransferSeg.arrival.airport,
+            transferDepartureTime2: new Date(thirdSegment.departure.time).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+            transferWaitTime2: this.calculateWaitTime(secondTransferSeg.arrival.time, thirdSegment.departure.time)
+        };
+        thirdAirlineInfo = {
+            airlineName3: thirdSegment.airline || "Bilgi Yok",
+            airlineCode3: thirdSegment.carrier || "Bilgi Yok",
+            flightNumber3: thirdSegment.flightNumber || thirdSegment.number || "Bilgi Yok",
+            flightDuration3: thirdSegment.duration ? this.formatDurationForTicket(thirdSegment.duration) : "Bilgi Yok"
+        };
     }
 
     return {
@@ -569,10 +591,11 @@ prepareTicketData(flight, passengerInfo, searchParams = null) {
         arrivalTime: new Date(lastSegment.arrival.time).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
         totalDuration: this.formatDurationForTicket(itinerary.duration),
         
-        // Havayolu bilgileri
+        // Havayolu bilgileri (her segment kendi uçuş numarası)
         airlineName: firstSegment.airline || "Bilgi Yok",
         airlineCode: firstSegment.carrier || "Bilgi Yok",
-        flightNumber: firstSegment.flightNumber || "Bilgi Yok",
+        flightNumber: firstSegment.flightNumber || firstSegment.number || "Bilgi Yok",
+        flightNumber2: itinerary.segments.length > 1 ? (itinerary.segments[1].flightNumber || itinerary.segments[1].number || "Bilgi Yok") : undefined,
         ...secondAirlineInfo,
         
         // Sınıf bilgisi
@@ -581,6 +604,9 @@ prepareTicketData(flight, passengerInfo, searchParams = null) {
         
         // Aktarma bilgileri
         ...transferInfo,
+        ...transferInfo2,
+        ...thirdAirlineInfo,
+        hasSecondTransfer: itinerary.segments.length >= 3,
         
         // Kupon bilgileri
         hasCoupon: hasCoupon,
@@ -600,6 +626,7 @@ prepareTicketData(flight, passengerInfo, searchParams = null) {
         // Segment süreleri
         flightDuration1: this.formatDurationForTicket(firstSegment.duration),
         flightDuration2: itinerary.segments.length > 1 ? this.formatDurationForTicket(itinerary.segments[1].duration) : "Bilgi Yok",
+        flightDuration3: itinerary.segments.length >= 3 ? this.formatDurationForTicket(itinerary.segments[2].duration) : "Bilgi Yok",
         
         // Koltuk numarası
         seatNumber: passengerInfo?.seat || "A001",
@@ -677,8 +704,9 @@ fillTicketTemplate(template, data) {
     let filledTemplate = template;
     const currentYear = new Date().getFullYear();
     
-    // Aktarma kontrolü
+    // Aktarma kontrolleri (2. aktarma: hasSecondTransfer veya 2. aktarma verisi doluysa göster)
     const hasTransfer = data.transferCity && data.transferCity.trim() !== '';
+    const hasSecondTransfer = !!(data.hasSecondTransfer || (data.transferCity2 && data.transferCity2.trim() !== '') || (data.flightNumber3 && data.flightNumber3.trim() !== ''));
     
     // Kupon kontrolü
     const hasCoupon = data.hasCoupon || false;
@@ -715,6 +743,10 @@ fillTicketTemplate(template, data) {
         '{{FLIGHT_NUMBER_2}}': data.flightNumber2 || data.flightNumber,
         '{{FLIGHT_DURATION_1}}': data.flightDuration1,
         '{{FLIGHT_DURATION_2}}': data.flightDuration2 || '',
+        '{{FLIGHT_DURATION_3}}': data.flightDuration3 || '',
+        '{{FLIGHT_NUMBER_3}}': data.flightNumber3 || data.flightNumber || '',
+        '{{AIRLINE_NAME_3}}': data.airlineName3 || data.airlineName || '',
+        '{{AIRLINE_CODE_3}}': data.airlineCode3 || data.airlineCode || '',
         '{{TRANSFER_CITY}}': data.transferCity || '',
         '{{TRANSFER_CODE}}': data.transferCode || '',
         '{{TRANSFER_AIRPORT}}': data.transferAirport || '',
@@ -722,6 +754,11 @@ fillTicketTemplate(template, data) {
         '{{TRANSFER_ARRIVAL_TIME}}': data.transferArrivalTime || '',
         '{{TRANSFER_DEPARTURE_TIME}}': data.transferDepartureTime || '',
         '{{TRANSFER_WAIT_TIME}}': data.transferWaitTime || '',
+        '{{TRANSFER_CITY_2}}': data.transferCity2 || '',
+        '{{TRANSFER_CODE_2}}': data.transferCode2 || '',
+        '{{TRANSFER_AIRPORT_2}}': data.transferAirport2 || '',
+        '{{TRANSFER_DEPARTURE_TIME_2}}': data.transferDepartureTime2 || '',
+        '{{TRANSFER_WAIT_TIME_2}}': data.transferWaitTime2 || '',
         '{{PRICE}}': data.finalPrice || data.price,
         '{{ORIGINAL_PRICE}}': data.originalPrice || data.finalPrice || data.price,
         '{{FINAL_PRICE}}': data.finalPrice || data.price,
@@ -734,13 +771,13 @@ fillTicketTemplate(template, data) {
         '{{CURRENT_YEAR}}': currentYear
     };
 
-    // 1. Önce basit değişken değiştirme
+    // 1. Önce basit değişken değiştirme (literal string - {{ }} regex'te özel karakter)
     for (const [key, value] of Object.entries(replacements)) {
-        filledTemplate = filledTemplate.replace(new RegExp(key, 'g'), value);
+        filledTemplate = filledTemplate.split(key).join(value ?? '');
     }
 
     // 2. Koşullu blokları işle
-    filledTemplate = this.processTemplateConditions(filledTemplate, hasTransfer, hasCoupon);
+    filledTemplate = this.processTemplateConditions(filledTemplate, hasTransfer, hasSecondTransfer, hasCoupon);
     
     // 3. Kalan {{#if}} ve {{/if}} tag'lerini temizle (güvenlik için)
     filledTemplate = filledTemplate.replace(/\{\{#if.*?\}\}/g, '');
@@ -750,11 +787,14 @@ fillTicketTemplate(template, data) {
 }
 
     // Template koşullarını işleyen yardımcı fonksiyon
-    processTemplateConditions(template, hasTransfer, hasCoupon) {
+    processTemplateConditions(template, hasTransfer, hasSecondTransfer, hasCoupon) {
         let result = template;
         
         // HAS_TRANSFER bloklarını işle
         result = this.processConditionBlock(result, 'HAS_TRANSFER', hasTransfer);
+        
+        // HAS_SECOND_TRANSFER bloklarını işle (2 aktarma = 3 segment)
+        result = this.processConditionBlock(result, 'HAS_SECOND_TRANSFER', hasSecondTransfer);
         
         // HAS_COUPON bloklarını işle
         result = this.processConditionBlock(result, 'HAS_COUPON', hasCoupon);
@@ -762,14 +802,13 @@ fillTicketTemplate(template, data) {
         return result;
     }
 
-// Tek bir koşul bloğunu işleyen fonksiyon
-processConditionBlock(template, conditionName, conditionValue) {
-    const ifPattern = new RegExp(`\\{\\{#if ${conditionName}\\}\\}([\\s\\S]*?)\\{\\{/if\\}\\}`, 'g');
-    
-    return template.replace(ifPattern, (match, content) => {
-        return conditionValue ? content : '';
-    });
-}
+    // Tek bir koşul bloğunu işleyen fonksiyon
+    processConditionBlock(template, conditionName, conditionValue) {
+        const ifPattern = new RegExp(`\\{\\{#if ${conditionName}\\}\\}([\\s\\S]*?)\\{\\{/if\\}\\}`, 'g');
+        return template.replace(ifPattern, (match, content) => {
+            return conditionValue ? content : '';
+        });
+    }
 
     // PDF olarak indir
     downloadTicketAsPDF(filledTemplate, ticketData) {
@@ -1373,13 +1412,35 @@ prepareTicketDataForPassenger(flight, passengerInfo, searchParams, pnr, priceInf
             transferFlightDuration2: secondSegment?.duration ? this.formatDurationForTicket(secondSegment.duration) : "Bilgi Yok"
         };
         
-        // İkinci segment havayolu bilgisi
+        // İkinci segment havayolu ve uçuş numarası
         if (secondSegment) {
             secondAirlineInfo = {
                 airlineName2: secondSegment.airline || "Bilgi Yok",
-                airlineCode2: secondSegment.carrier || "Bilgi Yok"
+                airlineCode2: secondSegment.carrier || "Bilgi Yok",
+                flightNumber2: secondSegment.flightNumber || secondSegment.number || "Bilgi Yok"
             };
         }
+    }
+    
+    // 2. aktarma (3 segment)
+    let transferInfo2 = {};
+    let thirdAirlineInfo = {};
+    if (itinerary.segments.length >= 3) {
+        const secondTransferSeg = itinerary.segments[1];
+        const thirdSegment = itinerary.segments[2];
+        transferInfo2 = {
+            transferCity2: window.flightNetwork.airportCoords[secondTransferSeg.arrival.airport]?.city || secondTransferSeg.arrival.airport,
+            transferCode2: secondTransferSeg.arrival.airport,
+            transferAirport2: window.flightNetwork.airportCoords[secondTransferSeg.arrival.airport]?.name || secondTransferSeg.arrival.airport,
+            transferDepartureTime2: new Date(thirdSegment.departure.time).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+            transferWaitTime2: this.calculateWaitTime(secondTransferSeg.arrival.time, thirdSegment.departure.time)
+        };
+        thirdAirlineInfo = {
+            airlineName3: thirdSegment.airline || "Bilgi Yok",
+            airlineCode3: thirdSegment.carrier || "Bilgi Yok",
+            flightNumber3: thirdSegment.flightNumber || thirdSegment.number || "Bilgi Yok",
+            flightDuration3: thirdSegment.duration ? this.formatDurationForTicket(thirdSegment.duration) : "Bilgi Yok"
+        };
     }
     
     // Fiyat hesaplamaları
@@ -1431,10 +1492,11 @@ prepareTicketDataForPassenger(flight, passengerInfo, searchParams, pnr, priceInf
         arrivalTime: new Date(lastSegment.arrival.time).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
         totalDuration: this.formatDurationForTicket(itinerary.duration),
         
-        // Havayolu bilgileri
+        // Havayolu bilgileri (her segment kendi uçuş numarası)
         airlineName: firstSegment.airline || "Bilgi Yok",
         airlineCode: firstSegment.carrier || "Bilgi Yok",
-        flightNumber: firstSegment.flightNumber || "Bilgi Yok",
+        flightNumber: firstSegment.flightNumber || firstSegment.number || "Bilgi Yok",
+        flightNumber2: itinerary.segments.length > 1 ? (itinerary.segments[1].flightNumber || itinerary.segments[1].number || "Bilgi Yok") : undefined,
         ...secondAirlineInfo,
         
         // Sınıf bilgisi
@@ -1443,6 +1505,9 @@ prepareTicketDataForPassenger(flight, passengerInfo, searchParams, pnr, priceInf
         
         // Aktarma bilgileri
         ...transferInfo,
+        ...transferInfo2,
+        ...thirdAirlineInfo,
+        hasSecondTransfer: itinerary.segments.length >= 3,
         
         // Fiyat bilgileri
         hasCoupon: hasCoupon,
@@ -1469,6 +1534,7 @@ prepareTicketDataForPassenger(flight, passengerInfo, searchParams, pnr, priceInf
         // Segment süreleri
         flightDuration1: this.formatDurationForTicket(firstSegment.duration),
         flightDuration2: itinerary.segments.length > 1 ? this.formatDurationForTicket(itinerary.segments[1].duration) : "Bilgi Yok",
+        flightDuration3: itinerary.segments.length >= 3 ? this.formatDurationForTicket(itinerary.segments[2].duration) : "Bilgi Yok",
         
         // Koltuk numarası
         seatNumber: this.generateSeatNumber(),
@@ -1547,6 +1613,10 @@ fillPassengerTicketTemplate(template, data) {
         '{{FLIGHT_NUMBER_2}}': data.flightNumber2 || data.flightNumber,
         '{{FLIGHT_DURATION_1}}': data.flightDuration1,
         '{{FLIGHT_DURATION_2}}': data.flightDuration2 || '',
+        '{{FLIGHT_DURATION_3}}': data.flightDuration3 || '',
+        '{{FLIGHT_NUMBER_3}}': data.flightNumber3 || data.flightNumber || '',
+        '{{AIRLINE_NAME_3}}': data.airlineName3 || data.airlineName || '',
+        '{{AIRLINE_CODE_3}}': data.airlineCode3 || data.airlineCode || '',
         '{{TRANSFER_CITY}}': data.transferCity || '',
         '{{TRANSFER_CODE}}': data.transferCode || '',
         '{{TRANSFER_AIRPORT}}': data.transferAirport || '',
@@ -1554,6 +1624,11 @@ fillPassengerTicketTemplate(template, data) {
         '{{TRANSFER_ARRIVAL_TIME}}': data.transferArrivalTime || '',
         '{{TRANSFER_DEPARTURE_TIME}}': data.transferDepartureTime || '',
         '{{TRANSFER_WAIT_TIME}}': data.transferWaitTime || '',
+        '{{TRANSFER_CITY_2}}': data.transferCity2 || '',
+        '{{TRANSFER_CODE_2}}': data.transferCode2 || '',
+        '{{TRANSFER_AIRPORT_2}}': data.transferAirport2 || '',
+        '{{TRANSFER_DEPARTURE_TIME_2}}': data.transferDepartureTime2 || '',
+        '{{TRANSFER_WAIT_TIME_2}}': data.transferWaitTime2 || '',
         '{{PRICE}}': data.finalPrice || data.price,
         '{{ORIGINAL_PRICE}}': individualGross.toFixed(2),
         '{{FINAL_PRICE}}': individualNet.toFixed(2),
@@ -1575,13 +1650,14 @@ fillPassengerTicketTemplate(template, data) {
         '{{HAS_COUPON}}': hasCoupon ? 'true' : ''
     };
 
-    // Değişken değiştirme
+    // Değişken değiştirme (literal string - {{ }} regex'te özel karakter)
     for (const [key, value] of Object.entries(replacements)) {
-        filledTemplate = filledTemplate.replace(new RegExp(key, 'g'), value);
+        filledTemplate = filledTemplate.split(key).join(value ?? '');
     }
 
-    // Koşullu blokları işle
-    filledTemplate = this.processTemplateConditions(filledTemplate, hasTransfer, hasCoupon);
+    // Koşullu blokları işle (2. aktarma: hasSecondTransfer veya 2. aktarma verisi doluysa göster)
+    const hasSecondTransfer = !!(data.hasSecondTransfer || (data.transferCity2 && data.transferCity2.trim() !== '') || (data.flightNumber3 && data.flightNumber3.trim() !== ''));
+    filledTemplate = this.processTemplateConditions(filledTemplate, hasTransfer, hasSecondTransfer, hasCoupon);
     
     // Kalan template tag'lerini temizle
     filledTemplate = filledTemplate.replace(/\{\{#if.*?\}\}/g, '');
