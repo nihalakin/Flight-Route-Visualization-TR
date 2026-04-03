@@ -1024,6 +1024,39 @@
                 </div>
                 {{/if}}
                 
+                <!-- 2. Aktarma (3 segment) -->
+                {{#if HAS_SECOND_TRANSFER}}
+                <div class="transfer-notice">
+                    <strong>2. AKTARMA BİLGİSİ</strong>
+                    <div>{{TRANSFER_CITY_2}} ({{TRANSFER_CODE_2}}) • {{TRANSFER_WAIT_TIME_2}} bekleme süresi</div>
+                    <div>Sonraki uçuş: {{FLIGHT_NUMBER_3}} • {{AIRLINE_NAME_3}} • Kalkış: {{TRANSFER_DEPARTURE_TIME_2}}</div>
+                </div>
+                
+                <div class="timeline-item">
+                    <div class="timeline-header">
+                        <div class="timeline-time">{{TRANSFER_DEPARTURE_TIME_2}}</div>
+                        <div class="timeline-icon">
+                            <i class="fas fa-plane-departure"></i>
+                        </div>
+                        <div>
+                            <div class="timeline-location">{{TRANSFER_AIRPORT_2}}</div>
+                            <div class="timeline-subtitle">{{TRANSFER_CITY_2}} ({{TRANSFER_CODE_2}})</div>
+                        </div>
+                    </div>
+                    <div class="flight-meta">
+                        <div class="meta-item">
+                            <i class="fas fa-plane"></i> Uçuş: {{FLIGHT_NUMBER_3}}
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-building"></i> {{AIRLINE_NAME_3}}
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-clock"></i> {{FLIGHT_DURATION_3}}
+                        </div>
+                    </div>
+                </div>
+                {{/if}}
+                
                 <!-- Varış -->
                 <div class="timeline-item arrival">
                     <div class="timeline-header">
