@@ -1,7 +1,7 @@
 """
 Admin işlemleri:
 - Kullanıcı listeleme / silme,
-- Kullanıcı yorumlarını listeleme, onaylama, reddetme, soft delete.
+- Segment bazlı yorumları (comments) listeleme ve silme.
 Sadece is_admin = True kullanıcılar erişebilir.
 """
 from datetime import date, datetime
@@ -11,8 +11,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Airport, Coupon, User, UserReview
-from app.models.user_review import ReviewStatus
+from app.models import Airport, Coupon, User, Comment, TicketSegment, TicketDetail
 from app.routes.auth import get_current_admin
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -74,131 +73,58 @@ async def delete_user(
 
 @router.get("/reviews", response_model=list[dict])
 async def list_reviews(
-    status_filter: ReviewStatus | None = None,
     current_admin: User = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
     """
-    Kullanıcı yorumlarını listeler (opsiyonel status filtresi ile).
-    Soft deleted (deleted_at is not null) yorumlar listelenmez.
+    Segment bazlı yorumları (comments) listeler.
+    Her kayıt: yorum + kullanıcı + segment (rota, havayolu) bilgisi.
     """
-    q = db.query(UserReview, User).join(User, User.id == UserReview.user_id).filter(
-        UserReview.deleted_at.is_(None)
+    rows = (
+        db.query(Comment, User, TicketSegment)
+        .join(User, User.id == Comment.user_id)
+        .join(TicketSegment, TicketSegment.id == Comment.ticket_segment_id)
+        .order_by(Comment.created_at.desc())
+        .all()
     )
-    if status_filter is not None:
-        q = q.filter(UserReview.status == status_filter)
-    rows = q.order_by(UserReview.created_at.desc()).all()
     results: list[dict] = []
-    for r, u in rows:
+    for c, u, seg in rows:
+        route = ""
+        if seg.departure_city or seg.departure_airport_code:
+            route = (seg.departure_city or seg.departure_airport_code or "")
+        if seg.arrival_city or seg.arrival_airport_code:
+            route += " – " + (seg.arrival_city or seg.arrival_airport_code or "")
         results.append(
             {
-                "id": r.id,
-                "user_id": r.user_id,
+                "id": c.id,
+                "user_id": c.user_id,
                 "user_first_name": u.first_name,
                 "user_last_name": u.last_name,
                 "user_username": u.username,
-                "ticket_id": r.ticket_id,
-                "airline_id": r.airline_id,
-                "rating": r.rating,
-                "title": r.title,
-                "content": r.content,
-                "status": r.status.value,
-                "created_at": r.created_at.isoformat() if r.created_at else None,
+                "ticket_segment_id": c.ticket_segment_id,
+                "segment_order": seg.segment_order,
+                "airline_name": seg.airline_name,
+                "route": route.strip(" –"),
+                "rating": c.rating,
+                "content": c.content,
+                "created_at": c.created_at.isoformat() if c.created_at else None,
             }
         )
     return results
 
 
-@router.post("/reviews/{review_id}/approve", status_code=status.HTTP_200_OK)
-async def approve_review(
-    review_id: int,
-    current_admin: User = Depends(get_current_admin),
-    db: Session = Depends(get_db),
-):
-    """
-    Yorum onaylama:
-    - status -> approved
-    - Kullanıcının contribution_count değerini 1 artırır (sadece ilk onayda).
-    """
-    review = (
-        db.query(UserReview)
-        .filter(UserReview.id == review_id, UserReview.deleted_at.is_(None))
-        .first()
-    )
-    if not review:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Yorum bulunamadı")
-
-    if review.status == ReviewStatus.APPROVED:
-        return {"detail": "Yorum zaten onaylı"}
-
-    try:
-        # Transaction: review + user contribution_count
-        review.status = ReviewStatus.APPROVED
-
-        user = db.query(User).with_for_update().filter(User.id == review.user_id).first()
-        if not user:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Kullanıcı bulunamadı")
-        user.contribution_count += 1
-
-        db.commit()
-    except HTTPException:
-        db.rollback()
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Onay işlemi başarısız: {e}",
-        )
-
-    return {"detail": "Yorum onaylandı"}
-
-
-@router.post("/reviews/{review_id}/reject", status_code=status.HTTP_200_OK)
-async def reject_review(
-    review_id: int,
-    current_admin: User = Depends(get_current_admin),
-    db: Session = Depends(get_db),
-):
-    """
-    Yorum reddetme:
-    - status -> rejected
-    - contribution_count değişmez.
-    """
-    review = (
-        db.query(UserReview)
-        .filter(UserReview.id == review_id, UserReview.deleted_at.is_(None))
-        .first()
-    )
-    if not review:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Yorum bulunamadı")
-
-    review.status = ReviewStatus.REJECTED
-    db.commit()
-
-    return {"detail": "Yorum reddedildi"}
-
-
 @router.delete("/reviews/{review_id}", status_code=status.HTTP_200_OK)
-async def soft_delete_review(
+async def delete_review(
     review_id: int,
     current_admin: User = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
-    """
-    Yorum soft delete:
-    - deleted_at alanını doldurur, fiziksel silme yapılmaz.
-    """
-    review = db.query(UserReview).filter(UserReview.id == review_id).first()
-    if not review:
+    """Segment yorumunu siler (comments tablosu)."""
+    comment = db.query(Comment).filter(Comment.id == review_id).first()
+    if not comment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Yorum bulunamadı")
-
-    if review.deleted_at is not None:
-        return {"detail": "Yorum zaten silinmiş"}
-
-    review.deleted_at = datetime.utcnow()
+    db.delete(comment)
     db.commit()
-
     return {"detail": "Yorum silindi"}
 
 
