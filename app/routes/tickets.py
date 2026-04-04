@@ -1,48 +1,125 @@
 """
 Kullanıcı biletleri: kaydetme, listeleme ve önizleme.
-ticket_details tablosuna detay kaydı (raporlama/analiz) da yapılır.
+Hiyerarşi: Ticket → TicketDetail → TicketSegment.
+Yorumlar her segment için ayrı (Comment → ticket_segment_id).
 """
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Ticket, TicketDetail, User, Airline, UserReview, Coupon
-from app.models.user_review import ReviewStatus
-from app.services.route_category import calculate_route_category
+from app.models import (
+    Ticket,
+    TicketDetail,
+    TicketSegment,
+    Comment,
+    User,
+    Airline,
+    Coupon,
+)
 from app.routes.auth import get_current_user
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
 
 
-class TicketDetailCreate(BaseModel):
-    """Bilet detayları (ticket_details tablosu)."""
-    passenger_first_name: str
-    passenger_last_name: str
-    passenger_email: str | None = None
-    passenger_phone: str | None = None
-    pnr: str
-    ticket_number: str
-    flight_number: str | None = None
+def _parse_duration_minutes(v):
+    """None, int veya ISO 8601 süre (örn. PT1H55M) -> dakika (int) veya None."""
+    if v is None:
+        return None
+    if isinstance(v, int):
+        return v if v >= 0 else None
+    if isinstance(v, str):
+        s = (v or "").strip().upper()
+        if not s:
+            return None
+        # PT1H55M veya PT55M formatı
+        import re
+        m = re.match(r"PT(?:(\d+)H)?(?:(\d+)M)?", s)
+        if m:
+            h = int(m.group(1) or 0)
+            mn = int(m.group(2) or 0)
+            return h * 60 + mn
+        try:
+            return int(float(s))
+        except (ValueError, TypeError):
+            return None
+    return None
+
+
+class SegmentCreate(BaseModel):
+    """Tek uçuş bacağı."""
+    segment_order: int = 1
+    airline_id: int | None = None
     airline_name: str | None = None
-    cabin_class: str | None = None
+    flight_number: str | None = None
     departure_city: str | None = None
     departure_airport_code: str | None = None
     arrival_city: str | None = None
     arrival_airport_code: str | None = None
-    transfer_city: str | None = None
-    transfer_airport_code: str | None = None
-    total_duration_minutes: int | None = None
-    passenger_count: int | None = None
-    ticket_amount: float | None = None
-    coupon_code: str | None = None
-    coupon_discount_amount: float | None = None
     departure_datetime: datetime | None = None
     arrival_datetime: datetime | None = None
+    segment_duration_minutes: int | None = None
+    ticket_number: str | None = None
+
+    @field_validator("segment_duration_minutes", mode="before")
+    @classmethod
+    def coerce_duration_minutes(cls, v):
+        return _parse_duration_minutes(v)
+
+
+class TicketDetailCreate(BaseModel):
+    """
+    Bilet detayı (segment dışı) + segment listesi.
+    - Önerilen: details.segments ile her uçuş bacağı ayrı (direkt=1, aktarmalı=2+).
+    - Eski format: segments boşsa aşağıdaki alanlardan segment(ler) üretilir.
+    - Aktarmalı uçuş (eski format): segment_2_* alanları doluysa 2 segment oluşturulur:
+      Segment 1: departure_* / arrival_* (ilk varış = aktarma noktası), flight_number, ...
+      Segment 2: segment_2_departure_* (aktarma) / segment_2_arrival_* (son varış), segment_2_flight_number, ...
+    """
+    route_category: str | None = None  # "direct" | "connecting"
+    total_duration_minutes: int | None = None
+
+    @field_validator("total_duration_minutes", mode="before")
+    @classmethod
+    def coerce_total_duration(cls, v):
+        return _parse_duration_minutes(v)
+    passenger_count: int | None = None
+    ticket_amount: float | None = None
+    coupon_discount_amount: float | None = None
+    coupon_code: str | None = None
+    cabin_class: str | None = None
+    pnr: str = ""
+    segments: list[SegmentCreate] = []
+
+    # --- Tek segment (direkt) eski format ---
+    flight_number: str | None = None
+    airline_name: str | None = None
+    airline_id: int | None = None
+    departure_city: str | None = None
+    departure_airport_code: str | None = None
+    arrival_city: str | None = None
+    arrival_airport_code: str | None = None
+    departure_datetime: datetime | None = None
+    arrival_datetime: datetime | None = None
+    ticket_number: str | None = None
+    segment_duration_minutes: int | None = None
+
+    # --- İkinci bacak (aktarma): doluysa 2 segment oluşturulur ---
+    segment_2_flight_number: str | None = None
+    segment_2_airline_name: str | None = None
+    segment_2_airline_id: int | None = None
+    segment_2_departure_city: str | None = None
+    segment_2_departure_airport_code: str | None = None
+    segment_2_arrival_city: str | None = None
+    segment_2_arrival_airport_code: str | None = None
+    segment_2_departure_datetime: datetime | None = None
+    segment_2_arrival_datetime: datetime | None = None
+    segment_2_duration_minutes: int | None = None
+    segment_2_ticket_number: str | None = None
 
 
 class TicketCreate(BaseModel):
@@ -51,13 +128,36 @@ class TicketCreate(BaseModel):
     details: TicketDetailCreate | None = None
 
 
+class SegmentResponse(BaseModel):
+    id: int
+    segment_order: int
+    airline_id: int | None
+    airline_name: str | None
+    flight_number: str | None
+    departure_city: str | None
+    departure_airport_code: str | None
+    arrival_city: str | None
+    arrival_airport_code: str | None
+    departure_datetime: datetime | None
+    arrival_datetime: datetime | None
+    segment_duration_minutes: int | None
+    ticket_number: str | None
+    has_comment: bool = False
+    can_review: bool = False
+
+    class Config:
+        from_attributes = True
+
+
 class TicketResponse(BaseModel):
     id: int
     title: str
     created_at: str
-    has_review: bool = False
-    review_status: str | None = None
-    can_review: bool = False
+    detail_id: int | None = None
+    segments: list[SegmentResponse] = []
+    can_review_any: bool = False
+    can_review: bool = False  # Profil sayfası uyumluluğu (can_review_any ile aynı)
+    has_review: bool = False  # En az bir segment için yorum yapılmış mı
 
     class Config:
         from_attributes = True
@@ -69,7 +169,7 @@ async def create_ticket(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Bilet oluşturup kullanıcıya kaydeder. İsteğe bağlı details ile ticket_details tablosuna da yazar."""
+    """Bilet oluşturur. details.segments ile her uçuş bacağı ayrı kayıt olur."""
     try:
         ticket = Ticket(
             user_id=current_user.id,
@@ -77,58 +177,147 @@ async def create_ticket(
             html_content=data.html_content,
         )
         db.add(ticket)
-        db.flush()  # ticket.id almak için
+        db.flush()
+
         if data.details:
             d = data.details
+            # 1) Açık segment listesi varsa doğrudan kullan (her bacak ayrı kayıt)
+            segments_to_use = list(d.segments) if d.segments else []
 
-            # airline_name üzerinden airlines tablosunda case-insensitive arama
-            airline_id = None
-            if d.airline_name:
-                name_normalized = (d.airline_name or "").strip()
-                if name_normalized:
-                    airline = (
-                        db.query(Airline)
-                        .filter(func.lower(Airline.name) == name_normalized.lower())
-                        .first()
+            # 2) Aktarmalı eski format: segment_2_* doluysa 2 bacak oluştur
+            has_second_leg = (
+                d.segment_2_flight_number or d.segment_2_airline_name
+                or d.segment_2_departure_airport_code or d.segment_2_arrival_airport_code
+                or d.segment_2_departure_datetime or d.segment_2_arrival_datetime
+            )
+            if not segments_to_use and has_second_leg and (
+                d.flight_number or d.airline_name or d.departure_airport_code or d.arrival_airport_code
+                or d.departure_datetime or d.arrival_datetime
+            ):
+                # Segment 1: İlk bacağı (kalkış → aktarma noktası). arrival_* = aktarma şehri
+                # Segment 2: İkinci bacak (aktarma → son varış)
+                segments_to_use = [
+                    SegmentCreate(
+                        segment_order=1,
+                        airline_id=d.airline_id,
+                        airline_name=d.airline_name,
+                        flight_number=d.flight_number,
+                        departure_city=d.departure_city,
+                        departure_airport_code=d.departure_airport_code,
+                        arrival_city=d.arrival_city,
+                        arrival_airport_code=d.arrival_airport_code,
+                        departure_datetime=d.departure_datetime,
+                        arrival_datetime=d.arrival_datetime,
+                        segment_duration_minutes=d.segment_duration_minutes,
+                        ticket_number=d.ticket_number,
+                    ),
+                    SegmentCreate(
+                        segment_order=2,
+                        airline_id=d.segment_2_airline_id,
+                        airline_name=d.segment_2_airline_name,
+                        flight_number=d.segment_2_flight_number,
+                        departure_city=d.segment_2_departure_city,
+                        departure_airport_code=d.segment_2_departure_airport_code,
+                        arrival_city=d.segment_2_arrival_city,
+                        arrival_airport_code=d.segment_2_arrival_airport_code,
+                        departure_datetime=d.segment_2_departure_datetime,
+                        arrival_datetime=d.segment_2_arrival_datetime,
+                        segment_duration_minutes=d.segment_2_duration_minutes,
+                        ticket_number=d.segment_2_ticket_number,
+                    ),
+                ]
+            # 3) Tek bacak (direkt) eski format
+            elif not segments_to_use and (
+                d.flight_number or d.airline_name or d.departure_airport_code or d.arrival_airport_code
+                or d.departure_datetime or d.arrival_datetime or d.ticket_number
+            ):
+                segments_to_use = [
+                    SegmentCreate(
+                        segment_order=1,
+                        airline_id=d.airline_id,
+                        airline_name=d.airline_name,
+                        flight_number=d.flight_number,
+                        departure_city=d.departure_city,
+                        departure_airport_code=d.departure_airport_code,
+                        arrival_city=d.arrival_city,
+                        arrival_airport_code=d.arrival_airport_code,
+                        departure_datetime=d.departure_datetime,
+                        arrival_datetime=d.arrival_datetime,
+                        segment_duration_minutes=d.segment_duration_minutes or d.total_duration_minutes,
+                        ticket_number=d.ticket_number,
                     )
-                    if airline:
-                        airline_id = airline.id
+                ]
+            if not segments_to_use:
+                segments_to_use = [SegmentCreate(segment_order=1)]
+
+            # Aktarmalı uçuşta route_category = connecting (gönderilmediyse otomatik)
+            route_category = (d.route_category or "").strip() or None
+            if not route_category and len(segments_to_use) > 1:
+                route_category = "connecting"
 
             detail = TicketDetail(
                 user_id=current_user.id,
                 ticket_id=ticket.id,
-                passenger_first_name=d.passenger_first_name[:120] if d.passenger_first_name else "",
-                passenger_last_name=d.passenger_last_name[:120] if d.passenger_last_name else "",
-                passenger_email=d.passenger_email[:255] if d.passenger_email else None,
-                passenger_phone=d.passenger_phone[:50] if d.passenger_phone else None,
-                pnr=d.pnr[:20] if d.pnr else "",
-                ticket_number=d.ticket_number[:30] if d.ticket_number else "",
-                flight_number=d.flight_number[:20] if d.flight_number else None,
-                airline_name=d.airline_name[:120] if d.airline_name else None,
-                cabin_class=d.cabin_class[:50] if d.cabin_class else None,
-                airline_id=airline_id,
-                departure_city=d.departure_city[:120] if d.departure_city else None,
-                departure_airport_code=d.departure_airport_code[:10] if d.departure_airport_code else None,
-                arrival_city=d.arrival_city[:120] if d.arrival_city else None,
-                arrival_airport_code=d.arrival_airport_code[:10] if d.arrival_airport_code else None,
-                transfer_city=d.transfer_city[:120] if d.transfer_city else None,
-                transfer_airport_code=d.transfer_airport_code[:10] if d.transfer_airport_code else None,
+                route_category=route_category,
                 total_duration_minutes=d.total_duration_minutes,
                 passenger_count=d.passenger_count,
                 ticket_amount=d.ticket_amount,
-                coupon_code=d.coupon_code[:50] if d.coupon_code else None,
                 coupon_discount_amount=d.coupon_discount_amount,
-                departure_datetime=d.departure_datetime,
-                arrival_datetime=d.arrival_datetime,
-            )
-            # Rota kategorisini backend tarafında otomatik hesapla
-            detail.route_category = calculate_route_category(
-                detail.departure_airport_code,
-                detail.arrival_airport_code,
+                coupon_code=d.coupon_code[:50] if d.coupon_code else None,
+                cabin_class=d.cabin_class[:50] if d.cabin_class else None,
+                pnr=(d.pnr or "")[:20] or "N/A",
             )
             db.add(detail)
+            db.flush()
 
-            # Eğer kupon kodu gönderildiyse, veritabanındaki kuponu işaretle
+            # Bilet numarası tüm bacaklar için aynı; ilk segmentte varsa diğerlerine de uygula
+            common_ticket_number = None
+            for seg in segments_to_use:
+                if seg.ticket_number and (seg.ticket_number or "").strip():
+                    common_ticket_number = (seg.ticket_number or "").strip()[:30]
+                    break
+            if not common_ticket_number and data.details and (getattr(data.details, "ticket_number", None) or "").strip():
+                common_ticket_number = (getattr(data.details, "ticket_number", "") or "").strip()[:30]
+
+            for i, seg in enumerate(segments_to_use):
+                order = seg.segment_order if seg.segment_order >= 1 else (i + 1)
+                tn = (seg.ticket_number or "").strip()[:30] if seg.ticket_number else None
+                if not tn and common_ticket_number:
+                    tn = common_ticket_number
+
+                # airline_id ile airline_name eşleştir: name varsa id bul, id varsa name doldur
+                seg_airline_id = seg.airline_id
+                seg_airline_name = (seg.airline_name or "").strip()[:120] or None
+                if seg_airline_id and not seg_airline_name:
+                    airline_row = db.query(Airline).filter(Airline.id == seg_airline_id).first()
+                    if airline_row:
+                        seg_airline_name = airline_row.name
+                elif seg_airline_name and not seg_airline_id:
+                    airline_row = (
+                        db.query(Airline)
+                        .filter(func.lower(Airline.name) == seg_airline_name.lower())
+                        .first()
+                    )
+                    if airline_row:
+                        seg_airline_id = airline_row.id
+
+                segment = TicketSegment(
+                    ticket_detail_id=detail.id,
+                    segment_order=order,
+                    airline_id=seg_airline_id,
+                    airline_name=seg_airline_name,
+                    flight_number=seg.flight_number[:20] if seg.flight_number else None,
+                    departure_city=seg.departure_city[:120] if seg.departure_city else None,
+                    departure_airport_code=seg.departure_airport_code[:10] if seg.departure_airport_code else None,
+                    arrival_city=seg.arrival_city[:120] if seg.arrival_city else None,
+                    arrival_airport_code=seg.arrival_airport_code[:10] if seg.arrival_airport_code else None,
+                    departure_datetime=seg.departure_datetime,
+                    arrival_datetime=seg.arrival_datetime,
+                    segment_duration_minutes=seg.segment_duration_minutes,
+                    ticket_number=tn,
+                )
+                db.add(segment)
+
             if d.coupon_code:
                 code = (d.coupon_code or "").strip().upper()
                 if code:
@@ -159,23 +348,84 @@ async def create_ticket(
                         coupon.used_by_user_id = current_user.id
                         if coupon.use_count >= max_uses:
                             coupon.is_used = True
-                        # Kupon tutarı TicketDetail üzerinde kayıtlı değilse, veritabanından set et
                         if detail.coupon_discount_amount is None and coupon.refund_amount is not None:
                             detail.coupon_discount_amount = coupon.refund_amount
+
         db.commit()
         db.refresh(ticket)
-        return TicketResponse(
-            id=ticket.id,
-            title=ticket.title,
-            created_at=ticket.created_at.isoformat() if ticket.created_at else "",
-        )
+        return _ticket_to_response(db, ticket, current_user.id)
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
-        # Daha anlaşılır hata mesajı döndür (500 yerine detaylı)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ticket create failed: {e}",
+            detail=f"Bilet oluşturulamadı: {e}",
         )
+
+
+def _ticket_to_response(db: Session, ticket: Ticket, user_id: int) -> TicketResponse:
+    detail = (
+        db.query(TicketDetail)
+        .filter(TicketDetail.ticket_id == ticket.id, TicketDetail.user_id == user_id)
+        .first()
+    )
+    segments: list[SegmentResponse] = []
+    can_review_any = False
+    has_review_any = False
+    if detail:
+        segs = (
+            db.query(TicketSegment)
+            .filter(TicketSegment.ticket_detail_id == detail.id)
+            .order_by(TicketSegment.segment_order)
+            .all()
+        )
+        now = datetime.utcnow()
+        for s in segs:
+            has_comment = (
+                db.query(Comment)
+                .filter(Comment.ticket_segment_id == s.id, Comment.user_id == user_id)
+                .first()
+                is not None
+            )
+            if has_comment:
+                has_review_any = True
+            dep = s.departure_datetime
+            arr = s.arrival_datetime
+            # Varış veya kalkış zamanı geçmişse uçuş tamamlanmış sayılır (naive/UTC karşılaştırma)
+            flight_done = (dep is not None and dep < now) or (arr is not None and arr < now)
+            can_review = (not has_comment) and flight_done
+            if can_review:
+                can_review_any = True
+            segments.append(
+                SegmentResponse(
+                    id=s.id,
+                    segment_order=s.segment_order,
+                    airline_id=s.airline_id,
+                    airline_name=s.airline_name,
+                    flight_number=s.flight_number,
+                    departure_city=s.departure_city,
+                    departure_airport_code=s.departure_airport_code,
+                    arrival_city=s.arrival_city,
+                    arrival_airport_code=s.arrival_airport_code,
+                    departure_datetime=s.departure_datetime,
+                    arrival_datetime=s.arrival_datetime,
+                    segment_duration_minutes=s.segment_duration_minutes,
+                    ticket_number=s.ticket_number,
+                    has_comment=has_comment,
+                    can_review=can_review,
+                )
+            )
+    return TicketResponse(
+        id=ticket.id,
+        title=ticket.title,
+        created_at=ticket.created_at.isoformat() if ticket.created_at else "",
+        detail_id=detail.id if detail else None,
+        segments=segments,
+        can_review_any=can_review_any,
+        can_review=can_review_any,
+        has_review=has_review_any,
+    )
 
 
 @router.get("", response_model=list[TicketResponse])
@@ -183,7 +433,7 @@ async def list_tickets(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Kullanıcının tüm biletlerini listeler ve yorum/uygunluk bilgisini döner."""
+    """Kullanıcının biletlerini segmentlerle listeler."""
     tickets = (
         db.query(Ticket)
         .filter(Ticket.user_id == current_user.id)
@@ -192,59 +442,64 @@ async def list_tickets(
     )
     if not tickets:
         return []
+    return [_ticket_to_response(db, t, current_user.id) for t in tickets]
 
-    ticket_ids = [t.id for t in tickets]
 
-    # İlgili ticket_details kayıtlarını al
-    details = (
+@router.get("/{ticket_id}/segments", response_model=list[SegmentResponse])
+async def list_ticket_segments(
+    ticket_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Biletin segmentlerini döner (sahibi erişebilir)."""
+    ticket = db.query(Ticket).filter(Ticket.id == ticket_id, Ticket.user_id == current_user.id).first()
+    if not ticket:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bilet bulunamadı")
+    detail = (
         db.query(TicketDetail)
-        .filter(TicketDetail.ticket_id.in_(ticket_ids), TicketDetail.user_id == current_user.id)
+        .filter(TicketDetail.ticket_id == ticket.id, TicketDetail.user_id == current_user.id)
+        .first()
+    )
+    if not detail:
+        return []
+    segs = (
+        db.query(TicketSegment)
+        .filter(TicketSegment.ticket_detail_id == detail.id)
+        .order_by(TicketSegment.segment_order)
         .all()
     )
-    details_by_ticket: dict[int, TicketDetail] = {d.ticket_id: d for d in details if d.ticket_id is not None}
-
-    # İlgili user_reviews kayıtlarını al
-    reviews = (
-        db.query(UserReview)
-        .filter(UserReview.ticket_id.in_(ticket_ids), UserReview.deleted_at.is_(None))
-        .all()
-    )
-    reviews_by_ticket: dict[int, UserReview] = {r.ticket_id: r for r in reviews}
-
     now = datetime.utcnow()
-    responses: list[TicketResponse] = []
-
-    for t in tickets:
-        detail = details_by_ticket.get(t.id)
-        review = reviews_by_ticket.get(t.id)
-
-        has_review = review is not None
-        review_status = review.status.value if review else None
-
-        # Uçuş tamamlanmış mı? (departure_datetime veya arrival_datetime now'dan küçükse)
-        flight_completed = False
-        if detail:
-            dep = detail.departure_datetime
-            arr = detail.arrival_datetime
-            if dep and dep < now:
-                flight_completed = True
-            elif arr and arr < now:
-                flight_completed = True
-
-        can_review = (not has_review) and flight_completed
-
-        responses.append(
-            TicketResponse(
-                id=t.id,
-                title=t.title,
-                created_at=t.created_at.isoformat() if t.created_at else "",
-                has_review=has_review,
-                review_status=review_status,
+    out: list[SegmentResponse] = []
+    for s in segs:
+        has_comment = (
+            db.query(Comment)
+            .filter(Comment.ticket_segment_id == s.id, Comment.user_id == current_user.id)
+            .first()
+            is not None
+        )
+        dep, arr = s.departure_datetime, s.arrival_datetime
+        flight_done = (dep and dep < now) or (arr and arr < now)
+        can_review = (not has_comment) and flight_done
+        out.append(
+            SegmentResponse(
+                id=s.id,
+                segment_order=s.segment_order,
+                airline_id=s.airline_id,
+                airline_name=s.airline_name,
+                flight_number=s.flight_number,
+                departure_city=s.departure_city,
+                departure_airport_code=s.departure_airport_code,
+                arrival_city=s.arrival_city,
+                arrival_airport_code=s.arrival_airport_code,
+                departure_datetime=s.departure_datetime,
+                arrival_datetime=s.arrival_datetime,
+                segment_duration_minutes=s.segment_duration_minutes,
+                ticket_number=s.ticket_number,
+                has_comment=has_comment,
                 can_review=can_review,
             )
         )
-
-    return responses
+    return out
 
 
 @router.get("/{ticket_id}/preview", response_class=HTMLResponse)
@@ -253,7 +508,7 @@ async def preview_ticket(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Bilet önizlemesi (sadece bilet sahibi erişebilir). Yeni sekmede açılır."""
+    """Bilet önizlemesi (sadece bilet sahibi)."""
     ticket = db.query(Ticket).filter(Ticket.id == ticket_id, Ticket.user_id == current_user.id).first()
     if not ticket:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bilet bulunamadı")
