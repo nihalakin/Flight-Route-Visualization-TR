@@ -7,9 +7,18 @@ otomatik olarak kategori üretmek için kullanılır.
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import Optional
 
-from app.models.ticket_detail import RouteCategory
+
+class RouteCategory(str, Enum):
+    """Uçuşun rota tipine göre kategorisi (coğrafi; hizmet kalitesi değil)."""
+
+    DOMESTIC = "DOMESTIC"
+    EUROPE = "EUROPE"
+    MIDDLE_EAST = "MIDDLE_EAST"
+    INTERNATIONAL = "INTERNATIONAL"
+    INTERCONTINENTAL = "INTERCONTINENTAL"
 
 
 # Basit ülke / kıta haritaları.
