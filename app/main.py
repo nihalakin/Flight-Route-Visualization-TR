@@ -51,11 +51,20 @@ from app.models import (
     TicketSegment,
     Comment,
     Airline,
-    UserReview,
     Airport,
     PasswordReset,
 )
-from app.routes import auth, flights, tickets, admin, reviews, public_reviews, coupons, airports_public
+from app.routes import (
+    auth,
+    flights,
+    tickets,
+    admin,
+    reviews,
+    public_reviews,
+    coupons,
+    airports_public,
+    statistics,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -516,6 +525,59 @@ def ensure_password_reset_is_active_column():
     except Exception as e:
         logger.warning("password_resets.is_active migration step failed: %s", e)
 
+
+def ensure_comments_extra_columns():
+    """
+    comments tablosuna title, status, updated_at kolonlarını ekler (yoksa).
+    """
+    from app.models.comment import COMMENT_STATUS_PENDING
+    from sqlalchemy import text
+
+    try:
+        dialect = engine.dialect.name
+
+        if dialect == "sqlite":
+            with engine.begin() as conn:
+                rows = conn.execute(text("PRAGMA table_info('comments')")).mappings().all()
+                names = {r.get("name") for r in rows}
+                if "title" not in names:
+                    conn.execute(text("ALTER TABLE comments ADD COLUMN title VARCHAR(255)"))
+                    logger.info("Added comments.title (sqlite)")
+                if "status" not in names:
+                    conn.execute(
+                        text(
+                            "ALTER TABLE comments ADD COLUMN status VARCHAR(32) NOT NULL DEFAULT :def"
+                        ),
+                        {"def": COMMENT_STATUS_PENDING},
+                    )
+                    logger.info("Added comments.status (sqlite)")
+                if "updated_at" not in names:
+                    conn.execute(text("ALTER TABLE comments ADD COLUMN updated_at DATETIME"))
+                    logger.info("Added comments.updated_at (sqlite)")
+            return
+
+        if dialect in {"postgresql", "postgres"}:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE comments ADD COLUMN IF NOT EXISTS title VARCHAR(255)"))
+                conn.execute(
+                    text(
+                        "ALTER TABLE comments ADD COLUMN IF NOT EXISTS status VARCHAR(32) "
+                        "NOT NULL DEFAULT :def"
+                    ),
+                    {"def": COMMENT_STATUS_PENDING},
+                )
+                conn.execute(text("ALTER TABLE comments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP"))
+                logger.info("Ensured comments title, status, updated_at (postgres)")
+            return
+
+        logger.info(
+            "comments extra columns migration skipped (unsupported dialect=%s)",
+            dialect,
+        )
+    except Exception as e:
+        logger.warning("ensure_comments_extra_columns failed: %s", e)
+
+
 app = FastAPI(
     title="Nodia",
     description="Uçuş arama ve kullanıcı kimlik doğrulama API",
@@ -540,6 +602,7 @@ def on_startup():
         ensure_ticket_detail_route_category_column()
         ensure_password_reset_is_active_column()
         ensure_ticket_segments_and_comments_tables()
+        ensure_comments_extra_columns()
     except Exception as e:
         logger.warning("Startup admin check skipped (veritabanı bağlantısı yok veya hata): %s", e)
 
@@ -604,6 +667,7 @@ app.include_router(reviews.router, prefix="/api")
 app.include_router(public_reviews.router, prefix="/api")
 app.include_router(coupons.router, prefix="/api")
 app.include_router(airports_public.router, prefix="/api")
+app.include_router(statistics.router, prefix="/api")
 
 # Health: tek endpoint, veritabanı varsa kontrol et
 @app.get("/api/health")
@@ -693,6 +757,12 @@ async def admin_reviews_page(request: Request):
 async def admin_coupons_page(request: Request):
     """Admin kupon yönetimi sayfası."""
     return templates.TemplateResponse("admin/coupons.html", {"request": request})
+
+
+@app.get("/admin/statistics", response_class=HTMLResponse)
+async def admin_statistics_page(request: Request):
+    """Admin istatistik yönetimi sayfası."""
+    return templates.TemplateResponse("admin/statistics.html", {"request": request})
 
 
 @app.get("/ticket-preview", response_class=HTMLResponse)
