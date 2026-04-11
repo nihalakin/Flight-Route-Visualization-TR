@@ -118,12 +118,12 @@ class Statistics {
     
     async loadAllData() {
         try {
-            // Tüm CSV dosyalarını paralel olarak yükle
+            const apiBase = window.location.origin;
             const [airData, cargoData, passengerData, freightData] = await Promise.all([
-                this.loadCSVData('air_traffic.csv'),
-                this.loadCSVData('cargo_traffic.csv'),
-                this.loadCSVData('passenger_traffic.csv'),
-                this.loadCSVData('freight_traffic.csv')
+                this.loadJsonData(apiBase + '/api/statistics/air-traffic'),
+                this.loadJsonData(apiBase + '/api/statistics/cargo-traffic'),
+                this.loadJsonData(apiBase + '/api/statistics/passenger-traffic'),
+                this.loadJsonData(apiBase + '/api/statistics/freight-traffic')
             ]);
             
             this.data.airTraffic = airData;
@@ -131,7 +131,7 @@ class Statistics {
             this.data.passengerTraffic = passengerData;
             this.data.freightTraffic = freightData;
             
-            console.log('Tüm veriler başarıyla yüklendi:', {
+            console.log('Tüm istatistik verileri API üzerinden yüklendi:', {
                 airTraffic: airData.length,
                 cargoTraffic: cargoData.length,
                 passengerTraffic: passengerData.length,
@@ -139,27 +139,25 @@ class Statistics {
             });
             
         } catch (error) {
-            console.error('Veri yükleme hatası:', error);
-            throw error;
+            console.error('İstatistik API verileri yüklenirken hata:', error);
+            // Tamamen boş kalmaması için örnek veri ile devam et
+            this.data.airTraffic = this.generateSampleData();
+            this.data.cargoTraffic = this.generateSampleData();
+            this.data.passengerTraffic = this.generateSampleData();
+            this.data.freightTraffic = this.generateSampleData();
         }
     }
     
-    async loadCSVData(filename) {
-        try {
-            const response = await fetch(`/data/annual_statistics/${filename}`);
-            if (!response.ok) {
-                throw new Error(`Dosya bulunamadı: ${filename}`);
-            }
-            
-            const csvText = await response.text();
-            return this.parseCSV(csvText);
-            
-        } catch (error) {
-            console.error(`CSV yükleme hatası (${filename}):`, error);
-            
-            // Fallback: test verileri
-            return this.generateSampleData();
+    async loadJsonData(url) {
+        const res = await fetch(url);
+        if (!res.ok) {
+            throw new Error('İstatistik API isteği başarısız: ' + res.status);
         }
+        const data = await res.json();
+        if (!Array.isArray(data)) {
+            throw new Error('İstatistik API beklenmeyen cevap döndürdü');
+        }
+        return data.sort((a, b) => a.yil - b.yil);
     }
     
     parseCSV(csvText) {
@@ -387,6 +385,13 @@ class Statistics {
         const pointsContainer = document.getElementById('important-points');
         
         if (!recordsContainer || !pointsContainer) return;
+
+        // Veri yoksa sessizce çık ve kullanıcıya özet alanlarını boş bırak
+        if (!Array.isArray(this.data.airTraffic) || this.data.airTraffic.length === 0) {
+            recordsContainer.innerHTML = '';
+            pointsContainer.innerHTML = '';
+            return;
+        }
         
         // En yüksek ve en düşük değerleri bul
         const records = this.calculateHistoricalRecords();
@@ -412,6 +417,10 @@ class Statistics {
     }
     
     calculateHistoricalRecords() {
+        if (!Array.isArray(this.data.airTraffic) || this.data.airTraffic.length === 0) {
+            return [];
+        }
+
         const records = [];
         
         // Uçuş trafiği rekorları
@@ -470,6 +479,9 @@ class Statistics {
     }
     
     calculateImportantPoints() {
+        if (!Array.isArray(this.data.airTraffic) || this.data.airTraffic.length === 0) {
+            return [];
+        }
         const points = [];
         
         // En büyük artışlar
@@ -503,17 +515,21 @@ class Statistics {
             }
         }
         
-        // Son 5 yıl trendi
-        const recentYears = this.data.airTraffic.slice(-5);
-        const firstYear = recentYears[0];
-        const lastYear = recentYears[recentYears.length - 1];
-        const trend = ((lastYear.uçak_trafiği - firstYear.uçak_trafiği) / firstYear.uçak_trafiği * 100).toFixed(1);
-        
-        points.push({
-            title: 'Son 5 Yıl Trendi',
-            description: `Uçuş trafiğinde %${trend} ${trend > 0 ? 'artış' : 'düşüş'}`,
-            years: `${firstYear.yil} → ${lastYear.yil}`
-        });
+        // Son 5 yıl trendi (yeterli veri varsa)
+        if (this.data.airTraffic.length >= 2) {
+            const recentYears = this.data.airTraffic.slice(-Math.min(5, this.data.airTraffic.length));
+            const firstYear = recentYears[0];
+            const lastYear = recentYears[recentYears.length - 1];
+            if (firstYear && lastYear && firstYear.uçak_trafiği > 0) {
+                const trend = ((lastYear.uçak_trafiği - firstYear.uçak_trafiği) / firstYear.uçak_trafiği * 100).toFixed(1);
+                
+                points.push({
+                    title: 'Son 5 Yıl Trendi',
+                    description: `Uçuş trafiğinde %${trend} ${trend > 0 ? 'artış' : 'düşüş'}`,
+                    years: `${firstYear.yil} → ${lastYear.yil}`
+                });
+            }
+        }
         
         return points;
     }
@@ -1808,6 +1824,10 @@ class Statistics {
         summarySection.className = 'stats-summary-cards';
         
         const stats = this.calculateStatisticalSummary();
+        // Veri yoksa veya özet hesaplanamadıysa hiçbir şey çizme
+        if (!stats || Object.keys(stats).length === 0) {
+            return;
+        }
         
         summarySection.innerHTML = `
             <div class="summary-stat-card animated-card" style="animation-delay: 0.1s">
