@@ -13,6 +13,8 @@ async function loadAirportData() {
         const data = await res.json();
         if (Array.isArray(data)) {
             airportData = data;
+            // Diğer script'lerin erişebilmesi için global'e de yaz
+            window.airportData = airportData;
         }
     } catch (e) {
         console.error('Havalimanları API isteği sırasında hata:', e);
@@ -90,6 +92,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (typeof FlightNetwork !== 'undefined' && Array.isArray(airportData) && airportData.length > 0) {
             flightNetwork = new FlightNetwork(airportData);
             window.flightNetwork = flightNetwork; // Global erişim için
+        }
+
+        // Eğer havalimanları sayfasındaysak ve navigation hazırsa listeyi gerçek verilerle tazele
+        if (document.getElementById('airports-list') && window.navigation && typeof window.navigation.loadAirportsList === 'function') {
+            window.navigation.loadAirportsList();
         }
 
         // Harita sayfasındaysa (index) görselleştirme ve haritayı yükle (sadece visualization.js yüklüyse)
