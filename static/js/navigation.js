@@ -2188,7 +2188,8 @@ formatDuration(durationStr) {
     initializeAirportsPage() {
         // Havalimanları sayfası için özel başlatma işlemleri
         console.log('Havalimanları sayfası başlatıldı');
-        this.loadAirportsList();
+        // Veriler asenkron yüklendiği için küçük bir retry mekanizması ile bekle
+        this.loadAirportsListWithRetry();
         
         // Arama ve filtreleme event listener'ları
         const searchInput = document.getElementById('airport-search');
@@ -2212,6 +2213,28 @@ formatDuration(durationStr) {
                 this.filterAirportsByType(e.target.value);
             });
         }
+    }
+
+    loadAirportsListWithRetry(retry = 0) {
+        const maxRetries = 20; // ~4 saniyeye kadar bekle (20 * 200ms)
+        const delayMs = 200;
+
+        const hasData =
+            (Array.isArray(window.airportData) && window.airportData.length > 0) ||
+            (window.flightNetwork && Array.isArray(window.flightNetwork.airportData) && window.flightNetwork.airportData.length > 0);
+
+        if (hasData) {
+            this.loadAirportsList();
+            return;
+        }
+
+        if (retry >= maxRetries) {
+            console.warn('Havalimanı verisi bulunamadı, yine de listeleme fonksiyonu çalıştırılıyor.');
+            this.loadAirportsList();
+            return;
+        }
+
+        setTimeout(() => this.loadAirportsListWithRetry(retry + 1), delayMs);
     }
     
     initializeStatisticsPage() {
@@ -2265,8 +2288,11 @@ loadAirportsList() {
     
     if (!airportsList) return;
 
-    // Gerçek havalimanı verilerini kullan
-    const airports = window.flightNetwork ? window.flightNetwork.airportData : [];
+    // Gerçek havalimanı verilerini kullan (önce API'den gelen global airportData, yoksa flightNetwork)
+    const airports =
+        (Array.isArray(window.airportData) && window.airportData.length > 0)
+            ? window.airportData
+            : (window.flightNetwork ? window.flightNetwork.airportData : []);
     
     // Bölge ve tür bilgilerini eklemek için yardımcı fonksiyon
     const getRegion = (airport) => {
@@ -2295,32 +2321,22 @@ loadAirportsList() {
         }
     };
 
-    if (airports.length === 0) {
-        // Fallback: örnek veriler
-        const sampleAirports = [
-            { name: "İstanbul Havalimanı", city: "İstanbul", iata: "IST", type: "Sivil", region: "marmara" },
-            { name: "Ankara Esenboğa Havalimanı", city: "Ankara", iata: "ESB", type: "Sivil", region: "icanadolu" },
-            { name: "Antalya Havalimanı", city: "Antalya", iata: "AYT", type: "Karma", region: "akdeniz" },
-            { name: "İzmir Adnan Menderes Havalimanı", city: "İzmir", iata: "ADB", type: "Sivil", region: "ege" }
-        ];
-        
-        airportsList.innerHTML = sampleAirports.map(airport => `
-            <div class="airport-card detailed" data-region="${airport.region}" data-type="${airport.type.toLowerCase()}">
+    if (!airports || airports.length === 0) {
+        // Gerçek veritabanı boşsa veya yüklenemediyse kullanıcıya bilgi ver
+        airportsList.innerHTML = `
+            <div class="airport-card detailed">
                 <div class="airport-header">
-                    <h4>${airport.name}</h4>
-                    <span class="airport-code">${airport.iata}</span>
+                    <h4>Havalimanı bulunamadı</h4>
                 </div>
                 <div class="airport-info">
-                    <p><strong>Şehir:</strong> ${airport.city}</p>
-                    <p><strong>Tür:</strong> ${airport.type}</p>
-                    <p><strong>Bölge:</strong> ${this.getRegionName(airport.region)}</p>
-                    <p><strong>Bağlantı Sayısı:</strong> ${window.flightNetwork.flightCounts[airport.iata] || 0}</p>
+                    <p>Şu anda sistemde listelenecek havalimanı kaydı bulunmuyor veya veriler yüklenemedi.</p>
                 </div>
-
             </div>
-        `).join('');
+        `;
     } else {
         // Gerçek verileri kullan
+        const flightCounts = (window.flightNetwork && window.flightNetwork.flightCounts) ? window.flightNetwork.flightCounts : {};
+
         airportsList.innerHTML = airports.map(airport => {
             const region = getRegion(airport);
             const type = getType(airport);
@@ -2335,7 +2351,7 @@ loadAirportsList() {
                         <p><strong>Şehir:</strong> ${airport.city}</p>
                         <p><strong>Tür:</strong> ${type}</p>
                         <p><strong>Bölge:</strong> ${this.getRegionName(region)}</p>
-                        <p><strong>Bağlantı Sayısı:</strong> ${window.flightNetwork.flightCounts[airport.iata] || 0}</p>
+                        <p><strong>Bağlantı Sayısı:</strong> ${flightCounts[airport.iata] || 0}</p>
                     </div>
 
                 </div>
