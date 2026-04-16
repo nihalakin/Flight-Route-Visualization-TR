@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Havayolu Yorumları - Türkiye Uçuş Ağı</title>
+    <title>Havayolu Yorumları - Nodia</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -11,154 +11,36 @@
     <link rel="stylesheet" href="/static/css/base.css">
     <link rel="stylesheet" href="/static/css/components.css">
     <link rel="stylesheet" href="/static/css/main.css">
-    <link rel="stylesheet" href="/static/css/responsive.css">
     <link rel="stylesheet" href="/static/css/airline-reviews.css">
 </head>
 <body>
 
     <div id="navbar-container"></div>
 
-    <main class="page-content">
+    <main class="airline-reviews-page">
         <div class="container">
-            <header>
-                <h1>Havayolu Yorum Analizi</h1>
-                <div class="subtitle">Havayollarına ait yorumların detaylı analizi ve istatistikleri</div>
+            <header class="page-header">
+                <h1>Havayolu Yorumları</h1>
+                <p class="page-desc">Kullanıcılarımızın havayolları hakkındaki onaylı değerlendirmeleri. Havayoluna göre filtrelenmiş listeler.</p>
             </header>
-            <div class="airline-selection-section">
-                <div class="selection-card">
-                    <h3>Havayolu Seçimi</h3>
-                    <div class="airline-selection">
-                        <label for="airline-select">Analiz Edilecek Havayolu:</label>
-                        <select id="airline-select" class="form-select">
-                            <option value="">Tüm Havayolları</option>
-                        </select>
-                        <button id="analyze-airline" class="btn-primary analyze-btn">
-                            <i class="fas fa-chart-line"></i> Analiz Et
-                        </button>
-                    </div>
-                </div>
+
+            <div id="loading-state" class="loading-state">
+                <span class="spinner"></span>
+                <p>Yorumlar yükleniyor...</p>
             </div>
-            <div class="overall-stats-section">
-                <h2>Genel İstatistikler</h2>
-                <div class="stats-cards">
-                    <div class="stat-card">
-                        <div class="stat-icon"><i class="fas fa-comments"></i></div>
-                        <div class="stat-content">
-                            <h3 id="total-reviews">0</h3>
-                            <p>Toplam Yorum</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon positive"><i class="fas fa-thumbs-up"></i></div>
-                        <div class="stat-content">
-                            <h3 id="positive-reviews">0</h3>
-                            <p>Olumlu Yorum</p>
-                            <span id="positive-percentage" class="stat-percentage">0%</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon negative"><i class="fas fa-thumbs-down"></i></div>
-                        <div class="stat-content">
-                            <h3 id="negative-reviews">0</h3>
-                            <p>Olumsuz Yorum</p>
-                            <span id="negative-percentage" class="stat-percentage">0%</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon neutral"><i class="fas fa-minus-circle"></i></div>
-                        <div class="stat-content">
-                            <h3 id="neutral-reviews">0</h3>
-                            <p>Nötr Yorum</p>
-                            <span id="neutral-percentage" class="stat-percentage">0%</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon"><i class="fas fa-star"></i></div>
-                        <div class="stat-content">
-                            <h3 id="average-rating">0.0</h3>
-                            <p>Ortalama Puan</p>
-                            <div class="rating-stars">
-                                <div class="stars-empty">★★★★★</div>
-                                <div class="stars-filled" id="stars-filled">★★★★★</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
+            <div id="empty-state" class="empty-state" style="display: none;">
+                <i class="fas fa-comments"></i>
+                <p>Henüz onaylanmış yorum bulunmuyor.</p>
             </div>
-            <div class="sentiment-section">
-                <h2>Duygu Dağılımı ve Son Yorumlar</h2>
-                <div class="sentiment-content">
-                    <div class="sentiment-chart-container">
-                        <canvas id="sentiment-chart"></canvas>
-                    </div>
-                    <div class="sentiment-examples">
-                        <div class="placeholder-text">Havayolu seçerek duygu analizi ve son yorumları görüntüleyin</div>
-                    </div>
-                </div>
-            </div>
-            <div class="features-analysis">
-                <div class="features-grid">
-                    <div class="features-card">
-                        <h3><i class="fas fa-exclamation-triangle negative-icon"></i> En Çok Şikayet Edilen Konular</h3>
-                        <div class="complaints-list" id="complaints-list">
-                            <div class="placeholder-text">Havayolu seçerek analiz sonuçlarını görüntüleyin</div>
-                        </div>
-                    </div>
-                    <div class="features-card">
-                        <h3><i class="fas fa-heart positive-icon"></i> En Çok Beğenilen Özellikler</h3>
-                        <div class="praises-list" id="praises-list">
-                            <div class="placeholder-text">Havayolu seçerek analiz sonuçlarını görüntüleyin</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="charts-row">
-                <div class="rating-distribution">
-                    <h2>Puan Dağılımı</h2>
-                    <div class="distribution-chart">
-                        <canvas id="rating-chart"></canvas>
-                    </div>
-                </div>
-                <div class="trend-analysis">
-                    <h2>Yıllara Göre Yorum Trendi</h2>
-                    <div class="trend-chart">
-                        <canvas id="trend-chart"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="detailed-reviews">
-                <h2>Yorumlar</h2>
-                <div class="reviews-filter">
-                    <div class="filter-options">
-                        <label>Filtrele:</label>
-                        <button class="filter-btn active" data-filter="all">Tümü</button>
-                        <button class="filter-btn" data-filter="positive">Olumlu</button>
-                        <button class="filter-btn" data-filter="negative">Olumsuz</button>
-                        <button class="filter-btn" data-filter="neutral">Nötr</button>
-                    </div>
-                    <div class="sort-options">
-                        <label for="sort-select">Sırala:</label>
-                        <select id="sort-select" class="form-select">
-                            <option value="date-desc">En Yeni</option>
-                            <option value="date-asc">En Eski</option>
-                            <option value="rating-desc">Yüksek Puan</option>
-                            <option value="rating-asc">Düşük Puan</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="reviews-list" id="reviews-list">
-                    <div class="placeholder-message">
-                        <h3>Yorumları Görüntüle</h3>
-                        <p>Bir havayolu seçerek ilgili yorumları görüntüleyebilirsiniz.</p>
-                    </div>
-                </div>
+
+            <div id="content-area" class="content-area" style="display: none;">
+                <div id="airline-sections"></div>
             </div>
         </div>
     </main>
 
     <script src="/static/js/navbar-loader.js"></script>
-    <script src="/static/js/utils.js"></script>
-    <script src="/static/js/navigation.js"></script>
     <script src="/static/js/airline-reviews.js"></script>
 </body>
 </html>
