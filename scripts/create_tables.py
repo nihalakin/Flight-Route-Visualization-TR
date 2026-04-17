@@ -11,11 +11,19 @@ sys.path.insert(0, str(ROOT))
 
 # Config ve engine yüklensin (app.core.config proje kökündeki .env okur)
 from app.database import engine, Base
-from app.models import User, Ticket, TicketDetail, Airline, UserReview, Coupon  # noqa: F401
+from app.models import (  # noqa: F401
+    User,
+    Ticket,
+    TicketDetail,
+    TicketSegment,
+    Comment,
+    Airline,
+    Coupon,
+)
 
 if __name__ == "__main__":
     print("Tablolar oluşturuluyor...")
     Base.metadata.create_all(bind=engine)
     print(
-        "Tamamlandı. users, tickets, ticket_details, airlines, user_reviews, coupons tabloları oluşturuldu."
+        "Tamamlandı. users, tickets, ticket_details, ticket_segments, comments, airlines, coupons tabloları oluşturuldu."
     )
