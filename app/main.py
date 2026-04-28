@@ -64,7 +64,6 @@ from app.routes import (
     coupons,
     airports_public,
     statistics,
-    airline_analysis,
 )
 
 logging.basicConfig(
@@ -702,7 +701,6 @@ app.include_router(public_reviews.router, prefix="/api")
 app.include_router(coupons.router, prefix="/api")
 app.include_router(airports_public.router, prefix="/api")
 app.include_router(statistics.router, prefix="/api")
-app.include_router(airline_analysis.router, prefix="/api")
 
 # Health: tek endpoint, veritabanı varsa kontrol et
 @app.get("/api/health")
