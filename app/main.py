@@ -51,20 +51,11 @@ from app.models import (
     TicketSegment,
     Comment,
     Airline,
+    UserReview,
     Airport,
     PasswordReset,
 )
-from app.routes import (
-    auth,
-    flights,
-    tickets,
-    admin,
-    reviews,
-    public_reviews,
-    coupons,
-    airports_public,
-    statistics,
-)
+from app.routes import auth, flights, tickets, admin, reviews, public_reviews, coupons, airports_public
 
 logging.basicConfig(
     level=logging.INFO,
@@ -244,41 +235,9 @@ def ensure_user_contribution_count_column():
         logger.warning("users.contribution_count migration step failed: %s", e)
 
 
-def ensure_comments_table_renamed_to_user_reviews():
-    """
-    Eski comments tablosunu user_reviews olarak yeniden adlandırır (varsa).
-    Yeni kurulumlarda sadece user_reviews kullanılır.
-    """
-    from sqlalchemy import text
-
-    try:
-        dialect = engine.dialect.name
-
-        if dialect == "sqlite":
-            with engine.begin() as conn:
-                rows_old = conn.execute(text("PRAGMA table_info('comments')")).mappings().all()
-                rows_new = conn.execute(text("PRAGMA table_info('user_reviews')")).mappings().all()
-                has_old = len(rows_old) > 0
-                has_new = len(rows_new) > 0
-                if has_old and not has_new:
-                    logger.info("Renaming comments table to user_reviews (sqlite)")
-                    conn.execute(text("ALTER TABLE comments RENAME TO user_reviews"))
-            return
-
-        if dialect in {"postgresql", "postgres"}:
-            with engine.begin() as conn:
-                logger.info("Renaming comments table to user_reviews (postgres, if exists)")
-                conn.execute(text("ALTER TABLE IF EXISTS comments RENAME TO user_reviews"))
-            return
-
-        logger.info("comments -> user_reviews rename skipped (unsupported dialect=%s)", dialect)
-    except Exception as e:
-        logger.warning("ensure_comments_table_renamed_to_user_reviews failed: %s", e)
-
-
 def ensure_ticket_segments_and_comments_tables():
     """
-    ticket_segments ve user_reviews tablolarını oluşturur (yoksa).
+    ticket_segments ve comments tablolarını oluşturur (yoksa).
     Yeni bilet/segment/yorum yapısı için gerekli.
     """
     try:
@@ -288,9 +247,9 @@ def ensure_ticket_segments_and_comments_tables():
         if "ticket_segments" not in existing:
             Base.metadata.tables["ticket_segments"].create(bind=engine, checkfirst=True)
             logger.info("Created table ticket_segments")
-        if "user_reviews" not in existing:
-            Base.metadata.tables["user_reviews"].create(bind=engine, checkfirst=True)
-            logger.info("Created table user_reviews")
+        if "comments" not in existing:
+            Base.metadata.tables["comments"].create(bind=engine, checkfirst=True)
+            logger.info("Created table comments")
     except Exception as e:
         logger.warning("ensure_ticket_segments_and_comments_tables failed: %s", e)
 
@@ -557,59 +516,6 @@ def ensure_password_reset_is_active_column():
     except Exception as e:
         logger.warning("password_resets.is_active migration step failed: %s", e)
 
-
-def ensure_comments_extra_columns():
-    """
-    user_reviews tablosuna title, status, updated_at kolonlarını ekler (yoksa).
-    """
-    from app.models.comment import COMMENT_STATUS_PENDING
-    from sqlalchemy import text
-
-    try:
-        dialect = engine.dialect.name
-
-        if dialect == "sqlite":
-            with engine.begin() as conn:
-                rows = conn.execute(text("PRAGMA table_info('user_reviews')")).mappings().all()
-                names = {r.get("name") for r in rows}
-                if "title" not in names:
-                    conn.execute(text("ALTER TABLE user_reviews ADD COLUMN title VARCHAR(255)"))
-                    logger.info("Added user_reviews.title (sqlite)")
-                if "status" not in names:
-                    conn.execute(
-                        text(
-                            "ALTER TABLE user_reviews ADD COLUMN status VARCHAR(32) NOT NULL DEFAULT :def"
-                        ),
-                        {"def": COMMENT_STATUS_PENDING},
-                    )
-                    logger.info("Added user_reviews.status (sqlite)")
-                if "updated_at" not in names:
-                    conn.execute(text("ALTER TABLE user_reviews ADD COLUMN updated_at DATETIME"))
-                    logger.info("Added user_reviews.updated_at (sqlite)")
-            return
-
-        if dialect in {"postgresql", "postgres"}:
-            with engine.begin() as conn:
-                conn.execute(text("ALTER TABLE user_reviews ADD COLUMN IF NOT EXISTS title VARCHAR(255)"))
-                conn.execute(
-                    text(
-                        "ALTER TABLE user_reviews ADD COLUMN IF NOT EXISTS status VARCHAR(32) "
-                        "NOT NULL DEFAULT :def"
-                    ),
-                    {"def": COMMENT_STATUS_PENDING},
-                )
-                conn.execute(text("ALTER TABLE user_reviews ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP"))
-                logger.info("Ensured user_reviews title, status, updated_at (postgres)")
-            return
-
-        logger.info(
-            "user_reviews extra columns migration skipped (unsupported dialect=%s)",
-            dialect,
-        )
-    except Exception as e:
-        logger.warning("ensure_comments_extra_columns failed: %s", e)
-
-
 app = FastAPI(
     title="Nodia",
     description="Uçuş arama ve kullanıcı kimlik doğrulama API",
@@ -633,9 +539,7 @@ def on_startup():
         drop_ticket_detail_segment_columns()
         ensure_ticket_detail_route_category_column()
         ensure_password_reset_is_active_column()
-        ensure_comments_table_renamed_to_user_reviews()
         ensure_ticket_segments_and_comments_tables()
-        ensure_comments_extra_columns()
     except Exception as e:
         logger.warning("Startup admin check skipped (veritabanı bağlantısı yok veya hata): %s", e)
 
@@ -700,7 +604,6 @@ app.include_router(reviews.router, prefix="/api")
 app.include_router(public_reviews.router, prefix="/api")
 app.include_router(coupons.router, prefix="/api")
 app.include_router(airports_public.router, prefix="/api")
-app.include_router(statistics.router, prefix="/api")
 
 # Health: tek endpoint, veritabanı varsa kontrol et
 @app.get("/api/health")
@@ -790,12 +693,6 @@ async def admin_reviews_page(request: Request):
 async def admin_coupons_page(request: Request):
     """Admin kupon yönetimi sayfası."""
     return templates.TemplateResponse("admin/coupons.html", {"request": request})
-
-
-@app.get("/admin/statistics", response_class=HTMLResponse)
-async def admin_statistics_page(request: Request):
-    """Admin istatistik yönetimi sayfası."""
-    return templates.TemplateResponse("admin/statistics.html", {"request": request})
 
 
 @app.get("/ticket-preview", response_class=HTMLResponse)
