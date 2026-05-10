@@ -12,18 +12,9 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Airport, Coupon, User, Comment, TicketSegment, TicketDetail
-from app.models.comment import COMMENT_STATUS_APPROVED, COMMENT_STATUS_PENDING, COMMENT_STATUS_REJECTED
 from app.routes.auth import get_current_admin
 
 router = APIRouter(prefix="/admin", tags=["admin"])
-
-
-class ReviewUpdateBody(BaseModel):
-    """Yorum güncelleme: title, content, status."""
-
-    title: str | None = None
-    content: str | None = None
-    status: str | None = None
 
 
 @router.get("/users", response_model=list[dict])
@@ -84,21 +75,18 @@ async def delete_user(
 async def list_reviews(
     current_admin: User = Depends(get_current_admin),
     db: Session = Depends(get_db),
-    status_filter: str | None = None,
 ):
     """
     Segment bazlı yorumları (comments) listeler.
     Her kayıt: yorum + kullanıcı + segment (rota, havayolu) bilgisi.
-    status_filter: pending | approved | rejected ile filtreleyebilirsiniz.
     """
-    q = (
+    rows = (
         db.query(Comment, User, TicketSegment)
         .join(User, User.id == Comment.user_id)
         .join(TicketSegment, TicketSegment.id == Comment.ticket_segment_id)
+        .order_by(Comment.created_at.desc())
+        .all()
     )
-    if status_filter and status_filter in (COMMENT_STATUS_PENDING, COMMENT_STATUS_APPROVED, COMMENT_STATUS_REJECTED):
-        q = q.filter(Comment.status == status_filter)
-    rows = q.order_by(Comment.created_at.desc()).all()
     results: list[dict] = []
     for c, u, seg in rows:
         route = ""
@@ -117,69 +105,12 @@ async def list_reviews(
                 "segment_order": seg.segment_order,
                 "airline_name": seg.airline_name,
                 "route": route.strip(" –"),
-                "title": c.title,
                 "rating": c.rating,
                 "content": c.content,
-                "status": c.status or COMMENT_STATUS_PENDING,
                 "created_at": c.created_at.isoformat() if c.created_at else None,
-                "updated_at": c.updated_at.isoformat() if c.updated_at else None,
             }
         )
     return results
-
-
-@router.post("/reviews/{review_id}/approve", status_code=status.HTTP_200_OK)
-async def approve_review(
-    review_id: int,
-    current_admin: User = Depends(get_current_admin),
-    db: Session = Depends(get_db),
-):
-    """Yorumu onaylar (status=approved)."""
-    comment = db.query(Comment).filter(Comment.id == review_id).first()
-    if not comment:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Yorum bulunamadı")
-    comment.status = COMMENT_STATUS_APPROVED
-    comment.updated_at = datetime.utcnow()
-    db.commit()
-    return {"detail": "Yorum onaylandı"}
-
-
-@router.post("/reviews/{review_id}/reject", status_code=status.HTTP_200_OK)
-async def reject_review(
-    review_id: int,
-    current_admin: User = Depends(get_current_admin),
-    db: Session = Depends(get_db),
-):
-    """Yorumu reddeder (status=rejected)."""
-    comment = db.query(Comment).filter(Comment.id == review_id).first()
-    if not comment:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Yorum bulunamadı")
-    comment.status = COMMENT_STATUS_REJECTED
-    comment.updated_at = datetime.utcnow()
-    db.commit()
-    return {"detail": "Yorum reddedildi"}
-
-
-@router.patch("/reviews/{review_id}", status_code=status.HTTP_200_OK, response_model=dict)
-async def update_review(
-    review_id: int,
-    data: ReviewUpdateBody,
-    current_admin: User = Depends(get_current_admin),
-    db: Session = Depends(get_db),
-):
-    """Yorumu günceller (title, content, status)."""
-    comment = db.query(Comment).filter(Comment.id == review_id).first()
-    if not comment:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Yorum bulunamadı")
-    if data.title is not None:
-        comment.title = data.title.strip() or None
-    if data.content is not None:
-        comment.content = data.content.strip() or comment.content
-    if data.status is not None and data.status in (COMMENT_STATUS_PENDING, COMMENT_STATUS_APPROVED, COMMENT_STATUS_REJECTED):
-        comment.status = data.status
-    comment.updated_at = datetime.utcnow()
-    db.commit()
-    return {"detail": "Yorum güncellendi"}
 
 
 @router.delete("/reviews/{review_id}", status_code=status.HTTP_200_OK)
