@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User, Comment, TicketSegment, TicketDetail
+from app.models.comment import COMMENT_STATUS_APPROVED
 
 router = APIRouter(prefix="/public", tags=["public-reviews"])
 
@@ -39,6 +40,7 @@ async def list_public_reviews(
         .join(User, User.id == Comment.user_id)
         .join(TicketSegment, TicketSegment.id == Comment.ticket_segment_id)
         .join(TicketDetail, TicketDetail.id == TicketSegment.ticket_detail_id)
+        .filter(Comment.status == COMMENT_STATUS_APPROVED)
         .order_by(Comment.created_at.desc())
         .all()
     )
