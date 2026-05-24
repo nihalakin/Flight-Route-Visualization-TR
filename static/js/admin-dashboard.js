@@ -68,6 +68,16 @@
     var logoutBtn = document.getElementById('logoutBtn');
     var sidebarLogoutBtn = document.getElementById('sidebarLogoutBtn');
 
+    // İstatistik yönetimi (admin/statistics)
+    var statisticsDatasetSelect = document.getElementById('statisticsDatasetSelect');
+    var statisticsReloadBtn = document.getElementById('statisticsReloadBtn');
+    var statisticsHeaderRow = document.getElementById('statisticsHeaderRow');
+    var statisticsTableBody = document.getElementById('statisticsTableBody');
+    var statisticsLoadingRow = document.getElementById('statisticsLoadingRow');
+    var statisticsEmptyRow = document.getElementById('statisticsEmptyRow');
+    var statisticsTableTitle = document.getElementById('statisticsTableTitle');
+    var statisticsRowCount = document.getElementById('statisticsRowCount');
+
     // Dashboard özet kartları
     var dashboardUserTotal = document.getElementById('dashboardUserTotal');
     var dashboardUser24h = document.getElementById('dashboardUser24h');
@@ -112,6 +122,261 @@
         div.querySelector('button').addEventListener('click', function () { div.remove(); });
         alertContainer.appendChild(div);
         setTimeout(function () { if (div.parentNode) div.remove(); }, 5000);
+    }
+
+    function isStatisticsPage() {
+        return !!statisticsDatasetSelect && !!statisticsHeaderRow && !!statisticsTableBody;
+    }
+
+    function buildStatisticsHeaders(dataset) {
+        if (!statisticsHeaderRow) return;
+        var headers = [];
+        if (dataset === 'air') {
+            headers = [
+                'Yıl',
+                'Tüm Uçak (Overflight Dahil)',
+                'Uçak Trafiği',
+                'İç Hat',
+                'Dış Hat',
+                'Overflight Uçak Trafiği',
+                ''
+            ];
+        } else if (dataset === 'passenger') {
+            headers = [
+                'Yıl',
+                'Yolcu Trafiği (Transit Dahil)',
+                'Yolcu Trafiği',
+                'İç Hat',
+                'Dış Hat',
+                'Direkt Transit',
+                ''
+            ];
+        } else if (dataset === 'cargo') {
+            headers = [
+                'Yıl',
+                'Kargo Trafiği (ton)',
+                'İç Hat Kargo (ton)',
+                'Dış Hat Kargo (ton)',
+                ''
+            ];
+        } else if (dataset === 'freight') {
+            headers = [
+                'Yıl',
+                'Yük Trafiği (ton)',
+                'İç Hat Yük (ton)',
+                'Dış Hat Yük (ton)',
+                ''
+            ];
+        }
+        statisticsHeaderRow.innerHTML = headers
+            .map(function (h) {
+                return '<th class="px-4 py-2 text-left font-medium">' + h + '</th>';
+            })
+            .join('');
+    }
+
+    function datasetToAdminPath(dataset) {
+        switch (dataset) {
+            case 'air':
+                return '/api/statistics/admin/air-traffic';
+            case 'passenger':
+                return '/api/statistics/admin/passenger-traffic';
+            case 'cargo':
+                return '/api/statistics/admin/cargo-traffic';
+            case 'freight':
+                return '/api/statistics/admin/freight-traffic';
+            default:
+                return '/api/statistics/admin/air-traffic';
+        }
+    }
+
+    function datasetTitle(dataset) {
+        switch (dataset) {
+            case 'air':
+                return 'Uçuş Trafiği (Yıllık)';
+            case 'passenger':
+                return 'Yolcu Trafiği (Yıllık)';
+            case 'cargo':
+                return 'Kargo Trafiği (Yıllık, ton)';
+            case 'freight':
+                return 'Yük Trafiği (Yıllık, ton)';
+            default:
+                return 'İstatistikler';
+        }
+    }
+
+    function renderStatisticsRows(dataset, rows) {
+        if (!statisticsTableBody || !statisticsLoadingRow || !statisticsEmptyRow) return;
+        statisticsLoadingRow.classList.add('hidden');
+        statisticsEmptyRow.classList.add('hidden');
+        statisticsTableBody.innerHTML = '';
+
+        if (!rows || !rows.length) {
+            statisticsEmptyRow.classList.remove('hidden');
+            if (statisticsRowCount) statisticsRowCount.textContent = '0 kayıt';
+            return;
+        }
+
+        if (statisticsRowCount) statisticsRowCount.textContent = rows.length + ' kayıt';
+
+        rows.forEach(function (row) {
+            var tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50';
+            var yil = row.yil;
+
+            function inputCell(name, value) {
+                var safe = typeof value === 'number' ? value : (value || 0);
+                return (
+                    '<input type="number" step="1" min="0" data-field="' +
+                    name +
+                    '" value="' +
+                    safe +
+                    '" class="w-full border border-slate-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-slate-900/10">'
+                );
+            }
+
+            var cellsHtml = '';
+            if (dataset === 'air') {
+                cellsHtml += '<td class="px-4 py-2 text-xs text-slate-500">' + yil + '</td>';
+                cellsHtml += '<td class="px-4 py-2">' + inputCell('tüm_uçak_overflight_dahil', row.tüm_uçak_overflight_dahil) + '</td>';
+                cellsHtml += '<td class="px-4 py-2">' + inputCell('uçak_trafiği', row.uçak_trafiği) + '</td>';
+                cellsHtml += '<td class="px-4 py-2">' + inputCell('iç_hat', row.iç_hat) + '</td>';
+                cellsHtml += '<td class="px-4 py-2">' + inputCell('dış_hat', row.dış_hat) + '</td>';
+                cellsHtml += '<td class="px-4 py-2">' + inputCell('overflight_uçak_trafiği', row.overflight_uçak_trafiği) + '</td>';
+            } else if (dataset === 'passenger') {
+                cellsHtml += '<td class="px-4 py-2 text-xs text-slate-500">' + yil + '</td>';
+                cellsHtml += '<td class="px-4 py-2">' + inputCell('yolcu_trafiği_transit_dahil', row.yolcu_trafiği_transit_dahil) + '</td>';
+                cellsHtml += '<td class="px-4 py-2">' + inputCell('yolcu_trafiği', row.yolcu_trafiği) + '</td>';
+                cellsHtml += '<td class="px-4 py-2">' + inputCell('iç_hat', row.iç_hat) + '</td>';
+                cellsHtml += '<td class="px-4 py-2">' + inputCell('dış_hat', row.dış_hat) + '</td>';
+                cellsHtml += '<td class="px-4 py-2">' + inputCell('direkt_transit', row.direkt_transit) + '</td>';
+            } else if (dataset === 'cargo') {
+                cellsHtml += '<td class="px-4 py-2 text-xs text-slate-500">' + yil + '</td>';
+                cellsHtml += '<td class="px-4 py-2">' + inputCell('kargo_trafiği_ton', row.kargo_trafiği_ton) + '</td>';
+                cellsHtml += '<td class="px-4 py-2">' + inputCell('iç_hat_kargo_ton', row.iç_hat_kargo_ton) + '</td>';
+                cellsHtml += '<td class="px-4 py-2">' + inputCell('dış_hat_kargo_ton', row.dış_hat_kargo_ton) + '</td>';
+            } else if (dataset === 'freight') {
+                cellsHtml += '<td class="px-4 py-2 text-xs text-slate-500">' + yil + '</td>';
+                cellsHtml += '<td class="px-4 py-2">' + inputCell('yük_trafiği_ton', row.yük_trafiği_ton) + '</td>';
+                cellsHtml += '<td class="px-4 py-2">' + inputCell('iç_hat_ton', row.iç_hat_ton) + '</td>';
+                cellsHtml += '<td class="px-4 py-2">' + inputCell('dış_hat_ton', row.dış_hat_ton) + '</td>';
+            }
+
+            var actionCell =
+                '<td class="px-4 py-2 text-right">' +
+                '<button type="button" class="text-xs px-3 py-1.5 rounded-full bg-slate-900 text-white hover:bg-black statistics-save-row" data-yil="' +
+                yil +
+                '" data-dataset="' +
+                dataset +
+                '">Kaydet</button>' +
+                '</td>';
+
+            tr.innerHTML = cellsHtml + actionCell;
+            statisticsTableBody.appendChild(tr);
+        });
+
+        statisticsTableBody.querySelectorAll('.statistics-save-row').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var yil = this.getAttribute('data-yil');
+                var dataset = this.getAttribute('data-dataset');
+                var rowEl = this.closest('tr');
+                if (!rowEl) return;
+
+                var payload = {};
+                rowEl.querySelectorAll('input[data-field]').forEach(function (inp) {
+                    var field = inp.getAttribute('data-field');
+                    var raw = inp.value;
+                    var num = raw === '' ? null : Number(raw);
+                    if (num != null && !isNaN(num) && num >= 0) {
+                        payload[field] = num;
+                    }
+                });
+
+                if (!Object.keys(payload).length) {
+                    showAlert('Güncellenecek geçerli bir değer bulunamadı.', 'error');
+                    return;
+                }
+
+                var base = datasetToAdminPath(dataset);
+                fetch(apiBase + base + '/' + yil, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: 'Bearer ' + token,
+                    },
+                    body: JSON.stringify(payload),
+                })
+                    .then(function (r) {
+                        return r.json().then(function (data) {
+                            return { ok: r.ok, status: r.status, data: data };
+                        });
+                    })
+                    .then(function (result) {
+                        if (result.ok) {
+                            showAlert('Yıl ' + yil + ' için istatistikler güncellendi.', 'success');
+                        } else {
+                            var msg = (result.data && result.data.detail) || 'Güncelleme başarısız (' + result.status + ')';
+                            showAlert(msg, 'error');
+                        }
+                    })
+                    .catch(function (err) {
+                        console.error('İstatistik güncelleme hatası:', err);
+                        showAlert('Sunucu hatası: ' + err.message, 'error');
+                    });
+            });
+        });
+    }
+
+    function loadStatisticsDataset() {
+        if (!isStatisticsPage() || !token) return;
+        var dataset = statisticsDatasetSelect ? statisticsDatasetSelect.value : 'air';
+        if (statisticsTableTitle) statisticsTableTitle.textContent = datasetTitle(dataset);
+        buildStatisticsHeaders(dataset);
+
+        if (statisticsLoadingRow) statisticsLoadingRow.classList.remove('hidden');
+        if (statisticsEmptyRow) statisticsEmptyRow.classList.add('hidden');
+
+        var base = datasetToAdminPath(dataset);
+        fetch(apiBase + base, {
+            headers: {
+                Authorization: 'Bearer ' + token,
+            },
+        })
+            .then(function (r) {
+                return r.json().then(function (data) {
+                    return { ok: r.ok, status: r.status, data: data };
+                });
+            })
+            .then(function (result) {
+                if (!result.ok) {
+                    var msg = (result.data && result.data.detail) || 'Veri yüklenemedi (' + result.status + ')';
+                    showAlert(msg, 'error');
+                    if (statisticsLoadingRow) statisticsLoadingRow.classList.add('hidden');
+                    if (statisticsEmptyRow) statisticsEmptyRow.classList.remove('hidden');
+                    return;
+                }
+                renderStatisticsRows(dataset, result.data || []);
+            })
+            .catch(function (err) {
+                console.error('İstatistik verileri yüklenirken hata:', err);
+                showAlert('İstatistik verileri yüklenirken hata: ' + err.message, 'error');
+                if (statisticsLoadingRow) statisticsLoadingRow.classList.add('hidden');
+                if (statisticsEmptyRow) statisticsEmptyRow.classList.remove('hidden');
+            });
+    }
+
+    // İstatistik sayfası eventleri
+    if (isStatisticsPage()) {
+        if (statisticsDatasetSelect) {
+            statisticsDatasetSelect.addEventListener('change', function () {
+                loadStatisticsDataset();
+            });
+        }
+        if (statisticsReloadBtn) {
+            statisticsReloadBtn.addEventListener('click', function () {
+                loadStatisticsDataset();
+            });
+        }
     }
 
     function parseDate(value) {
@@ -378,10 +643,14 @@
                     adminEmailSpan.textContent = admin.email;
                     adminEmailSpan.classList.remove('hidden');
                 }
-                loadUsers();
-                loadReviews();
-                loadCoupons();
-                loadAirports();
+                if (isStatisticsPage()) {
+                    loadStatisticsDataset();
+                } else {
+                    loadUsers();
+                    loadReviews();
+                    loadCoupons();
+                    loadAirports();
+                }
             })
             .catch(function () { showAlert('Admin bilgisi alınamadı. Lütfen tekrar giriş yapın.', 'error'); });
     }
@@ -510,6 +779,12 @@
             });
     }
 
+    function escapeHtml(s) {
+        if (s == null) return '';
+        var t = String(s);
+        return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
     function mapStatusBadge(status) {
         var s = (status || '').toLowerCase();
         if (s === 'approved') return { text: 'Onaylı', classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
@@ -559,6 +834,7 @@
 
         items.forEach(function (r) {
             var created = r.created_at ? new Date(r.created_at).toLocaleString('tr-TR') : '-';
+            var updated = r.updated_at ? new Date(r.updated_at).toLocaleString('tr-TR') : '-';
             var badge = mapStatusBadge(r.status);
             var fullName = ((r.user_first_name || '') + ' ' + (r.user_last_name || '')).trim() || 'İsimsiz kullanıcı';
             var username = r.user_username ? ('@' + r.user_username) : '';
@@ -572,17 +848,18 @@
                     '<div class="font-semibold">' + fullName + '</div>' +
                     (username ? '<div class="text-[11px] text-slate-500">' + username + '</div>' : '') +
                 '</td>' +
+                '<td class="px-3 py-3.5 align-top text-slate-900 text-xs sm:text-sm max-w-[12rem]">' +
+                    (title ? '<span class="font-medium text-slate-800">' + escapeHtml(title) + '</span>' : '<span class="text-slate-400">—</span>') +
+                '</td>' +
                 '<td class="px-3 py-3.5 align-top text-slate-900 text-xs sm:text-sm">' +
                     '<div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-medium">' +
                         '<i class="fas fa-star text-[10px]"></i>' +
                         '<span>' + (r.rating || '-') + '/5</span>' +
                     '</div>' +
                 '</td>' +
-                '<td class="px-3 py-3.5 align-top text-slate-900 text-xs sm:text-sm max-w-xs">' +
-                    (title ? '<div class="font-semibold mb-1">' + title + '</div>' : '') +
-                    '<div class="text-[11px] sm:text-xs text-slate-600 leading-snug">' + shortContent + '</div>' +
-                '</td>' +
+                '<td class="px-3 py-3.5 align-top text-slate-600 text-[11px] sm:text-xs max-w-xs leading-snug">' + escapeHtml(shortContent) + '</td>' +
                 '<td class="px-3 py-3.5 align-top whitespace-nowrap text-slate-500 text-[11px] sm:text-xs">' + created + '</td>' +
+                '<td class="px-3 py-3.5 align-top whitespace-nowrap text-slate-500 text-[11px] sm:text-xs">' + updated + '</td>' +
                 '<td class="px-3 py-3.5 align-top whitespace-nowrap">' +
                     '<span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ' + badge.classes + '">' +
                         badge.text +
