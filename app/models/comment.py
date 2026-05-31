@@ -17,7 +17,7 @@ COMMENT_STATUS_REJECTED = "rejected"
 class Comment(Base):
     """Bir ticket_segment için kullanıcı yorumu (başlık, puan, metin, durum)."""
 
-    __tablename__ = "comments"
+    __tablename__ = "user_reviews"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
@@ -37,5 +37,5 @@ class Comment(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)
 
     __table_args__ = (
-        CheckConstraint("rating >= 1 AND rating <= 5", name="chk_comments_rating_1_5"),
+        CheckConstraint("rating >= 1 AND rating <= 5", name="chk_user_reviews_rating_1_5"),
     )
