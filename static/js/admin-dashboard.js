@@ -960,7 +960,7 @@
             .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, status: r.status, data: data }; }); })
             .then(function (res) {
                 if (res.ok) {
-                    showAlert('Yorum reddedildi.', 'success');
+                    showAlert('Yorum reddedildi.', 'error');
                     loadReviews();
                 } else {
                     var detail = res.data && res.data.detail;
