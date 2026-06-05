@@ -17,7 +17,11 @@ router = APIRouter(prefix="/public", tags=["public-reviews"])
 
 
 class PublicReviewCard(BaseModel):
+    user_id: Optional[int] = None
+    user_total_reviews: Optional[int] = None
     username: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
     airline_name: str
     route: str
     route_category: Optional[str]
@@ -38,7 +42,7 @@ class ReviewsByAirlineResponse(BaseModel):
     by_airline: list[AirlineGroup]
 
 
-def _build_review_card(c, u, seg, detail) -> PublicReviewCard:
+def _build_review_card(c, u, seg, detail, user_total_reviews: int | None = None) -> PublicReviewCard:
     username = u.username if u and u.username else None
     if not username and u:
         username = f"{u.first_name} {u.last_name[0]}." if u.last_name else (u.first_name or "Anonim")
@@ -48,7 +52,11 @@ def _build_review_card(c, u, seg, detail) -> PublicReviewCard:
     route_category = detail.route_category if detail else None
     travel_date = seg.departure_datetime
     return PublicReviewCard(
+        user_id=u.id if u else None,
+        user_total_reviews=user_total_reviews,
         username=username or "Anonim",
+        first_name=u.first_name if u else None,
+        last_name=u.last_name if u else None,
         airline_name=seg.airline_name or "",
         route=route_str,
         route_category=route_category,
@@ -96,9 +104,17 @@ async def list_public_reviews_by_airline(
         .all()
     )
 
+    # Kullanıcı katkı sayıları (onaylı yorum adedi) – tek bir sorguda hesapla
+    user_counts: dict[int, int] = {}
+    for c, u, seg, detail in rows:
+        if not u:
+            continue
+        user_counts[u.id] = user_counts.get(u.id, 0) + 1
+
     groups: dict[str, list[PublicReviewCard]] = {}
     for c, u, seg, detail in rows:
-        card = _build_review_card(c, u, seg, detail)
+        total_reviews = user_counts.get(u.id) if u else None
+        card = _build_review_card(c, u, seg, detail, user_total_reviews=total_reviews)
         name = (seg.airline_name or "").strip() or "Diğer"
         if name not in groups:
             groups[name] = []

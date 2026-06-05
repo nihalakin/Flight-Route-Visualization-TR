@@ -661,12 +661,11 @@ h1 {
     display: grid;
     grid-template-columns: 400px 1fr;
     gap: 30px;
-    align-items: start;
+    align-items: flex-start;
 }
 
 .search-card {
-    position: sticky;
-    top: 100px;
+    position: static;
 }
 
 .search-form {

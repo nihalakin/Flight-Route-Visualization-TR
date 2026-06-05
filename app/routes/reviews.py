@@ -101,6 +101,13 @@ async def create_review(
             detail="Bu segment size ait değil",
         )
 
+    # Bilet iptal edildiyse bu segmente yorum yapılamaz
+    if detail.coupon_code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="İptal edilen biletler için yorum yapılamaz.",
+        )
+
     ticket = db.query(Ticket).filter(Ticket.id == detail.ticket_id, Ticket.user_id == current_user.id).first()
     if not ticket:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bilet bulunamadı")

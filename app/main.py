@@ -61,6 +61,7 @@ from app.routes import (
     admin,
     reviews,
     public_reviews,
+    review_analysis,
     coupons,
     airports_public,
     statistics,
@@ -293,6 +294,95 @@ def ensure_ticket_segments_and_comments_tables():
             logger.info("Created table user_reviews")
     except Exception as e:
         logger.warning("ensure_ticket_segments_and_comments_tables failed: %s", e)
+
+
+def ensure_user_review_analysis_tables():
+    """
+    user_review_analysis ve user_review_analysis_reviews tablolarını oluşturur (yoksa).
+    Yorum analiz sonuçları ve hangi yorumun analiz edildiği bu tablolarda tutulur.
+    """
+    try:
+        from sqlalchemy import inspect
+        insp = inspect(engine)
+        existing = set(insp.get_table_names())
+        if "user_review_analysis" not in existing:
+            Base.metadata.tables["user_review_analysis"].create(bind=engine, checkfirst=True)
+            logger.info("Created table user_review_analysis")
+        if "user_review_analysis_reviews" not in existing:
+            Base.metadata.tables["user_review_analysis_reviews"].create(bind=engine, checkfirst=True)
+            logger.info("Created table user_review_analysis_reviews")
+    except Exception as e:
+        logger.warning("ensure_user_review_analysis_tables failed: %s", e)
+
+
+def ensure_user_review_analysis_airline_column():
+    """
+    user_review_analysis tablosuna airline_name kolonunu ekler (yoksa).
+    Analiz sonuçları havayoluna göre ayrılır.
+    """
+    from sqlalchemy import text
+
+    try:
+        dialect = engine.dialect.name
+        if dialect == "sqlite":
+            with engine.begin() as conn:
+                try:
+                    rows = conn.execute(text("PRAGMA table_info('user_review_analysis')")).mappings().all()
+                except Exception:
+                    return
+                has_column = any(r.get("name") == "airline_name" for r in rows)
+                if not has_column:
+                    conn.execute(text("ALTER TABLE user_review_analysis ADD COLUMN airline_name VARCHAR(120) NOT NULL DEFAULT ''"))
+                    logger.info("Added user_review_analysis.airline_name (sqlite)")
+            return
+        if dialect in ("postgresql", "postgres"):
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE user_review_analysis ADD COLUMN IF NOT EXISTS airline_name VARCHAR(120) NOT NULL DEFAULT ''"))
+                logger.info("Ensured user_review_analysis.airline_name (postgres)")
+    except Exception as e:
+        logger.warning("ensure_user_review_analysis_airline_column failed: %s", e)
+
+
+def ensure_user_review_analysis_extra_columns():
+    """
+    user_review_analysis tablosuna time_trends, route_satisfaction, rating_analysis,
+    title_themes, frequent_words JSON kolonlarını ekler (yoksa).
+    """
+    from sqlalchemy import text
+
+    extra_columns = [
+        ("time_trends", "JSON", "[]"),
+        ("route_satisfaction", "JSON", "[]"),
+        ("rating_analysis", "JSON", "{}"),
+        ("title_themes", "JSON", "[]"),
+        ("frequent_words", "JSON", "[]"),
+    ]
+    try:
+        dialect = engine.dialect.name
+        if dialect == "sqlite":
+            with engine.begin() as conn:
+                try:
+                    rows = conn.execute(text("PRAGMA table_info('user_review_analysis')")).mappings().all()
+                except Exception:
+                    return
+                names = {r.get("name") for r in rows}
+                for name, col_type, default in extra_columns:
+                    if name not in names:
+                        conn.execute(text(
+                            f"ALTER TABLE user_review_analysis ADD COLUMN {name} {col_type} DEFAULT '{default}'"
+                        ))
+                        logger.info("Added user_review_analysis.%s (sqlite)", name)
+            return
+        if dialect in ("postgresql", "postgres"):
+            with engine.begin() as conn:
+                for name, col_type, default in extra_columns:
+                    default_sql = f"'{default}'::json" if default in ("[]", "{}") else f"'{default}'"
+                    conn.execute(text(
+                        f"ALTER TABLE user_review_analysis ADD COLUMN IF NOT EXISTS {name} {col_type} DEFAULT {default_sql}"
+                    ))
+                logger.info("Ensured user_review_analysis extra columns (postgres)")
+    except Exception as e:
+        logger.warning("ensure_user_review_analysis_extra_columns failed: %s", e)
 
 
 def ensure_ticket_detail_route_category_column():
@@ -636,6 +726,9 @@ def on_startup():
         ensure_comments_table_renamed_to_user_reviews()
         ensure_ticket_segments_and_comments_tables()
         ensure_comments_extra_columns()
+        ensure_user_review_analysis_tables()
+        ensure_user_review_analysis_airline_column()
+        ensure_user_review_analysis_extra_columns()
     except Exception as e:
         logger.warning("Startup admin check skipped (veritabanı bağlantısı yok veya hata): %s", e)
 
@@ -698,6 +791,7 @@ app.include_router(tickets.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
 app.include_router(reviews.router, prefix="/api")
 app.include_router(public_reviews.router, prefix="/api")
+app.include_router(review_analysis.router, prefix="/api")
 app.include_router(coupons.router, prefix="/api")
 app.include_router(airports_public.router, prefix="/api")
 app.include_router(statistics.router, prefix="/api")
@@ -724,39 +818,79 @@ async def health_check():
             "error": str(e),
         }
 
-# Ana sayfa: uçuş ağı uygulaması (index.html)
+# Ana sayfa: uçuş ağı uygulaması (templates/public/index.html)
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    """Varsayılan ana sayfa - index.html."""
-    index_path = ROOT_DIR / "index.html"
-    if not index_path.exists():
-        logger.warning("index.html not found at %s (ROOT_DIR=%s, cwd=%s)", index_path, ROOT_DIR, Path.cwd())
-        from fastapi.responses import PlainTextResponse
-        return PlainTextResponse(
-            f"index.html bulunamadı. ROOT_DIR={ROOT_DIR}, cwd={Path.cwd()}",
-            status_code=404,
-        )
-    return FileResponse(index_path)
+    """Varsayılan ana sayfa - templates/public/index.html."""
+    return templates.TemplateResponse("public/index.html", {"request": request})
 
 # Auth sayfaları
 @app.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request):
-    return templates.TemplateResponse("register.html", {"request": request})
+    return templates.TemplateResponse("auth/register.html", {"request": request})
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse("auth/login.html", {"request": request})
 
 
 @app.get("/reset-password", response_class=HTMLResponse)
 async def reset_password_page(request: Request):
     """Şifre sıfırlama formu (emaildeki linkten gelinir)."""
-    return templates.TemplateResponse("reset-password.html", {"request": request})
+    return templates.TemplateResponse("auth/reset-password.html", {"request": request})
 
 
 @app.get("/profile", response_class=HTMLResponse)
 async def profile_page(request: Request):
-    return templates.TemplateResponse("profile.html", {"request": request})
+    return templates.TemplateResponse("profile/profile.html", {"request": request})
+
+
+@app.get("/tickets/create-route", response_class=HTMLResponse)
+async def tickets_create_route_page(request: Request):
+    """Rota oluştur sayfası."""
+    return templates.TemplateResponse("tickets/create-route.html", {"request": request})
+
+
+@app.get("/tickets/airports", response_class=HTMLResponse)
+async def tickets_airports_page(request: Request):
+    """Havalimanları listesi sayfası."""
+    return templates.TemplateResponse("tickets/airports.html", {"request": request})
+
+
+@app.get("/tickets/my-tickets", response_class=HTMLResponse)
+async def tickets_my_tickets_page(request: Request):
+    """Kullanıcının biletleri sayfası."""
+    return templates.TemplateResponse("tickets/my-tickets.html", {"request": request})
+
+
+@app.get("/tickets/my-coupons", response_class=HTMLResponse)
+async def tickets_my_coupons_page(request: Request):
+    """Kullanıcının kuponları sayfası."""
+    return templates.TemplateResponse("tickets/my-coupons.html", {"request": request})
+
+
+@app.get("/reviews/my-reviews", response_class=HTMLResponse)
+async def reviews_my_reviews_page(request: Request):
+    """Kullanıcının yorumları sayfası."""
+    return templates.TemplateResponse("reviews/my-reviews.html", {"request": request})
+
+
+@app.get("/airline-reviews", response_class=HTMLResponse)
+async def airline_reviews_page(request: Request):
+    """Havayolu yorumları genel analiz sayfası."""
+    return templates.TemplateResponse("reviews/airline-reviews.html", {"request": request})
+
+
+@app.get("/airline-reviews-dataset", response_class=HTMLResponse)
+async def airline_reviews_dataset_page(request: Request):
+    """Havayolu yorumları – farklı veri kümeleri için kopya analiz sayfası."""
+    return templates.TemplateResponse("reviews/airline-reviews-dataset.html", {"request": request})
+
+
+@app.get("/analytics", response_class=HTMLResponse)
+async def analytics_page(request: Request):
+    """Uçuş ağı istatistikleri sayfası."""
+    return templates.TemplateResponse("analytics/analytics.html", {"request": request})
 
 
 @app.get("/admin/dashboard", response_class=HTMLResponse)

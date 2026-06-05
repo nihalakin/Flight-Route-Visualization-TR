@@ -8,10 +8,10 @@
         </div>
         <ul class="nav-menu">
             <li class="nav-item"><a href="/" class="nav-link" data-nav-path="/">Ana Sayfa</a></li>
-            <li class="nav-item"><a href="/create-route.html" class="nav-link" data-nav-path="/create-route.html">Rota Oluştur</a></li>
-            <li class="nav-item"><a href="/airports.html" class="nav-link" data-nav-path="/airports.html">Havalimanları</a></li>
-            <li class="nav-item"><a href="/analytics.html" class="nav-link" data-nav-path="/analytics.html">İstatistikler</a></li>
-            <li class="nav-item"><a href="/airline-reviews.html" class="nav-link" data-nav-path="/airline-reviews.html">Havayolu Yorumları</a></li>
+            <li class="nav-item"><a href="/tickets/create-route" class="nav-link" data-nav-path="/tickets/create-route">Rota Oluştur</a></li>
+            <li class="nav-item"><a href="/tickets/airports" class="nav-link" data-nav-path="/tickets/airports">Havalimanları</a></li>
+            <li class="nav-item"><a href="/analytics" class="nav-link" data-nav-path="/analytics">İstatistikler</a></li>
+            <li class="nav-item"><a href="/airline-reviews" class="nav-link" data-nav-path="/airline-reviews">Havayolu Yorumları</a></li>
         </ul>
         <div class="nav-auth">
             <span id="navGuest">
@@ -19,9 +19,50 @@
                 <a href="/login" class="nav-btn nav-btn-login"><i class="fas fa-sign-in-alt"></i> Giriş Yap</a>
             </span>
             <span id="navUser" style="display:none;">
-                <a href="/profile" class="nav-btn nav-btn-register"><i class="fas fa-user"></i> Profil</a>
-                <a href="/admin/dashboard" id="navAdminDashboard" class="nav-btn nav-btn-register" style="display:none;"><i class="fas fa-gauge-high"></i> Admin Dashboard</a>
-                <a href="#" id="navLogout" class="nav-btn nav-btn-login"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
+                <a href="/admin/dashboard" id="navAdminDashboard" class="nav-btn nav-btn-register" style="display:none;"><i class="fas fa-gauge-high"></i> Yönetici Paneline Dön</a>
+
+                <div class="profile-dropdown" id="profileDropdown">
+                    <button type="button"
+                            class="profile-dropdown__trigger"
+                            id="profileDropdownTrigger"
+                            aria-haspopup="true"
+                            aria-expanded="false">
+                        <div class="profile-dropdown__avatar" id="profileAvatarInitials">AM</div>
+                    </button>
+
+                    <div class="profile-dropdown__menu" id="profileDropdownMenu" role="menu" aria-hidden="true">
+                        <div class="profile-dropdown__header">
+                            <div class="profile-dropdown__name" id="profileDropdownName">Alex Morgan</div>
+                            <div class="profile-dropdown__email" id="profileDropdownEmail">alex.morgan@acmecorp.com</div>
+                        </div>
+
+                        <div class="profile-dropdown__divider"></div>
+
+                        <button type="button" class="profile-dropdown__item" data-nav="/profile">
+                            <i class="fa-regular fa-user profile-dropdown__icon" aria-hidden="true"></i>
+                            <span>Profil</span>
+                        </button>
+                        <button type="button" class="profile-dropdown__item" data-nav="/tickets/my-tickets">
+                            <i class="fa-solid fa-ticket-simple profile-dropdown__icon" aria-hidden="true"></i>
+                            <span>Biletlerim</span>
+                        </button>
+                        <button type="button" class="profile-dropdown__item" data-nav="/reviews/my-reviews">
+                            <i class="fa-regular fa-star profile-dropdown__icon" aria-hidden="true"></i>
+                            <span>Yorumlarım</span>
+                        </button>
+                        <button type="button" class="profile-dropdown__item" data-nav="/tickets/my-coupons">
+                            <i class="fa-regular fa-bookmark profile-dropdown__icon" aria-hidden="true"></i>
+                            <span>Kuponlarım</span>
+                        </button>
+
+                        <div class="profile-dropdown__divider profile-dropdown__divider--muted"></div>
+
+                        <button type="button" class="profile-dropdown__item profile-dropdown__item--danger" id="navLogout">
+                            <i class="fa-solid fa-right-from-bracket profile-dropdown__icon" aria-hidden="true"></i>
+                            <span>Çıkış yap</span>
+                        </button>
+                    </div>
+                </div>
             </span>
         </div>
         <div class="hamburger">

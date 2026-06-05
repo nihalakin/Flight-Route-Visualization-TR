@@ -6,14 +6,15 @@ Sadece is_admin = True kullanıcılar erişebilir.
 """
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Airport, Coupon, User, Comment, TicketSegment, TicketDetail
+from app.models import Airport, Coupon, User, Comment, TicketSegment, TicketDetail, UserCoupon
 from app.models.comment import COMMENT_STATUS_APPROVED, COMMENT_STATUS_PENDING, COMMENT_STATUS_REJECTED
 from app.routes.auth import get_current_admin
+from app.routes.review_analysis import run_analysis_for_airline_background
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -131,16 +132,22 @@ async def list_reviews(
 @router.post("/reviews/{review_id}/approve", status_code=status.HTTP_200_OK)
 async def approve_review(
     review_id: int,
+    background_tasks: BackgroundTasks,
     current_admin: User = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
-    """Yorumu onaylar (status=approved)."""
+    """Yorumu onaylar (status=approved). Onaylanan yorum arka planda Gemma 3 27B ile analiz edilir."""
     comment = db.query(Comment).filter(Comment.id == review_id).first()
     if not comment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Yorum bulunamadı")
+    segment = db.query(TicketSegment).filter(TicketSegment.id == comment.ticket_segment_id).first()
+    airline_name = (segment.airline_name or "").strip() if segment else ""
+    if not airline_name:
+        airline_name = "Diğer"
     comment.status = COMMENT_STATUS_APPROVED
     comment.updated_at = datetime.utcnow()
     db.commit()
+    background_tasks.add_task(run_analysis_for_airline_background, airline_name)
     return {"detail": "Yorum onaylandı"}
 
 
@@ -164,10 +171,11 @@ async def reject_review(
 async def update_review(
     review_id: int,
     data: ReviewUpdateBody,
+    background_tasks: BackgroundTasks,
     current_admin: User = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
-    """Yorumu günceller (title, content, status)."""
+    """Yorumu günceller (title, content, status). Status approved yapılırsa arka planda analiz tetiklenir."""
     comment = db.query(Comment).filter(Comment.id == review_id).first()
     if not comment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Yorum bulunamadı")
@@ -175,10 +183,19 @@ async def update_review(
         comment.title = data.title.strip() or None
     if data.content is not None:
         comment.content = data.content.strip() or comment.content
+    newly_approved = False
     if data.status is not None and data.status in (COMMENT_STATUS_PENDING, COMMENT_STATUS_APPROVED, COMMENT_STATUS_REJECTED):
+        if data.status == COMMENT_STATUS_APPROVED and (comment.status or COMMENT_STATUS_PENDING) != COMMENT_STATUS_APPROVED:
+            newly_approved = True
         comment.status = data.status
     comment.updated_at = datetime.utcnow()
     db.commit()
+    if newly_approved:
+        segment = db.query(TicketSegment).filter(TicketSegment.id == comment.ticket_segment_id).first()
+        airline_name = (segment.airline_name or "").strip() if segment else ""
+        if not airline_name:
+            airline_name = "Diğer"
+        background_tasks.add_task(run_analysis_for_airline_background, airline_name)
     return {"detail": "Yorum güncellendi"}
 
 
@@ -234,6 +251,178 @@ async def list_coupons(
             }
         )
     return results
+
+
+@router.get("/users/search", response_model=list[dict])
+async def search_users(
+    q: str = Query(..., min_length=1, max_length=100),
+    limit: int = Query(10, ge=1, le=50),
+    current_admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    Kullanıcı arama (admin için autocomplete).
+
+    - nickname (username) veya e-posta üzerinden arar.
+    - Sadece aktif kullanıcılar döner.
+    """
+    term = q.strip()
+    if not term:
+        return []
+
+    like_pattern = f"%{term.lower()}%"
+
+    users = (
+        db.query(User)
+        .filter(
+            User.is_active.is_(True),
+            (User.username.ilike(like_pattern) | User.email.ilike(like_pattern)),
+        )
+        .order_by(User.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+    results: list[dict] = []
+    for u in users:
+        results.append(
+            {
+                "id": u.id,
+                "email": u.email,
+                "username": u.username,
+                "first_name": u.first_name,
+                "last_name": u.last_name,
+            }
+        )
+    return results
+
+
+class CouponAssignBody(BaseModel):
+    user_ids: list[int] = Field(default_factory=list, description="Kuponun atanacağı kullanıcı ID listesi")
+
+
+@router.get("/coupons/{coupon_id}/users", response_model=list[dict])
+async def get_coupon_users(
+    coupon_id: int,
+    current_admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    Belirli bir kupona atanmış kullanıcıları döner.
+    """
+    coupon = db.query(Coupon).filter(Coupon.id == coupon_id, Coupon.deleted_at.is_(None)).first()
+    if not coupon:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kupon bulunamadı")
+
+    rows = (
+        db.query(UserCoupon, User)
+        .join(User, User.id == UserCoupon.user_id)
+        .filter(UserCoupon.coupon_id == coupon_id)
+        .order_by(UserCoupon.created_at.desc())
+        .all()
+    )
+
+    results: list[dict] = []
+    for uc, u in rows:
+        results.append(
+            {
+                "id": u.id,
+                "email": u.email,
+                "username": u.username,
+                "first_name": u.first_name,
+                "last_name": u.last_name,
+                "assigned_at": uc.created_at.isoformat() if uc.created_at else None,
+            }
+        )
+    return results
+
+
+@router.post("/coupons/{coupon_id}/assign-users", status_code=status.HTTP_200_OK, response_model=dict)
+async def assign_coupon_to_users(
+    coupon_id: int,
+    body: CouponAssignBody,
+    current_admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    Kuponu bir veya birden fazla kullanıcıya atar.
+
+    - Kullanıcılar benzersiz ID'leri ile ilişkilendirilir.
+    - Aynı kullanıcıya aynı kupon ikinci kez atanmaz.
+    - Kupon soft deleted ise atanamaz.
+    """
+    if not body.user_ids:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="En az bir kullanıcı seçmelisiniz")
+
+    coupon = db.query(Coupon).filter(Coupon.id == coupon_id, Coupon.deleted_at.is_(None)).first()
+    if not coupon:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kupon bulunamadı")
+
+    # Var olmayan kullanıcı ID'lerini ele
+    existing_users = (
+        db.query(User.id)
+        .filter(User.id.in_(body.user_ids), User.is_active.is_(True))
+        .all()
+    )
+    existing_ids = {row.id for row in existing_users}
+    if not existing_ids:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçerli kullanıcı bulunamadı")
+
+    # Hali hazırda atanmış olanları hariç tut
+    already_rows = (
+        db.query(UserCoupon.user_id)
+        .filter(UserCoupon.coupon_id == coupon_id, UserCoupon.user_id.in_(existing_ids))
+        .all()
+    )
+    already_ids = {row.user_id for row in already_rows}
+
+    new_ids = [uid for uid in existing_ids if uid not in already_ids]
+    if not new_ids:
+        return {"detail": "Seçilen tüm kullanıcılara kupon zaten atanmış"}
+
+    created_count = 0
+    for uid in new_ids:
+        uc = UserCoupon(user_id=uid, coupon_id=coupon_id)
+        db.add(uc)
+        created_count += 1
+
+    db.commit()
+
+    return {
+        "detail": f"{created_count} kullanıcıya kupon atandı",
+        "assigned_count": created_count,
+        "skipped_existing": len(already_ids),
+    }
+
+
+@router.delete("/coupons/{coupon_id}/users/{user_id}", status_code=status.HTTP_200_OK, response_model=dict)
+async def unassign_coupon_from_user(
+    coupon_id: int,
+    user_id: int,
+    current_admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    Kuponu belirli bir kullanıcıdan geri alır.
+
+    - İlişki user_coupons tablosundan silinir.
+    - Kuponun kendisi silinmez veya pasif hale getirilmez.
+    """
+    coupon = db.query(Coupon).filter(Coupon.id == coupon_id).first()
+    if not coupon:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kupon bulunamadı")
+
+    uc = (
+        db.query(UserCoupon)
+        .filter(UserCoupon.coupon_id == coupon_id, UserCoupon.user_id == user_id)
+        .first()
+    )
+    if not uc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bu kullanıcıya bu kupon atanmış değil")
+
+    db.delete(uc)
+    db.commit()
+
+    return {"detail": "Kupon kullanıcıdan kaldırıldı"}
 
 
 class CouponCreate(BaseModel):

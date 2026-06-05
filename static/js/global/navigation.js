@@ -701,20 +701,32 @@ displayOptimizationResults(optimizationResult, searchParams) {
     // navigation.js - displayOptimizedRoutes fonksiyonunu güncelleyin
 displayOptimizedRoutes(routes, searchParams = null) {
     try {
+        const optimizationResultsSection = document.getElementById('optimization-results');
         const optimizedRoutes = this.flightOptimizer.getAllOptimizedRoutes();
-        
+
         // Eğer searchParams yoksa, mevcut arama parametrelerini al
         if (!searchParams) {
             searchParams = this.getFlightSearchParams();
         }
-        
+
         console.log('📊 Kabin sınıfı bilgisi gösteriliyor:', searchParams.cabinClass);
-        
+
         // Her bir optimizasyon türü için sonuçları göster
         this.displayOptimizationCard('cheapest-route', optimizedRoutes.cheapest, 'En Ucuz Rota', searchParams);
         this.displayOptimizationCard('fastest-route', optimizedRoutes.fastest, 'En Hızlı Rota', searchParams);
         this.displayOptimizationCard('earliest-route', optimizedRoutes.earliest, 'En Erken Varış', searchParams);
         this.displayOptimizationCard('balanced-route', optimizedRoutes.balanced, 'Dengeli Rota', searchParams);
+
+        // En az bir geçerli rota varsa bölümü göster, yoksa gizle
+        const hasAnyRoute =
+            (optimizedRoutes.cheapest && optimizedRoutes.cheapest.summary) ||
+            (optimizedRoutes.fastest && optimizedRoutes.fastest.summary) ||
+            (optimizedRoutes.earliest && optimizedRoutes.earliest.summary) ||
+            (optimizedRoutes.balanced && optimizedRoutes.balanced.summary);
+
+        if (optimizationResultsSection) {
+            optimizationResultsSection.style.display = hasAnyRoute ? 'block' : 'none';
+        }
     } catch (error) {
         console.error('Optimize rotalar gösterilirken hata:', error);
     }

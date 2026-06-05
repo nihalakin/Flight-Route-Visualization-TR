@@ -13,6 +13,8 @@ from app.models.annual_statistics import (
     AnnualPassengerTraffic,
     AnnualFreightTraffic,
 )
+from app.models.user_coupon import UserCoupon
+from app.models.user_review_analysis import UserReviewAnalysis, UserReviewAnalysisReview
 
 __all__ = [
     "User",
@@ -28,4 +30,7 @@ __all__ = [
     "AnnualCargoTraffic",
     "AnnualPassengerTraffic",
     "AnnualFreightTraffic",
+    "UserCoupon",
+    "UserReviewAnalysis",
+    "UserReviewAnalysisReview",
 ]

@@ -3,7 +3,8 @@ Kullanıcı biletleri: kaydetme, listeleme ve önizleme.
 Hiyerarşi: Ticket → TicketDetail → TicketSegment.
 Yorumlar her segment için ayrı (Comment → ticket_segment_id).
 """
-from datetime import datetime
+from datetime import datetime, date, timedelta
+import random
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse
@@ -12,15 +13,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import (
-    Ticket,
-    TicketDetail,
-    TicketSegment,
-    Comment,
-    User,
-    Airline,
-    Coupon,
-)
+from app.models import Ticket, TicketDetail, TicketSegment, Comment, User, Airline
 from app.routes.auth import get_current_user
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
@@ -158,6 +151,12 @@ class TicketResponse(BaseModel):
     can_review_any: bool = False
     can_review: bool = False  # Profil sayfası uyumluluğu (can_review_any ile aynı)
     has_review: bool = False  # En az bir segment için yorum yapılmış mı
+
+    # İptal / kupon durumu için ek alanlar
+    status: str = "active"  # "active" | "cancelled"
+    can_cancel: bool = False
+    pnr: str | None = None
+    ticket_amount: float | None = None
 
     class Config:
         from_attributes = True
@@ -373,7 +372,17 @@ def _ticket_to_response(db: Session, ticket: Ticket, user_id: int) -> TicketResp
     segments: list[SegmentResponse] = []
     can_review_any = False
     has_review_any = False
+    can_cancel = False
+    status = "active"
+    pnr: str | None = None
+    ticket_amount: float | None = None
     if detail:
+        pnr = detail.pnr
+        ticket_amount = detail.ticket_amount
+        # Kupon kodu varsa bu bileti iptal edilmiş kabul et
+        if detail.coupon_code:
+            status = "cancelled"
+
         segs = (
             db.query(TicketSegment)
             .filter(TicketSegment.ticket_detail_id == detail.id)
@@ -381,6 +390,7 @@ def _ticket_to_response(db: Session, ticket: Ticket, user_id: int) -> TicketResp
             .all()
         )
         now = datetime.utcnow()
+        has_future_flight = False
         for s in segs:
             has_comment = (
                 db.query(Comment)
@@ -394,9 +404,15 @@ def _ticket_to_response(db: Session, ticket: Ticket, user_id: int) -> TicketResp
             arr = s.arrival_datetime
             # Varış veya kalkış zamanı geçmişse uçuş tamamlanmış sayılır (naive/UTC karşılaştırma)
             flight_done = (dep is not None and dep < now) or (arr is not None and arr < now)
-            can_review = (not has_comment) and flight_done
+            # Bilet iptal edildiyse (status == cancelled) artık yorum yapılamaz
+            can_review = (status == "active") and (not has_comment) and flight_done
             if can_review:
                 can_review_any = True
+
+            # Gelecekteki en az bir bacak varsa ve bilet aktifse iptal edilebilir kabul et
+            if status == "active" and dep and dep > now:
+                has_future_flight = True
+
             segments.append(
                 SegmentResponse(
                     id=s.id,
@@ -416,6 +432,7 @@ def _ticket_to_response(db: Session, ticket: Ticket, user_id: int) -> TicketResp
                     can_review=can_review,
                 )
             )
+        can_cancel = (status == "active") and has_future_flight
     return TicketResponse(
         id=ticket.id,
         title=ticket.title,
@@ -425,7 +442,67 @@ def _ticket_to_response(db: Session, ticket: Ticket, user_id: int) -> TicketResp
         can_review_any=can_review_any,
         can_review=can_review_any,
         has_review=has_review_any,
+        status=status,
+        can_cancel=can_cancel,
+        pnr=pnr,
+        ticket_amount=ticket_amount,
     )
+
+
+def _compute_refund_amount_for_detail(
+    detail: TicketDetail,
+    segments: list[TicketSegment],
+) -> float:
+    """
+    Uçuş tarihine göre random ama kontrollü bir iade tutarı üretir.
+    - Uçuş tarihine az kaldıkça oran düşük,
+    - Uçuş tarihine çok varsa oran yüksek olur.
+    - İade tutarı hiçbir zaman bilet tutarından fazla olamaz.
+    """
+    if not detail.ticket_amount or detail.ticket_amount <= 0:
+        return 0.0
+
+    today = date.today()
+
+    future_dates: list[date] = []
+    for s in segments:
+        if s.departure_datetime:
+            future_dates.append(s.departure_datetime.date())
+
+    if not future_dates:
+        # Tarih yoksa konservatif: düşük oranlar
+        base_min, base_max = 0.05, 0.20
+    else:
+        first_dep = min(future_dates)
+        days_to_departure = (first_dep - today).days
+
+        if days_to_departure <= 0:
+            # Uçuş günü veya geçmiş
+            base_min, base_max = 0.0, 0.10
+        elif days_to_departure <= 3:
+            base_min, base_max = 0.10, 0.30
+        elif days_to_departure <= 7:
+            base_min, base_max = 0.30, 0.60
+        else:
+            base_min, base_max = 0.60, 0.90
+
+    ratio = random.uniform(base_min, base_max)
+    refund = detail.ticket_amount * ratio
+    refund = min(refund, detail.ticket_amount)
+    return round(refund, 2)
+
+
+class TicketCancelPreviewResponse(BaseModel):
+    ticket_id: int
+    pnr: str | None
+    ticket_amount: float | None
+    refund_amount: float
+    currency: str = "TRY"
+    applies_to_ticket_ids: list[int] = []
+
+
+class TicketCancelRequest(BaseModel):
+    reason: str | None = None
 
 
 @router.get("", response_model=list[TicketResponse])
@@ -470,6 +547,7 @@ async def list_ticket_segments(
     )
     now = datetime.utcnow()
     out: list[SegmentResponse] = []
+    is_cancelled = bool(detail.coupon_code)
     for s in segs:
         has_comment = (
             db.query(Comment)
@@ -479,7 +557,8 @@ async def list_ticket_segments(
         )
         dep, arr = s.departure_datetime, s.arrival_datetime
         flight_done = (dep and dep < now) or (arr and arr < now)
-        can_review = (not has_comment) and flight_done
+        # Bilet iptal edildiyse yorum yapılamaz
+        can_review = (not is_cancelled) and (not has_comment) and flight_done
         out.append(
             SegmentResponse(
                 id=s.id,
@@ -500,6 +579,205 @@ async def list_ticket_segments(
             )
         )
     return out
+
+
+@router.post("/{ticket_id}/cancel-preview", response_model=TicketCancelPreviewResponse)
+async def preview_ticket_cancellation(
+    ticket_id: int,
+    data: TicketCancelRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Bilet iptali için iade tutarını hesaplar, hiçbir veritabanı değişikliği yapmaz.
+    PNR'si aynı olan diğer biletlerin de etkileneceğini bildirir.
+    """
+    ticket = (
+        db.query(Ticket)
+        .filter(Ticket.id == ticket_id, Ticket.user_id == current_user.id)
+        .first()
+    )
+    if not ticket:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bilet bulunamadı")
+
+    detail = (
+        db.query(TicketDetail)
+        .filter(TicketDetail.ticket_id == ticket.id, TicketDetail.user_id == current_user.id)
+        .first()
+    )
+    if not detail:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bilet detayı bulunamadı")
+
+    if detail.coupon_code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Bu bilet daha önce iptal edilmiş.",
+        )
+
+    pnr = detail.pnr
+    sibling_details = (
+        db.query(TicketDetail)
+        .join(Ticket, Ticket.id == TicketDetail.ticket_id)
+        .filter(
+            TicketDetail.user_id == current_user.id,
+            TicketDetail.pnr == pnr,
+        )
+        .all()
+    )
+    sibling_ticket_ids = [d.ticket_id for d in sibling_details]
+
+    segments = (
+        db.query(TicketSegment)
+        .filter(TicketSegment.ticket_detail_id == detail.id)
+        .all()
+    )
+    refund_amount = _compute_refund_amount_for_detail(detail, segments)
+
+    return TicketCancelPreviewResponse(
+        ticket_id=ticket.id,
+        pnr=pnr,
+        ticket_amount=detail.ticket_amount,
+        refund_amount=refund_amount,
+        applies_to_ticket_ids=sibling_ticket_ids,
+    )
+
+
+@router.post("/{ticket_id}/cancel", response_model=dict)
+async def cancel_ticket(
+    ticket_id: int,
+    data: TicketCancelRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Bileti iptal eder:
+    - Aynı PNR'ye sahip tüm TicketDetail kayıtlarını iptal kabul eder,
+    - Her biri için iade kuponu oluşturur,
+    - TicketDetail.coupon_code alanını kupon kodu ile doldurur,
+    - Kullanıcı ile kuponu user_coupons üzerinden ilişkilendirir.
+    """
+    from app.models import Coupon, UserCoupon
+
+    ticket = (
+        db.query(Ticket)
+        .filter(Ticket.id == ticket_id, Ticket.user_id == current_user.id)
+        .first()
+    )
+    if not ticket:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bilet bulunamadı")
+
+    detail = (
+        db.query(TicketDetail)
+        .filter(TicketDetail.ticket_id == ticket.id, TicketDetail.user_id == current_user.id)
+        .first()
+    )
+    if not detail:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bilet detayı bulunamadı")
+
+    if detail.coupon_code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Bu bilet daha önce iptal edilmiş.",
+        )
+
+    pnr = detail.pnr
+    cancel_reason = (data.reason or "").strip() or "Kullanıcı isteğiyle bilet iptali"
+
+    sibling_details = (
+        db.query(TicketDetail)
+        .join(Ticket, Ticket.id == TicketDetail.ticket_id)
+        .filter(
+            TicketDetail.user_id == current_user.id,
+            TicketDetail.pnr == pnr,
+        )
+        .all()
+    )
+    if not sibling_details:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="İlgili PNR için detay bulunamadı")
+
+    created_coupons: list[dict] = []
+    today = date.today()
+    expiry_date = today + timedelta(days=365)
+
+    try:
+        for d in sibling_details:
+            # Zaten iptal edilmiş olanları atla
+            if d.coupon_code:
+                continue
+
+            segs = (
+                db.query(TicketSegment)
+                .filter(TicketSegment.ticket_detail_id == d.id)
+                .all()
+            )
+            refund_amount = _compute_refund_amount_for_detail(d, segs)
+
+            if not d.ticket_amount or d.ticket_amount <= 0 or refund_amount <= 0:
+                continue
+
+            suffix = "".join(random.choices("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", k=4))
+            base_pnr = (pnr or "PNR").replace(" ", "").upper()
+            code = f"{base_pnr}-{suffix}"[:20]
+
+            # Aynı kod varsa küçük bir varyasyon dene
+            retries = 0
+            while (
+                db.query(Coupon)
+                .filter(Coupon.code == code, Coupon.deleted_at.is_(None))
+                .first()
+                and retries < 5
+            ):
+                suffix = "".join(random.choices("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", k=4))
+                code = f"{base_pnr}-{suffix}"[:20]
+                retries += 1
+
+            coupon = Coupon(
+                code=code,
+                airline_name=(segs[0].airline_name if segs and segs[0].airline_name else None),
+                airline_id=(segs[0].airline_id if segs and segs[0].airline_id else None),
+                original_amount=d.ticket_amount,
+                refund_amount=refund_amount,
+                issue_date=today,
+                cancel_reason=cancel_reason,
+                expiry_date=expiry_date,
+                max_uses=1,
+                use_count=0,
+                is_active=True,
+                is_used=False,
+            )
+            db.add(coupon)
+            db.flush()
+
+            d.coupon_code = code
+
+            uc = UserCoupon(user_id=current_user.id, coupon_id=coupon.id)
+            db.add(uc)
+
+            created_coupons.append(
+                {
+                    "ticket_id": d.ticket_id,
+                    "ticket_detail_id": d.id,
+                    "coupon_code": code,
+                    "refund_amount": refund_amount,
+                }
+            )
+
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+    if not created_coupons:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Bu PNR için iade kuponu oluşturulamadı.",
+        )
+
+    return {
+        "detail": "Bilet(ler) iptal edildi ve kupon(lar) oluşturuldu.",
+        "pnr": pnr,
+        "coupons": created_coupons,
+    }
 
 
 @router.get("/{ticket_id}/preview", response_class=HTMLResponse)

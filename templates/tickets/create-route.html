@@ -10,11 +10,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
-    <link rel="stylesheet" href="/static/css/base.css">
-    <link rel="stylesheet" href="/static/css/components.css">
-    <link rel="stylesheet" href="/static/css/main.css">
-    <link rel="stylesheet" href="/static/css/responsive.css">
-    <link rel="stylesheet" href="/static/css/visualization.css">
+    <link rel="stylesheet" href="/static/css/global/base.css">
+    <link rel="stylesheet" href="/static/css/global/components.css">
+    <link rel="stylesheet" href="/static/css/global/main.css">
+    <link rel="stylesheet" href="/static/css/global/responsive.css">
+    <link rel="stylesheet" href="/static/css/analytics/visualization.css">
 </head>
 <body>
 
@@ -22,9 +22,10 @@
 
     <main class="page-content">
         <div class="container">
-            <header>
-                <h1>Akıllı Uçuş Arama</h1>
-                <div class="subtitle">Saat ve optimizasyon filtreleri ile en iyi rotayı bulun</div>
+            <header class="page-header">
+                <div class="page-header-badge"><i class="fas fa-route"></i> Rota Oluştur</div>
+                <h1 class="page-header-main-title">Akıllı Uçuş Arama</h1>
+                <p class="page-header-subtitle">Çıkış-varış şehirlerinizi, tarih ve tercihlerinizi seçerek fiyat, süre ve varış saati açısından optimize edilmiş en uygun rotaları hesaplayın.</p>
             </header>
             <div class="flight-search-container">
                 <div class="search-card">
@@ -80,10 +81,9 @@
                         <button id="search-flights" class="btn-primary search-btn">Optimize Rotaları Bul</button>
                     </div>
                 </div>
-                <div class="results-section">
+                    <div class="results-section">
                     <div class="loading-section" id="loading-section" style="display: none;">
                         <div class="loading-spinner"></div>
-                        <p>Optimize rotalar aranıyor...</p>
                     </div>
                     <div class="results-container" id="results-container"></div>
                     <div class="optimization-map-section">
@@ -111,7 +111,7 @@
                             <div class="placeholder-text">Optimize rotalar bulunduktan sonra budanmış uçuş ağı burada gösterilecek</div>
                         </div>
                     </div>
-                    <div class="optimization-results">
+                    <div class="optimization-results" id="optimization-results" style="display: none;">
                         <h3>Optimize Rota Analizi</h3>
                         <div class="optimization-cards">
                             <div class="optimization-card" id="cheapest-route">
@@ -181,13 +181,13 @@
         </div>
     </div>
 
-    <script src="/static/js/navbar-loader.js"></script>
-    <script src="/static/js/utils.js"></script>
-    <script src="/static/js/flight-network.js"></script>
-    <script src="/static/js/flight-search.js"></script>
-    <script src="/static/js/flight-optimizer.js"></script>
-    <script src="/static/js/optimization-map.js"></script>
-    <script src="/static/js/navigation.js"></script>
-    <script src="/static/js/app.js"></script>
+    <script src="/static/js/global/navbar-loader.js"></script>
+    <script src="/static/js/global/utils.js"></script>
+    <script src="/static/js/booking/flight-network.js"></script>
+    <script src="/static/js/booking/flight-search.js"></script>
+    <script src="/static/js/booking/flight-optimizer.js"></script>
+    <script src="/static/js/analytics/optimization-map.js"></script>
+    <script src="/static/js/global/navigation.js"></script>
+    <script src="/static/js/global/app.js"></script>
 </body>
 </html>

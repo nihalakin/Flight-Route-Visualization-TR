@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Havayolu Yorumları - Nodia</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/global/base.css">
+    <link rel="stylesheet" href="/static/css/global/components.css">
+    <link rel="stylesheet" href="/static/css/global/main.css">
+    <link rel="stylesheet" href="/static/css/reviews/airline-reviews.css">
+</head>
+<body>
+
+    <div id="navbar-container"></div>
+
+    <main class="airline-reviews-page">
+        <div class="container">
+            <header class="page-header">
+                <div class="page-header-badge"><i class="fas fa-comment-dots"></i> Yorumlar</div>
+                <h1 class="page-header-main-title">Havayolu Yorumları</h1>
+                <div id="analysis-mode-toggle" class="page-header-toggle" role="tablist" aria-label="Analiz türü seçimi">
+                    <button
+                        type="button"
+                        class="analysis-mode-pill is-active"
+                        data-mode="user"
+                        role="tab"
+                        aria-selected="true"
+                    >
+                        Kullanıcı Yorumları Analizi
+                    </button>
+                    <button
+                        type="button"
+                        class="analysis-mode-pill"
+                        data-mode="dataset"
+                        role="tab"
+                        aria-selected="false"
+                    >
+                        Veri Kümesi Analizleri
+                    </button>
+                </div>
+                <p class="page-header-subtitle">Kullanıcılarımızın uçuş deneyimleri. Admin onayından geçen değerlendirmeler havayoluna göre listelenir.</p>
+            </header>
+
+            <div id="loading-state" class="loading-state">
+                <span class="spinner"></span>
+                <p>Yorumlar yükleniyor...</p>
+            </div>
+
+            <div id="empty-state" class="empty-state" style="display: none;">
+                <div class="empty-icon"><i class="fas fa-comments"></i></div>
+                <h3>Henüz yorum yok</h3>
+                <p>Onaylanmış havayolu yorumları burada görünecek.</p>
+            </div>
+
+            <div id="content-area" class="content-area" style="display: none;">
+                <!-- Havayolu Seçimi -->
+                <section class="airline-selection-box" aria-labelledby="airline-selection-label">
+                    <label id="airline-selection-label" class="airline-selection-label">Analiz Edilecek Havayolu:</label>
+                    <div class="airline-selection-control">
+                        <div class="select-wrapper">
+                            <select id="airline-select" class="airline-select" aria-label="Havayolu seçin">
+                                <option value="">Tüm Havayolları</option>
+                            </select>
+                            <i class="fas fa-chevron-down select-arrow" aria-hidden="true"></i>
+                        </div>
+                        <span id="results-count" class="results-count"></span>
+                    </div>
+                </section>
+
+                <!-- Tüm havayolları için özet kartlar -->
+                <section id="airline-overview-section" class="airline-overview-section" aria-label="Havayolu özet kartları" style="display: none;">
+                    <div id="airline-overview-grid" class="airline-overview-grid"></div>
+                </section>
+
+                <!-- Tüm havayolları için yapay zeka özeti (şikayetler / övgüler) -->
+                <section id="all-airlines-summary-section" class="analysis-summary-section" style="display: none;" aria-label="Tüm havayolları için yapay zeka özeti">
+                    <h2 class="analysis-summary-heading">Yapay Zeka Özeti · Tüm Havayolları</h2>
+                    <div class="analysis-summary-grid">
+                        <div class="summary-card summary-card-complaints">
+                            <h3 class="summary-card-title summary-card-title--negative">
+                                <i class="fas fa-circle-xmark" aria-hidden="true"></i>
+                                En Sık Görülen Şikayetler
+                            </h3>
+                            <div id="all-summary-complaints-list" class="summary-list summary-list-complaints"></div>
+                        </div>
+                        <div class="summary-card summary-card-liked">
+                            <h3 class="summary-card-title summary-card-title--positive">
+                                <i class="fas fa-circle-check" aria-hidden="true"></i>
+                                En Çok Beğenilen Özellikler
+                            </h3>
+                            <div id="all-summary-liked-list" class="summary-list summary-list-liked"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Çoklu havayolu karşılaştırması -->
+                <h2 class="multi-airline-page-heading" style="display:none;">Çoklu Havayolu Karşılaştırması</h2>
+                <p class="multi-airline-page-subtitle" style="display:none;">Duygu dağılımı ve hacim trendleri</p>
+                <section id="multi-airline-comparison-section" class="multi-airline-comparison-section" aria-label="Çoklu havayolu karşılaştırması" style="display: none;">
+                    <div class="multi-airline-content">
+                        <div class="multi-airline-sentiment">
+                            <h3 class="multi-airline-section-title">Duygu Dağılımı</h3>
+                            <div id="multi-airline-sentiment-list" class="multi-airline-sentiment-list"></div>
+                            <div class="multi-airline-legend">
+                                <span><span class="legend-dot positive"></span>Olumlu</span>
+                                <span><span class="legend-dot neutral"></span>Nötr</span>
+                                <span><span class="legend-dot negative"></span>Olumsuz</span>
+                            </div>
+                        </div>
+                        <div class="multi-airline-trend">
+                            <div class="multi-airline-trend-header">
+                                <h3 class="multi-airline-section-title">İnceleme Hacmi Trendi</h3>
+                                <span class="multi-airline-range-pill">Son 6 Ay</span>
+                            </div>
+                            <div class="multi-airline-trend-chart-wrap">
+                                <canvas id="multi-airline-volume-trend" width="400" height="220" aria-label="Havayolu bazında inceleme hacmi trendi"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Genel İstatistikler -->
+                <section id="general-stats-section" class="general-stats-section" aria-labelledby="general-stats-heading">
+                    <h2 id="general-stats-heading" class="general-stats-heading">Genel İstatistikler</h2>
+                    <div class="stats-cards">
+                        <div class="stat-card">
+                            <div class="stat-card-icon stat-card-icon--reviews"><i class="fas fa-comments"></i></div>
+                            <div class="stat-card-value" id="stat-total">0</div>
+                            <div class="stat-card-label">Toplam Yorum</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-icon stat-card-icon--positive"><i class="fas fa-thumbs-up"></i></div>
+                            <div class="stat-card-value" id="stat-positive">0</div>
+                            <div class="stat-card-label">Olumlu Yorum</div>
+                            <div class="stat-card-extra" id="stat-positive-pct">0%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-icon stat-card-icon--negative"><i class="fas fa-thumbs-down"></i></div>
+                            <div class="stat-card-value" id="stat-negative">0</div>
+                            <div class="stat-card-label">Olumsuz Yorum</div>
+                            <div class="stat-card-extra" id="stat-negative-pct">0%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-icon stat-card-icon--neutral"><i class="fas fa-minus-circle"></i></div>
+                            <div class="stat-card-value" id="stat-neutral">0</div>
+                            <div class="stat-card-label">Nötr Yorum</div>
+                            <div class="stat-card-extra" id="stat-neutral-pct">0%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-icon stat-card-icon--rating"><i class="fas fa-star"></i></div>
+                            <div class="stat-card-value" id="stat-rating">0.0</div>
+                            <div class="stat-card-label">Ortalama Puan</div>
+                            <div class="stat-card-stars" id="stat-stars" aria-hidden="true"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Duygu dağılımı grafiği (sol yarı) + Son yorumlar tabları (sağ yarı) -->
+                <section id="sentiment-chart-section" class="sentiment-chart-section" style="display: none;" aria-labelledby="sentiment-chart-heading">
+                    <h2 id="sentiment-chart-heading" class="sentiment-chart-heading">Duygu Dağılımı</h2>
+                    <div class="sentiment-chart-row">
+                        <div class="sentiment-chart-half">
+                            <div class="sentiment-chart-block">
+                                <div class="sentiment-chart-inner">
+                                    <div class="chart-wrap sentiment-chart-wrap">
+                                        <canvas id="sentiment-chart" width="220" height="220" aria-label="Duygu dağılımı grafiği"></canvas>
+                                    </div>
+                                    <div id="sentiment-center-text" class="sentiment-center-text">
+                                        <div class="sentiment-center-value">0</div>
+                                        <div class="sentiment-center-label">Toplam</div>
+                                    </div>
+                                </div>
+                                <div id="sentiment-legend" class="sentiment-legend"></div>
+                            </div>
+                        </div>
+                        <div class="sentiment-tabs-half">
+                            <div class="sentiment-tabs-card">
+                                <div class="sentiment-tabs-header">
+                                    <h3 class="sentiment-tabs-title">Son Yorumlar</h3>
+                                    <div class="sentiment-tab-buttons" role="tablist" aria-label="Yorum türü seçin">
+                                        <button type="button" class="sentiment-tab-btn active" role="tab" aria-selected="true" aria-controls="sentiment-tab-panel-positive" id="sentiment-tab-btn-positive">Pozitif</button>
+                                        <button type="button" class="sentiment-tab-btn" role="tab" aria-selected="false" aria-controls="sentiment-tab-panel-neutral" id="sentiment-tab-btn-neutral">Nötr</button>
+                                        <button type="button" class="sentiment-tab-btn" role="tab" aria-selected="false" aria-controls="sentiment-tab-panel-negative" id="sentiment-tab-btn-negative">Negatif</button>
+                                    </div>
+                                </div>
+                                <div class="sentiment-tab-panels">
+                                    <div id="sentiment-tab-panel-positive" class="sentiment-tab-panel active" role="tabpanel" aria-labelledby="sentiment-tab-btn-positive">
+                                        <div id="sentiment-list-positive" class="sentiment-tab-list"></div>
+                                        <div class="sentiment-tab-footer">
+                                            <span class="sentiment-tab-page-info" id="sentiment-page-info-positive"></span>
+                                            <div class="sentiment-tab-pager">
+                                                <button type="button" class="sentiment-page-btn" data-sentiment="positive" data-dir="prev" id="sentiment-page-prev-positive">Önceki</button>
+                                                <button type="button" class="sentiment-page-btn" data-sentiment="positive" data-dir="next" id="sentiment-page-next-positive">Sonraki</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="sentiment-tab-panel-neutral" class="sentiment-tab-panel" role="tabpanel" aria-labelledby="sentiment-tab-btn-neutral" hidden>
+                                        <div id="sentiment-list-neutral" class="sentiment-tab-list"></div>
+                                        <div class="sentiment-tab-footer">
+                                            <span class="sentiment-tab-page-info" id="sentiment-page-info-neutral"></span>
+                                            <div class="sentiment-tab-pager">
+                                                <button type="button" class="sentiment-page-btn" data-sentiment="neutral" data-dir="prev" id="sentiment-page-prev-neutral">Önceki</button>
+                                                <button type="button" class="sentiment-page-btn" data-sentiment="neutral" data-dir="next" id="sentiment-page-next-neutral">Sonraki</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="sentiment-tab-panel-negative" class="sentiment-tab-panel" role="tabpanel" aria-labelledby="sentiment-tab-btn-negative" hidden>
+                                        <div id="sentiment-list-negative" class="sentiment-tab-list"></div>
+                                        <div class="sentiment-tab-footer">
+                                            <span class="sentiment-tab-page-info" id="sentiment-page-info-negative"></span>
+                                            <div class="sentiment-tab-pager">
+                                                <button type="button" class="sentiment-page-btn" data-sentiment="negative" data-dir="prev" id="sentiment-page-prev-negative">Önceki</button>
+                                                <button type="button" class="sentiment-page-btn" data-sentiment="negative" data-dir="next" id="sentiment-page-next-negative">Sonraki</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Yapay zeka özeti: Beğenilenler, Şikayetler, Puan dağılımı, Uçuş tarihine göre trend -->
+                <section id="analysis-summary-section" class="analysis-summary-section" style="display: none;" aria-labelledby="analysis-summary-heading">
+                    <h2 id="analysis-summary-heading" class="analysis-summary-heading">Yapay Zeka Özeti</h2>
+                    <div class="analysis-summary-grid">
+                        <div class="summary-card summary-card-complaints">
+                            <h3 class="summary-card-title summary-card-title--negative"><i class="fas fa-circle-xmark" aria-hidden="true"></i> En Sık Görülen Şikayetler</h3>
+                            <div id="summary-complaints-list" class="summary-list summary-list-complaints"></div>
+                        </div>
+                        <div class="summary-card summary-card-liked">
+                            <h3 class="summary-card-title summary-card-title--positive"><i class="fas fa-circle-check" aria-hidden="true"></i> En Çok Beğenilen Özellikler</h3>
+                            <div id="summary-liked-list" class="summary-list summary-list-liked"></div>
+                        </div>
+                        <div class="summary-row-charts">
+                            <div class="summary-card summary-card-chart score-distribution-card">
+                                <h3 class="summary-card-title"><i class="fas fa-chart-bar" aria-hidden="true"></i> Puan Dağılımı</h3>
+                                <p class="score-distribution-subtitle">Tüm uçuşlardaki tarihsel dağılım</p>
+                                <div id="score-distribution-list" class="score-distribution-list"></div>
+                            </div>
+                            <div class="summary-card summary-card-chart trend-by-flight-date-card">
+                                <h3 class="summary-card-title"><i class="fas fa-plane-departure" aria-hidden="true"></i> Uçuş Tarihine Göre Yorum Trendi</h3>
+                                <div class="summary-chart-wrap">
+                                    <canvas id="trend-by-flight-date-chart" width="300" height="220" aria-label="Uçuş tarihine göre yorum sayısı"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Performans ve Memnuniyet · Yolcu tavsiyeleri ve rota memnuniyeti -->
+                <section class="route-satisfaction-section" aria-labelledby="route-satisfaction-heading">
+                    <div class="route-row-grid">
+                        <article class="route-card route-card-left">
+                            <h3 class="route-card-title">
+                                <span class="route-card-icon route-card-icon--tips">
+                                    <i class="fas fa-user-check" aria-hidden="true"></i>
+                                </span>
+                                Yolcu Tavsiyeleri
+                            </h3>
+                            <p class="route-card-description">
+                                Müşteri deneyimini artırmak için yapay zeka tarafından önceliklendirilmiş aksiyon alanları.
+                            </p>
+                            <div id="summary-recommendations-list" class="summary-recommendations"></div>
+                        </article>
+
+                        <article class="route-card route-card-center">
+                            <h3 class="route-card-title">
+                                <span class="route-card-icon route-card-icon--loyalty">
+                                    <i class="fas fa-star" aria-hidden="true"></i>
+                                </span>
+                                Yolcu Sadakati
+                            </h3>
+                            <div class="route-loyalty-ring">
+                                <div class="route-loyalty-ring-bg"></div>
+                                <div class="route-loyalty-ring-fill"></div>
+                                <div class="route-loyalty-ring-center">
+                                    <span class="route-recommendation-percent" id="route-repeat-percent">%0</span>
+                                </div>
+                            </div>
+                            <p class="route-recommendation-text" id="route-repeat-text">
+                                Yeterli veri bulunmuyor.
+                            </p>
+                        </article>
+
+                        <article class="route-card route-card-right">
+                            <h3 id="route-satisfaction-heading" class="route-card-title">
+                                <span class="route-card-icon route-card-icon--routes">
+                                    <i class="fas fa-location-dot" aria-hidden="true"></i>
+                                </span>
+                                Rota Memnuniyeti
+                            </h3>
+                            <div id="route-satisfaction-list" class="route-satisfaction-list"></div>
+                        </article>
+                    </div>
+                </section>
+
+                <!-- Yorum filtreleri (tarih aralığı + duygu + arama) -->
+                <div class="review-filter-bar" aria-label="Yorum filtresi">
+                    <div class="review-filter-left">
+                        <div class="review-date-filter" aria-label="Tarih aralığı filtresi">
+                            <select id="review-date-select" class="review-date-select" aria-label="Tarih aralığı seçin">
+                                <option value="all" selected>Tümü</option>
+                                <option value="30d">Son 30 Gün</option>
+                                <option value="90d">Son 90 Gün</option>
+                                <option value="1y">Son 1 Yıl</option>
+                            </select>
+                            <i class="fas fa-chevron-down review-date-select-arrow" aria-hidden="true"></i>
+                        </div>
+                        <div class="review-filter-buttons" id="review-filter-buttons">
+                            <button type="button" class="review-filter-btn" data-sentiment="">Tümü</button>
+                            <button type="button" class="review-filter-btn" data-sentiment="positive">Olumlu</button>
+                            <button type="button" class="review-filter-btn" data-sentiment="neutral">Nötr</button>
+                            <button type="button" class="review-filter-btn" data-sentiment="negative">Olumsuz</button>
+                        </div>
+                    </div>
+                    <div class="review-filter-right">
+                        <div class="review-search-wrapper">
+                            <i class="fas fa-search review-search-icon" aria-hidden="true"></i>
+                            <input
+                                type="search"
+                                id="review-search-input"
+                                class="review-search-input"
+                                placeholder="Aramak için kelime girin"
+                                aria-label="Yorumlarda kelime ara"
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <div id="airline-sections" class="airline-sections"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="/static/js/global/navbar-loader.js"></script>
+    <script src="/static/js/reviews/airline-reviews.js"></script>
+</body>
+</html>

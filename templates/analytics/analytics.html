@@ -9,11 +9,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="/static/css/base.css">
-    <link rel="stylesheet" href="/static/css/components.css">
-    <link rel="stylesheet" href="/static/css/main.css">
-    <link rel="stylesheet" href="/static/css/responsive.css">
-    <link rel="stylesheet" href="/static/css/statistic.css">
+    <link rel="stylesheet" href="/static/css/global/base.css">
+    <link rel="stylesheet" href="/static/css/global/components.css">
+    <link rel="stylesheet" href="/static/css/global/main.css">
+    <link rel="stylesheet" href="/static/css/global/responsive.css">
+    <link rel="stylesheet" href="/static/css/analytics/statistic.css">
 </head>
 <body>
 
@@ -21,9 +21,10 @@
 
     <main class="page-content">
         <div class="container">
-            <header>
-                <h1>Uçuş Ağı İstatistikleri</h1>
-                <div class="subtitle">Türkiye hava trafiği hakkında detaylı analizler ve karşılaştırmalar</div>
+            <header class="page-header">
+                <div class="page-header-badge"><i class="fas fa-chart-line"></i> İstatistikler</div>
+                <h1 class="page-header-main-title">Uçuş Ağı İstatistikleri</h1>
+                <p class="page-header-subtitle">Yıllara göre uçuş, yolcu ve kargo trendlerini inceleyin, dönemler arasında karşılaştırma yaparak Türkiye hava trafiğinin büyük resmini görün.</p>
             </header>
             <div class="stats-mode-selector">
                 <button id="show-all-years" class="mode-btn active">
@@ -250,9 +251,9 @@
         </div>
     </main>
 
-    <script src="/static/js/navbar-loader.js"></script>
-    <script src="/static/js/utils.js"></script>
-    <script src="/static/js/navigation.js"></script>
-    <script src="/static/js/statistics.js"></script>
+    <script src="/static/js/global/navbar-loader.js"></script>
+    <script src="/static/js/global/utils.js"></script>
+    <script src="/static/js/global/navigation.js"></script>
+    <script src="/static/js/analytics/statistics.js"></script>
 </body>
 </html>

@@ -22,7 +22,7 @@
             </div>
         </header>
         <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-            <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-4 py-3 border-b border-slate-100">
                 <div class="flex flex-col gap-1">
                     <div class="flex items-center gap-2 text-sm text-slate-700">
                         <span class="w-2 h-2 rounded-full bg-violet-500"></span>
@@ -30,7 +30,9 @@
                     </div>
                     <p class="text-xs text-slate-500">Yeni kupon ekleyin, düzenleyin veya soft delete yapın.</p>
                 </div>
-                <span id="couponCountText" class="text-xs text-slate-500">Yükleniyor...</span>
+                <div class="flex items-center gap-3">
+                    <span id="couponCountText" class="text-xs text-slate-500">Yükleniyor...</span>
+                </div>
             </div>
             <!-- Yeni Kupon Ekle formu -->
             <div class="px-4 py-4 border-b border-slate-100 bg-slate-50/50">
@@ -82,47 +84,106 @@
 {% endblock %}
 
 {% block modals %}
-    <!-- Düzenle kupon modal -->
-    <div id="couponEditModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" aria-hidden="true">
-        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-5 text-sm">
-            <h3 class="font-semibold text-slate-900 mb-4">Kuponu Düzenle</h3>
-            <form id="couponEditForm">
-                <input type="hidden" id="editCouponId" name="id" />
-                <div class="space-y-3">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Kod</label>
-                        <input type="text" id="editCouponCode" readonly class="w-full border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 text-slate-600" />
+    <!-- Düzenle kupon modal + kullanıcı atama (modern kart tasarımı) -->
+    <div id="couponEditModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4 py-6 bg-slate-900/30 backdrop-blur-sm" aria-hidden="true">
+        <div class="bg-slate-50 rounded-[32px] shadow-2xl max-w-4xl w-full p-6 sm:p-7 text-sm border border-slate-100">
+            <div class="flex items-start justify-between gap-3 mb-5">
+                <div>
+                    <h3 class="text-base font-semibold text-slate-900">Kuponu Düzenle</h3>
+                    <p class="text-xs text-slate-500 mt-1">Kupon detaylarını güncelleyin ve belirli kullanıcılara atayın.</p>
+                </div>
+                <button type="button" id="couponEditCancel" class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition">
+                    <span class="sr-only">Kapat</span>
+                    &times;
+                </button>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6 items-start">
+                <!-- Sol: Kupon formu -->
+                <form id="couponEditForm" class="space-y-4 bg-white border border-slate-100 rounded-3xl px-5 py-4 shadow-sm">
+                    <input type="hidden" id="editCouponId" name="id" />
+                    <div class="space-y-1.5">
+                        <label class="block text-[11px] font-medium text-slate-500">Kod</label>
+                        <input type="text" id="editCouponCode" readonly class="w-full border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 text-slate-700 text-sm" />
                     </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Havayolu</label>
-                        <input type="text" id="editCouponAirline" name="airline_name" class="w-full border border-slate-200 rounded-lg px-3 py-2" />
+                    <div class="space-y-1.5">
+                        <label class="block text-[11px] font-medium text-slate-500">Havayolu</label>
+                        <input type="text" id="editCouponAirline" name="airline_name" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500" />
                     </div>
                     <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-500 mb-1">İndirim (TL)</label>
-                            <input type="number" id="editCouponRefund" name="refund_amount" step="0.01" min="0" class="w-full border border-slate-200 rounded-lg px-3 py-2" />
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-medium text-slate-500">İndirim Tutarı</label>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="editCouponRefund" name="refund_amount" step="0.01" min="0" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500" />
+                                <span class="text-[11px] text-slate-500">TL</span>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-500 mb-1">Son kullanım</label>
-                            <input type="date" id="editCouponExpiry" name="expiry_date" class="w-full border border-slate-200 rounded-lg px-3 py-2" />
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-medium text-slate-500">Son Kullanım</label>
+                            <input type="date" id="editCouponExpiry" name="expiry_date" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500" />
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Max kullanım (kişi)</label>
-                        <input type="number" id="editCouponMaxUses" name="max_uses" min="1" class="w-full border border-slate-200 rounded-lg px-3 py-2" />
+                    <div class="space-y-1.5">
+                        <label class="block text-[11px] font-medium text-slate-500">Max Kullanım (Kişi)</label>
+                        <input type="number" id="editCouponMaxUses" name="max_uses" min="1" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500" />
                     </div>
-                    <div>
-                        <label class="flex items-center gap-2 text-slate-600">
-                            <input type="checkbox" id="editCouponActive" name="is_active" class="rounded border-slate-300" />
-                            <span>Aktif</span>
+                    <div class="flex items-center justify-between gap-3 pt-1">
+                        <label class="inline-flex items-center gap-2 text-slate-600 text-xs">
+                            <span class="inline-flex items-center justify-center w-9 h-5 rounded-full bg-violet-100 relative">
+                                <input type="checkbox" id="editCouponActive" name="is_active" class="peer sr-only" />
+                                <span class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white shadow peer-checked:translate-x-4 transition-transform"></span>
+                            </span>
+                            <span>Aktif Kupon</span>
                         </label>
+                        <button type="submit" id="couponEditSubmit" class="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 text-xs font-medium shadow-sm">
+                            Değişiklikleri Kaydet
+                        </button>
                     </div>
-                </div>
-                <div class="mt-4 flex justify-end gap-2">
-                    <button type="button" id="couponEditCancel" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50">İptal</button>
-                    <button type="submit" id="couponEditSubmit" class="px-4 py-2 rounded-lg bg-violet-600 text-white hover:bg-violet-700">Kaydet</button>
-                </div>
-            </form>
+                </form>
+
+                <!-- Sağ: Kullanıcı atama -->
+                <section class="bg-white border border-slate-100 rounded-3xl px-5 py-4 space-y-3 shadow-sm">
+                    <header class="flex items-center justify-between gap-2 mb-1">
+                        <div>
+                            <h4 class="text-xs font-semibold text-slate-800">Kullanıcılara Ata</h4>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Nickname veya e-posta ile arayıp birden fazla kullanıcı seçebilirsiniz.</p>
+                        </div>
+                        <span id="couponAssignedCount" class="text-[11px] text-slate-500">0 atanmış</span>
+                    </header>
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-500 mb-1" for="couponUserSearchInput">Kullanıcı Ara</label>
+                        <div class="relative">
+                            <input id="couponUserSearchInput" type="search" autocomplete="off" placeholder="Örn: @kullanici veya kullanici@mail.com" class="w-full border border-slate-200 rounded-full px-3 py-2 pr-8 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500" />
+                            <span class="absolute inset-y-0 right-3 flex items-center text-slate-300 text-xs">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </span>
+                        </div>
+                        <div id="couponUserSearchResults" class="mt-1 border border-slate-100 rounded-xl bg-white shadow-sm max-h-40 overflow-auto text-xs hidden"></div>
+                    </div>
+                    <div>
+                        <h5 class="text-[11px] font-medium text-slate-500 mb-1">Seçilen Kullanıcılar</h5>
+                        <div id="couponSelectedUsers" class="min-h-[72px] flex flex-col items-center justify-center gap-1.5 text-[11px] border border-dashed border-slate-200 rounded-2xl bg-slate-50/70 px-3 py-4 text-slate-400">
+                            <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm mb-1">
+                                <i class="fa-regular fa-user text-slate-300"></i>
+                            </div>
+                            <p class="text-[11px] font-medium text-slate-500">Henüz kullanıcı seçilmedi.</p>
+                            <p class="text-[10px] text-slate-400">Arama yaparak listeye ekleyin.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <button type="button" id="couponAssignUsersBtn" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 text-white text-[11px] font-medium hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed">
+                            <i class="fa-solid fa-user-plus text-[10px]"></i>
+                            <span>Seçilen Kullanıcılara Ata</span>
+                        </button>
+                        <span class="text-[10px] text-slate-400 text-right">Atanmış kullanıcılar listesinden kuponu geri kaldırabilirsiniz.</span>
+                    </div>
+                    <div class="border-t border-slate-100 pt-3 mt-1 space-y-1.5">
+                        <h5 class="text-[11px] font-medium text-slate-500 mb-1">Mevcut Atananlar</h5>
+                        <div id="couponAssignedUsersList" class="max-h-40 overflow-auto text-[11px] text-slate-700 space-y-1.5">
+                            <span class="text-slate-400">Bu kupona henüz kullanıcı atanmadı.</span>
+                        </div>
+                    </div>
+                </section>
+            </div>
         </div>
     </div>
 {% endblock %}

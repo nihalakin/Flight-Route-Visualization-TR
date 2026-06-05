@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biletlerim · Nodia</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/global/base.css">
+    <link rel="stylesheet" href="/static/css/global/components.css">
+    <link rel="stylesheet" href="/static/css/global/main.css">
+    <style>
+        body {
+            font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+        .page-shell {
+            padding: 2rem 0 4rem;
+        }
+        .page-header-simple {
+            margin-bottom: 1.75rem;
+        }
+        .page-header-simple-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin: 0 0 0.35rem;
+            color: var(--text-primary);
+        }
+        .page-header-simple-desc {
+            margin: 0;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+        .tickets-card {
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            padding: 1.75rem 1.75rem 1.5rem;
+        }
+        .tickets-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            flex-wrap: wrap;
+        }
+        .tickets-card-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .tickets-card-title-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            background: #eef2ff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #4f46e5;
+        }
+        .tickets-card-sub {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        .tickets-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            align-items: center;
+        }
+        .tickets-filters-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        .tickets-filters-label {
+            font-weight: 500;
+        }
+        .tickets-select {
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: #f9fafb;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        .tickets-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(0,126,138,0.12);
+            background: #ffffff;
+        }
+        .tickets-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .ticket-item {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.75rem;
+            padding: 1rem 1.25rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+        }
+        .ticket-item .ticket-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .ticket-item .ticket-header-row .ticket-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .ticket-item .ticket-title {
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 0.95rem;
+            min-width: 0;
+        }
+        .ticket-item .ticket-date {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+        .ticket-status-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0.25rem 0.7rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: 1px solid #fee2e2;
+            background: #fef2f2;
+            color: #b91c1c;
+            margin-left: 0.4rem;
+        }
+        .ticket-item .btn-preview {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 60px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+        }
+        .ticket-item .btn-preview:hover {
+            background: #1d4ed8;
+        }
+        .ticket-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0.45rem 0.9rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            color: #475569;
+        }
+        .ticket-status-pill--info {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            color: #1d4ed8;
+        }
+        .ticket-status-pill--muted {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+            color: #6b7280;
+        }
+        .ticket-status-pill--primary {
+            background: #2563eb;
+            border-color: #1d4ed8;
+            color: #ffffff;
+            cursor: pointer;
+            transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
+        }
+        .ticket-status-pill--primary:hover {
+            background: #1d4ed8;
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35);
+            transform: translateY(-1px);
+        }
+        .tickets-loading {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+        .tickets-loading .loading-spinner-inline {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e2e8f0;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 6px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .tickets-empty {
+            padding: 1.75rem 1rem 1.25rem;
+            text-align: center;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        .tickets-empty i {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        @media (max-width: 768px) {
+            .tickets-card {
+                padding: 1.25rem 1.25rem 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar-container"></div>
+
+    <main class="page-shell">
+        <div class="container">
+            <header class="page-header-simple">
+                <h1 class="page-header-simple-title">Biletlerim</h1>
+                <p class="page-header-simple-desc">
+                    Nodia üzerinde oluşturduğun tüm biletleri burada görüntüleyebilir, detaylarını inceleyebilirsin.
+                </p>
+            </header>
+
+            <section class="tickets-card" aria-label="Bilet listesi">
+                <div class="tickets-card-header">
+                    <div class="tickets-card-title">
+                        <span class="tickets-card-title-icon">
+                            <i class="fas fa-ticket-alt"></i>
+                        </span>
+                        <span>Biletlerim</span>
+                    </div>
+                    <div class="tickets-card-sub">
+                        <i class="fas fa-info-circle" style="margin-right:4px; color:#9ca3af;"></i>
+                        En güncel biletler üstte listelenir.
+                    </div>
+                </div>
+
+                <div class="tickets-filters" aria-label="Bilet filtreleri">
+                    <div class="tickets-filters-group">
+                        <span class="tickets-filters-label">Durum:</span>
+                        <select id="ticketStatusFilter" class="tickets-select">
+                            <option value="all">Tümü</option>
+                            <option value="active">Sadece aktif</option>
+                            <option value="cancelled">Sadece iptal edilenler</option>
+                        </select>
+                    </div>
+                    <div class="tickets-filters-group">
+                        <span class="tickets-filters-label">Tarih:</span>
+                        <select id="ticketDateFilter" class="tickets-select">
+                            <option value="all">Tümü</option>
+                            <option value="30d">Son 30 gün</option>
+                            <option value="90d">Son 90 gün</option>
+                            <option value="1y">Son 1 yıl</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="ticketsListContainer">
+                    <div id="ticketsLoading" class="tickets-loading" style="display: none;">
+                        <span class="loading-spinner-inline"></span>Biletler yükleniyor...
+                    </div>
+                    <div id="ticketsList" class="tickets-list"></div>
+                    <div id="ticketsEmpty" class="tickets-empty" style="display: none;">
+                        <i class="fas fa-ticket-alt" style="font-size:2rem; color:#cbd5e1;"></i>
+                        <p>Henüz bilet oluşturmadınız.</p>
+                        <a href="/tickets/create-route" class="btn-primary" style="margin-top:0.75rem; text-decoration:none; display:inline-flex; align-items:center; gap:6px; padding:0.6rem 1.2rem; border-radius:999px;">
+                            <i class="fas fa-plus"></i> Rota Oluştur
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Bilet iptal modalı -->
+    <div id="cancelModalBackdrop"
+         style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.45); z-index:50; align-items:center; justify-content:center;">
+        <div id="cancelModal"
+             style="background:#ffffff; border-radius:18px; max-width:480px; width:100%; padding:1.5rem 1.75rem; box-shadow:0 18px 45px rgba(15,23,42,0.35); margin:0 auto;">
+            <div style="display:flex; align-items:flex-start; gap:0.75rem; margin-bottom:1rem;">
+                <div style="width:34px; height:34px; border-radius:999px; background:#fef2f2; display:flex; align-items:center; justify-content:center; color:#dc2626;">
+                    <i class="fas fa-triangle-exclamation"></i>
+                </div>
+                <div style="flex:1;">
+                    <h2 style="margin:0 0 0.25rem; font-size:1.1rem; font-weight:650; color:#0f172a;">Biletimi iptal et</h2>
+                    <p style="margin:0; font-size:0.85rem; color:#6b7280;">
+                        İptal etmek istediğiniz bilet için aşağıdaki bilgileri kontrol edin. Onaylamadan önce iade tutarını görebilirsiniz.
+                    </p>
+                </div>
+            </div>
+
+            <div id="cancelModalContent" style="font-size:0.85rem; color:#4b5563; margin-bottom:0.75rem;">
+            </div>
+
+            <div style="margin-bottom:0.75rem;">
+                <label for="cancelReason" style="display:block; font-size:0.8rem; font-weight:600; color:#4b5563; margin-bottom:0.25rem;">
+                    İptal sebebi (zorunlu değil)
+                </label>
+                <textarea id="cancelReason"
+                          rows="3"
+                          style="width:100%; resize:vertical; border-radius:12px; border:1px solid #e5e7eb; padding:0.5rem 0.75rem; font-size:0.85rem;"></textarea>
+            </div>
+
+            <div id="cancelPreviewInfo"
+                 style="font-size:0.82rem; color:#111827; background:#f9fafb; border-radius:12px; padding:0.6rem 0.75rem; border:1px solid #e5e7eb; margin-bottom:0.9rem; display:none;">
+            </div>
+
+            <div id="cancelModalError"
+                 style="display:none; font-size:0.8rem; color:#b91c1c; background:#fef2f2; border-radius:999px; padding:0.4rem 0.75rem; margin-bottom:0.5rem;">
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.5rem;">
+                <button type="button"
+                        id="cancelModalCloseBtn"
+                        style="border-radius:999px; border:1px solid #e5e7eb; background:#ffffff; padding:0.55rem 1.1rem; font-size:0.85rem; font-weight:500; color:#374151; cursor:pointer;">
+                    Vazgeç
+                </button>
+                <button type="button"
+                        id="cancelModalConfirmBtn"
+                        style="border-radius:999px; border:none; background:#dc2626; padding:0.55rem 1.1rem; font-size:0.85rem; font-weight:600; color:#ffffff; cursor:pointer;">
+                    Bileti iptal et
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Uçuş değerlendirme modalı -->
+    <div id="reviewModalBackdrop"
+         style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.45); z-index:50; align-items:center; justify-content:center;">
+        <div id="reviewModal"
+             style="background:#ffffff; border-radius:24px; max-width:520px; width:100%; padding:2.1rem 2rem 1.8rem; box-shadow:0 25px 70px rgba(15,23,42,0.40); margin:0 auto; position:relative; height:480px; display:flex; flex-direction:column;">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:0.75rem; margin-bottom:1.1rem;">
+                <div style="display:flex; align-items:center; gap:0.6rem;">
+                    <div style="width:32px; height:32px; border-radius:999px; background:#fef3c7; display:flex; align-items:center; justify-content:center; color:#eab308;">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div>
+                        <h2 style="margin:0 0 0.15rem; font-size:1.1rem; font-weight:650; color:#0f172a;">Uçuşunu Değerlendir</h2>
+                        <p id="reviewModalRoute"
+                           style="margin:0; font-size:0.8rem; color:#6b7280;">Uçuş bilgisi yükleniyor…</p>
+                    </div>
+                </div>
+                <button type="button"
+                        id="reviewModalCloseBtn"
+                        aria-label="Kapat"
+                        style="border:none; background:transparent; cursor:pointer; color:#9ca3af; padding:4px; border-radius:999px;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <form id="reviewForm" style="display:flex; flex-direction:column; flex:1; min-height:0;">
+                <div style="margin-bottom:1.1rem;">
+                    <label style="display:block; font-size:0.82rem; font-weight:600; color:#4b5563; margin-bottom:0.35rem;">
+                        Puanın (1–5)
+                    </label>
+                    <div id="reviewStars"
+                         style="display:flex; gap:0.35rem; font-size:1.4rem; color:#e5e7eb; cursor:pointer;">
+                        <i class="fas fa-star" data-star="1"></i>
+                        <i class="fas fa-star" data-star="2"></i>
+                        <i class="fas fa-star" data-star="3"></i>
+                        <i class="fas fa-star" data-star="4"></i>
+                        <i class="fas fa-star" data-star="5"></i>
+                    </div>
+                    <input type="hidden" id="reviewRating" value="0">
+                </div>
+
+                <div style="margin-bottom:0.9rem;">
+                    <label for="reviewTitle"
+                           style="display:block; font-size:0.82rem; font-weight:600; color:#4b5563; margin-bottom:0.25rem;">
+                        Başlık (isteğe bağlı)
+                    </label>
+                    <input id="reviewTitle"
+                           type="text"
+                           placeholder="Örn: Çok keyifli bir uçuştu"
+                           style="width:100%; border-radius:999px; border:1px solid #e5e7eb; padding:0.55rem 0.9rem; font-size:0.9rem; outline:none;">
+                </div>
+
+                <div style="margin-bottom:1rem; flex:1; min-height:0; display:flex; flex-direction:column;">
+                    <label for="reviewContent"
+                           style="display:block; font-size:0.82rem; font-weight:600; color:#4b5563; margin-bottom:0.25rem;">
+                        Yorumun
+                    </label>
+                    <textarea id="reviewContent"
+                              rows="4"
+                              placeholder="Kolay biniş, zamanında kalkış, kabin ekibi deneyimin gibi detayları yazabilirsin."
+                              style="width:100%; border-radius:16px; border:1px solid #e5e7eb; padding:0.6rem 0.9rem; font-size:0.9rem; resize:none; outline:none; flex:1;"></textarea>
+                </div>
+
+                <div id="reviewModalError"
+                     style="display:none; font-size:0.8rem; color:#b91c1c; background:#fef2f2; border-radius:999px; padding:0.4rem 0.75rem; margin-bottom:0.6rem;">
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:0.6rem; margin-top:0.6rem;">
+                    <button type="button"
+                            id="reviewModalCancelBtn"
+                            style="border-radius:999px; border:1px solid #e5e7eb; background:#ffffff; padding:0.55rem 1.2rem; font-size:0.85rem; font-weight:500; color:#374151; cursor:pointer;">
+                        Vazgeç
+                    </button>
+                    <button type="submit"
+                            id="reviewModalSubmitBtn"
+                            style="display:inline-flex; align-items:center; gap:6px; border-radius:999px; border:none; background:#2563eb; padding:0.55rem 1.3rem; font-size:0.85rem; font-weight:600; color:#ffffff; cursor:pointer;">
+                        <i class="fas fa-paper-plane"></i>
+                        Yorumunu Gönder
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/global/navbar-loader.js"></script>
+    <script>
+        (function() {
+            const token = localStorage.getItem('access_token');
+            const apiBase = window.location.origin;
+            let allTickets = [];
+            let reviewingSegmentId = null;
+            let cancellingTicketId = null;
+            let lastPreview = null;
+
+            if (!token) {
+                window.location.href = '/login?next=/tickets/my-tickets';
+                return;
+            }
+
+            function escapeHtml(s) {
+                if (s == null) return '';
+                var t = String(s);
+                return t
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+            }
+
+            function isWithinRange(dateStr, range) {
+                if (!dateStr || range === 'all') return true;
+                const created = new Date(dateStr);
+                if (isNaN(created.getTime())) return true;
+
+                const now = new Date();
+                const diffMs = now - created;
+                const dayMs = 24 * 60 * 60 * 1000;
+
+                if (range === '30d') return diffMs <= 30 * dayMs;
+                if (range === '90d') return diffMs <= 90 * dayMs;
+                if (range === '1y') return diffMs <= 365 * dayMs;
+                return true;
+            }
+
+            function applyFilters() {
+                const statusFilterEl = document.getElementById('ticketStatusFilter');
+                const dateFilterEl = document.getElementById('ticketDateFilter');
+                const statusValue = statusFilterEl ? statusFilterEl.value : 'all';
+                const dateValue = dateFilterEl ? dateFilterEl.value : 'all';
+
+                const filtered = allTickets.filter(function(t) {
+                    // status
+                    const status = (t.status || '').toLowerCase();
+                    if (statusValue === 'cancelled') {
+                        if (!(status === 'cancelled' || status === 'iptal' || status === 'iptal edildi')) {
+                            return false;
+                        }
+                    } else if (statusValue === 'active') {
+                        if (status === 'cancelled' || status === 'iptal' || status === 'iptal edildi') {
+                            return false;
+                        }
+                    }
+                    // date
+                    if (!isWithinRange(t.created_at, dateValue)) return false;
+                    return true;
+                });
+
+                renderTickets(filtered);
+            }
+
+            function renderTickets(tickets) {
+                var container = document.getElementById('ticketsList');
+                var loadingEl = document.getElementById('ticketsLoading');
+                var emptyEl = document.getElementById('ticketsEmpty');
+                if (!container) return;
+                container.innerHTML = '';
+
+                if (!tickets || tickets.length === 0) {
+                    if (loadingEl) loadingEl.style.display = 'none';
+                    if (emptyEl) emptyEl.style.display = 'block';
+                    return;
+                }
+
+                if (emptyEl) emptyEl.style.display = 'none';
+                if (loadingEl) loadingEl.style.display = 'none';
+
+                tickets.forEach(function(t) {
+                        var dateStr = t.created_at
+                            ? new Date(t.created_at).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                            : '';
+                        var item = document.createElement('div');
+                        item.className = 'ticket-item';
+
+                        var isCancelled = (t.status || '').toLowerCase() === 'cancelled';
+
+                        var previewBtn = '<a href="/ticket-preview?id=' + encodeURIComponent(t.id) + '" target="_blank" class="btn-preview"><i class="fas fa-external-link-alt"></i> Bilet Önizleme</a>';
+
+                        var cancelBtn = '';
+                        if (t.can_cancel && !isCancelled) {
+                            cancelBtn =
+                                '<button type="button" class="btn-preview" data-ticket-cancel="' + String(t.id) + '" ' +
+                                'style="background:#ef4444; margin-left:4px;"><i class="fas fa-ban"></i> Biletimi İptal Et</button>';
+                        }
+
+                        var statusBadge = '';
+                        if (isCancelled) {
+                            statusBadge = '<span class="ticket-status-label"><i class="fas fa-ban"></i> Bilet iptal edildi</span>';
+                        }
+
+                        var topActions = previewBtn + statusBadge + cancelBtn;
+
+                        var segmentsHtml = '';
+                        var segments = t.segments || [];
+                        if (segments.length > 0) {
+                            segments.forEach(function(seg, idx) {
+                                var routeLabel = (seg.departure_city || seg.departure_airport_code || '?') + ' → ' +
+                                                 (seg.arrival_city || seg.arrival_airport_code || '?');
+                                if (seg.flight_number || seg.airline_name) {
+                                    routeLabel += ' (' + (seg.airline_name || '') +
+                                                  (seg.flight_number ? ' ' + seg.flight_number : '') + ')';
+                                }
+                                var segAction = '';
+                                if (seg.has_comment) {
+                                    segAction = '<span class="ticket-status-pill ticket-status-pill--info"><i class="fas fa-check-circle"></i> Yorum yapıldı</span>';
+                                } else if (seg.can_review) {
+                                    segAction = '<button type="button" class="ticket-status-pill ticket-status-pill--primary" data-segment-review="' + String(seg.id) + '"><i class="fas fa-star"></i> Uçuşu Değerlendir</button>';
+                                } else if (!isCancelled) {
+                                    // Sadece iptal edilmemiş biletlerde bilgi metni göster
+                                    segAction = '<span class="ticket-status-pill ticket-status-pill--muted"><i class="fas fa-clock"></i> Uçuş tamamlandıktan sonra değerlendirilebilir</span>';
+                                }
+                                segmentsHtml += '<div class="ticket-segment-row" style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; padding:0.5rem 0; border-bottom:1px solid #e2e8f0;">' +
+                                                '<span style="font-size:0.9rem; color:#475569; flex:1; min-width:0;">' + (idx + 1) + '. ' + escapeHtml(routeLabel) + '</span>' +
+                                                '<span style="margin-left:auto; flex-shrink:0;">' + segAction + '</span>' +
+                                                '</div>';
+                            });
+                        } else {
+                            segmentsHtml = '<div style="padding:0.4rem 0; color:#64748b; font-size:0.85rem;">Bu bilet için segment bilgisi yok.</div>';
+                        }
+
+                        item.innerHTML =
+                            '<div class="ticket-header-row">' +
+                                '<div><div class="ticket-title">' + escapeHtml(t.title || 'Bilet') + '</div><div class="ticket-date">' + escapeHtml(dateStr) + '</div></div>' +
+                                '<div class="ticket-actions">' + topActions + '</div>' +
+                            '</div>' +
+                            '<div class="ticket-segments" style="margin-top:0.25rem;">' + segmentsHtml + '</div>';
+
+                        container.appendChild(item);
+                    });
+
+                // İptal butonları
+                container.querySelectorAll('[data-ticket-cancel]').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        var tid = parseInt(btn.getAttribute('data-ticket-cancel'), 10);
+                        if (!isNaN(tid)) {
+                            openCancelModal(tid);
+                        }
+                    });
+                });
+
+                // Uçuş değerlendirme butonları – mevcut yorum modalını aç
+                container.querySelectorAll('[data-segment-review]').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        var segId = parseInt(btn.getAttribute('data-segment-review'), 10);
+                        if (isNaN(segId)) return;
+                        openReviewModal(segId);
+                    });
+                });
+            }
+
+            function openCancelModal(ticketId) {
+                cancellingTicketId = ticketId;
+                lastPreview = null;
+                var backdrop = document.getElementById('cancelModalBackdrop');
+                var contentEl = document.getElementById('cancelModalContent');
+                var previewEl = document.getElementById('cancelPreviewInfo');
+                var errorEl = document.getElementById('cancelModalError');
+                var reasonEl = document.getElementById('cancelReason');
+                if (!backdrop || !contentEl || !previewEl || !errorEl || !reasonEl) return;
+
+                var ticket = allTickets.find(function(t) { return t.id === ticketId; });
+                var title = ticket ? (ticket.title || 'Bilet') : 'Bilet';
+                var pnr = ticket ? (ticket.pnr || '—') : '—';
+                var amount = ticket && ticket.ticket_amount ? ticket.ticket_amount : null;
+
+                contentEl.innerHTML =
+                    '<div style="margin-bottom:0.35rem;"><strong>' + escapeHtml(title) + '</strong></div>' +
+                    '<div style="font-size:0.8rem; color:#6b7280;">PNR: <span style="font-weight:600;">' + escapeHtml(pnr) + '</span>' +
+                    (amount ? ' · Bilet tutarı: <span style="font-weight:600;">' + amount.toFixed(2) + ' ₺</span>' : '') +
+                    '</div>' +
+                    '<div style="font-size:0.8rem; color:#6b7280; margin-top:0.35rem;">' +
+                    'PNR numarası aynı olan diğer biletler de birlikte iptal edilecektir.' +
+                    '</div>';
+
+                reasonEl.value = '';
+                previewEl.style.display = 'none';
+                previewEl.innerHTML = '';
+                errorEl.style.display = 'none';
+                errorEl.textContent = '';
+
+                backdrop.style.display = 'flex';
+
+                fetch(apiBase + '/api/tickets/' + encodeURIComponent(ticketId) + '/cancel-preview', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({ reason: '' })
+                })
+                .then(function(r) {
+                    if (!r.ok) {
+                        return r.json().then(function(d) { throw new Error(d.detail || 'Önizleme başarısız'); });
+                    }
+                    return r.json();
+                })
+                .then(function(data) {
+                    lastPreview = data;
+                    var list = (data.applies_to_ticket_ids || []).filter(function(id) { return id !== ticketId; });
+                    var extraCount = list.length;
+                    var extraText = extraCount > 0
+                        ? ' Bu işlemle birlikte toplam ' + (extraCount + 1) + ' bilet iptal edilecektir.'
+                        : '';
+                    previewEl.innerHTML =
+                        '<strong>Öngörülen iade tutarı:</strong> ' +
+                        '<span style="font-weight:700;">' + data.refund_amount.toFixed(2) + ' ' + (data.currency || 'TRY') + '</span>' +
+                        extraText;
+                    previewEl.style.display = 'block';
+                })
+                .catch(function(err) {
+                    errorEl.textContent = err.message || 'İade tutarı hesaplanamadı.';
+                    errorEl.style.display = 'block';
+                });
+            }
+
+            function closeCancelModal() {
+                var backdrop = document.getElementById('cancelModalBackdrop');
+                if (backdrop) backdrop.style.display = 'none';
+                cancellingTicketId = null;
+                lastPreview = null;
+            }
+
+            function setReviewRating(value) {
+                var ratingInput = document.getElementById('reviewRating');
+                var starsWrap = document.getElementById('reviewStars');
+                if (!ratingInput || !starsWrap) return;
+                ratingInput.value = String(value);
+                var stars = starsWrap.querySelectorAll('i[data-star]');
+                stars.forEach(function(star) {
+                    var n = parseInt(star.getAttribute('data-star'), 10) || 0;
+                    if (n <= value) {
+                        star.style.color = '#facc15';
+                    } else {
+                        star.style.color = '#e5e7eb';
+                    }
+                });
+            }
+
+            function openReviewModal(segmentId) {
+                reviewingSegmentId = segmentId;
+                var backdrop = document.getElementById('reviewModalBackdrop');
+                var routeEl = document.getElementById('reviewModalRoute');
+                var titleInput = document.getElementById('reviewTitle');
+                var contentInput = document.getElementById('reviewContent');
+                var errorEl = document.getElementById('reviewModalError');
+                if (!backdrop || !routeEl || !titleInput || !contentInput || !errorEl) return;
+
+                // Uçuş etiketini bul
+                var routeText = 'Bu uçuş için yorum bırak.';
+                outer: for (var i = 0; i < allTickets.length; i++) {
+                    var segs = allTickets[i].segments || [];
+                    for (var j = 0; j < segs.length; j++) {
+                        if (segs[j].id === segmentId) {
+                            var seg = segs[j];
+                            var label = (seg.departure_city || seg.departure_airport_code || '?') + ' → ' +
+                                        (seg.arrival_city || seg.arrival_airport_code || '?');
+                            routeText = label;
+                            break outer;
+                        }
+                    }
+                }
+                routeEl.textContent = routeText;
+
+                titleInput.value = '';
+                contentInput.value = '';
+                errorEl.style.display = 'none';
+                errorEl.textContent = '';
+                setReviewRating(0);
+
+                backdrop.style.display = 'flex';
+            }
+
+            function closeReviewModal() {
+                var backdrop = document.getElementById('reviewModalBackdrop');
+                if (backdrop) backdrop.style.display = 'none';
+                reviewingSegmentId = null;
+            }
+
+            function loadTickets() {
+                var loadingEl = document.getElementById('ticketsLoading');
+                var emptyEl = document.getElementById('ticketsEmpty');
+                if (loadingEl) loadingEl.style.display = 'block';
+                if (emptyEl) emptyEl.style.display = 'none';
+
+                fetch(apiBase + '/api/tickets', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                })
+                .then(function(r) {
+                    if (r.status === 401) {
+                        window.location.href = '/login?next=/tickets/my-tickets';
+                        return [];
+                    }
+                    return r.json();
+                })
+                .then(function(tickets) {
+                    allTickets = Array.isArray(tickets) ? tickets : [];
+                    applyFilters();
+                })
+                .catch(function() {
+                    if (loadingEl) loadingEl.style.display = 'none';
+                    if (emptyEl) emptyEl.style.display = 'block';
+                });
+            }
+
+            loadTickets();
+
+            var statusFilterEl = document.getElementById('ticketStatusFilter');
+            var dateFilterEl = document.getElementById('ticketDateFilter');
+            if (statusFilterEl) {
+                statusFilterEl.addEventListener('change', applyFilters);
+            }
+            if (dateFilterEl) {
+                dateFilterEl.addEventListener('change', applyFilters);
+            }
+
+            var closeBtn = document.getElementById('cancelModalCloseBtn');
+            var confirmBtn = document.getElementById('cancelModalConfirmBtn');
+            var backdropEl = document.getElementById('cancelModalBackdrop');
+            if (closeBtn) closeBtn.addEventListener('click', closeCancelModal);
+            if (backdropEl) {
+                backdropEl.addEventListener('click', function(e) {
+                    if (e.target === backdropEl) {
+                        closeCancelModal();
+                    }
+                });
+            }
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', function() {
+                    if (!cancellingTicketId) return;
+                    var reasonEl = document.getElementById('cancelReason');
+                    var errorEl = document.getElementById('cancelModalError');
+                    if (errorEl) {
+                        errorEl.style.display = 'none';
+                        errorEl.textContent = '';
+                    }
+                    var payload = { reason: reasonEl ? reasonEl.value : '' };
+
+                    fetch(apiBase + '/api/tickets/' + encodeURIComponent(cancellingTicketId) + '/cancel', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + token
+                        },
+                        body: JSON.stringify(payload)
+                    })
+                    .then(function(r) {
+                        if (!r.ok) {
+                            return r.json().then(function(d) { throw new Error(d.detail || 'İptal başarısız'); });
+                        }
+                        return r.json();
+                    })
+                    .then(function() {
+                        closeCancelModal();
+                        loadTickets();
+                    })
+                    .catch(function(err) {
+                        if (errorEl) {
+                            errorEl.textContent = err.message || 'Bilet iptal edilemedi.';
+                            errorEl.style.display = 'block';
+                        }
+                    });
+                });
+            }
+
+            // Yorum modalı eventleri
+            var reviewCloseBtn = document.getElementById('reviewModalCloseBtn');
+            var reviewCancelBtn = document.getElementById('reviewModalCancelBtn');
+            var reviewBackdropEl = document.getElementById('reviewModalBackdrop');
+            var reviewForm = document.getElementById('reviewForm');
+            var starsWrap = document.getElementById('reviewStars');
+
+            if (reviewCloseBtn) reviewCloseBtn.addEventListener('click', closeReviewModal);
+            if (reviewCancelBtn) reviewCancelBtn.addEventListener('click', function() {
+                closeReviewModal();
+            });
+            if (reviewBackdropEl) {
+                reviewBackdropEl.addEventListener('click', function(e) {
+                    if (e.target === reviewBackdropEl) {
+                        closeReviewModal();
+                    }
+                });
+            }
+            if (starsWrap) {
+                starsWrap.addEventListener('click', function(e) {
+                    var star = e.target.closest('i[data-star]');
+                    if (!star) return;
+                    var n = parseInt(star.getAttribute('data-star'), 10) || 0;
+                    if (n >= 1 && n <= 5) {
+                        setReviewRating(n);
+                    }
+                });
+
+                // Hover sırasında geçici sarı vurgulama
+                starsWrap.addEventListener('mousemove', function(e) {
+                    var star = e.target.closest('i[data-star]');
+                    if (!star) return;
+                    var n = parseInt(star.getAttribute('data-star'), 10) || 0;
+                    if (n >= 1 && n <= 5) {
+                        // Geçici olarak hover edilen değere kadar sarı yap
+                        var stars = starsWrap.querySelectorAll('i[data-star]');
+                        stars.forEach(function(s) {
+                            var v = parseInt(s.getAttribute('data-star'), 10) || 0;
+                            s.style.color = v <= n ? '#fde047' : '#e5e7eb';
+                        });
+                    }
+                });
+
+                // Hover çıkınca seçili değere geri dön
+                starsWrap.addEventListener('mouseleave', function() {
+                    var ratingInput = document.getElementById('reviewRating');
+                    var current = ratingInput ? parseInt(ratingInput.value, 10) || 0 : 0;
+                    setReviewRating(current);
+                });
+            }
+            if (reviewForm) {
+                reviewForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    var errorEl = document.getElementById('reviewModalError');
+                    var ratingInput = document.getElementById('reviewRating');
+                    var titleInput = document.getElementById('reviewTitle');
+                    var contentInput = document.getElementById('reviewContent');
+                    if (!ratingInput || !contentInput || !errorEl) return;
+
+                    var rating = parseInt(ratingInput.value, 10) || 0;
+                    if (!(rating >= 1 && rating <= 5)) {
+                        errorEl.textContent = 'Lütfen 1 ile 5 arasında bir puan seçin.';
+                        errorEl.style.display = 'block';
+                        return;
+                    }
+
+                    var content = (contentInput.value || '').trim();
+                    if (!content) {
+                        errorEl.textContent = 'Yorum metni boş olamaz.';
+                        errorEl.style.display = 'block';
+                        return;
+                    }
+
+                    if (!reviewingSegmentId) {
+                        errorEl.textContent = 'Segment bilgisi bulunamadı.';
+                        errorEl.style.display = 'block';
+                        return;
+                    }
+
+                    var payload = {
+                        ticket_segment_id: reviewingSegmentId,
+                        title: (titleInput && titleInput.value || '').trim() || null,
+                        rating: rating,
+                        content: content
+                    };
+
+                    errorEl.style.display = 'none';
+                    errorEl.textContent = '';
+
+                    fetch(apiBase + '/api/reviews', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + token
+                        },
+                        body: JSON.stringify(payload)
+                    })
+                    .then(function(r) {
+                        if (!r.ok) {
+                            return r.json().then(function(d) {
+                                throw new Error(d && d.detail ? d.detail : 'Yorum kaydedilemedi.');
+                            });
+                        }
+                        return r.json();
+                    })
+                    .then(function() {
+                        closeReviewModal();
+                        loadTickets();
+                    })
+                    .catch(function(err) {
+                        errorEl.textContent = err.message || 'Yorum kaydedilemedi.';
+                        errorEl.style.display = 'block';
+                    });
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
+

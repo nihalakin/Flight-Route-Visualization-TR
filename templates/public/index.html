@@ -10,12 +10,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
-    <link rel="stylesheet" href="/static/css/base.css">
-    <link rel="stylesheet" href="/static/css/components.css">
-    <link rel="stylesheet" href="/static/css/main.css">
-    <link rel="stylesheet" href="/static/css/responsive.css">
-    <link rel="stylesheet" href="/static/css/visualization.css">
-    <link rel="stylesheet" href="/static/css/home.css">
+    <link rel="stylesheet" href="/static/css/global/base.css">
+    <link rel="stylesheet" href="/static/css/global/components.css">
+    <link rel="stylesheet" href="/static/css/global/main.css">
+    <link rel="stylesheet" href="/static/css/global/responsive.css">
+    <link rel="stylesheet" href="/static/css/analytics/visualization.css">
+    <link rel="stylesheet" href="/static/css/global/home.css">
 </head>
 <body>
 
@@ -23,8 +23,10 @@
 
     <main class="page-content">
         <div class="container">
-            <header>
-                <h1>Türkiye Havalimanları Uçuş Ağı</h1>
+            <header class="page-header">
+                <div class="page-header-badge"><i class="fas fa-plane-departure"></i> Anasayfa</div>
+                <h1 class="page-header-main-title">Türkiye Havalimanları Uçuş Ağı</h1>
+                <p class="page-header-subtitle">Harita üzerinde Türkiye&rsquo;deki havalimanları arasındaki uçuş ağını keşfedin, rotaları görselleştirin ve bağlantıları inceleyin.</p>
             </header>
             <div class="map-container">
                 <div class="route-controls">
@@ -86,13 +88,13 @@
         </div>
     </main>
 
-    <script src="/static/js/navbar-loader.js"></script>
-    <script src="/static/js/utils.js"></script>
-    <script src="/static/js/flight-network.js"></script>
-    <script src="/static/js/visualization.js"></script>
-    <script src="/static/js/flight-filter.js"></script>
-    <script src="/static/js/voice-commands.js"></script>
-    <script src="/static/js/navigation.js"></script>
-    <script src="/static/js/app.js"></script>
+    <script src="/static/js/global/navbar-loader.js"></script>
+    <script src="/static/js/global/utils.js"></script>
+    <script src="/static/js/booking/flight-network.js"></script>
+    <script src="/static/js/analytics/visualization.js"></script>
+    <script src="/static/js/booking/flight-filter.js"></script>
+    <script src="/static/js/booking/voice-commands.js"></script>
+    <script src="/static/js/global/navigation.js"></script>
+    <script src="/static/js/global/app.js"></script>
 </body>
 </html>

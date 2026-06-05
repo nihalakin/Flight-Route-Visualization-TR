@@ -46,3 +46,7 @@ ADMIN_LAST_NAME = (os.getenv("ADMIN_LAST_NAME") or "Admin").strip()
 AMADEUS_API_KEY = os.getenv("AMADEUS_API_KEY", "")
 AMADEUS_API_SECRET = os.getenv("AMADEUS_API_SECRET", "")
 
+# OpenRouter (yorum analizi - Gemma 3 27B)
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemma-3-27b-it")
+

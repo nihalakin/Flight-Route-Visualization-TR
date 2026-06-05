@@ -10,10 +10,11 @@ from datetime import datetime, date
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
-from app.models import Coupon
+from app.models import Coupon, UserCoupon
+from app.routes.auth import get_current_user
 
 
 router = APIRouter(prefix="/coupons", tags=["coupons"])
@@ -109,4 +110,73 @@ async def validate_coupon(
         message="Kupon geçerli.",
         coupon=public,
     )
+
+
+class MyCoupon(BaseModel):
+    id: int
+    code: str
+    title: str
+    description: str | None = None
+    airline_name: str | None = None
+    expiry_date: date
+    status: str
+
+    class Config:
+        from_attributes = True
+
+
+@router.get("/me", response_model=list[MyCoupon])
+async def my_coupons(
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Mevcut kullanıcıya atanmış kuponları döner.
+
+    - user_coupons tablosu üzerinden ilişkilendirilir.
+    - Soft delete edilmiş veya pasif kuponlar gösterilmez.
+    """
+    today = datetime.utcnow().date()
+
+    rows = (
+        db.query(Coupon)
+        .join(UserCoupon, UserCoupon.coupon_id == Coupon.id)
+        .filter(
+            UserCoupon.user_id == current_user.id,
+            Coupon.deleted_at.is_(None),
+            Coupon.is_active.is_(True),
+        )
+        .all()
+    )
+
+    result: list[MyCoupon] = []
+    for c in rows:
+        status = "active"
+        if c.expiry_date < today:
+            status = "expired"
+        elif c.is_used:
+            status = "used"
+
+        title = f"{int(c.refund_amount)} TL iade kuponu" if c.refund_amount is not None else "İndirim kuponu"
+
+        description_parts: list[str] = []
+        if c.airline_name:
+            description_parts.append(f"Sadece {c.airline_name} uçuşlarında geçerlidir.")
+        if c.cancel_reason:
+            description_parts.append(c.cancel_reason)
+        description = " ".join(description_parts) if description_parts else None
+
+        result.append(
+            MyCoupon(
+                id=c.id,
+                code=c.code,
+                title=title,
+                description=description,
+                airline_name=c.airline_name,
+                expiry_date=c.expiry_date,
+                status=status,
+            )
+        )
+
+    return result
 

@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuponlarım · Nodia</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/global/base.css">
+    <link rel="stylesheet" href="/static/css/global/components.css">
+    <link rel="stylesheet" href="/static/css/global/main.css">
+    <style>
+        .page-shell {
+            padding: 2rem 0 4rem;
+        }
+        .page-header-simple {
+            margin-bottom: 1.75rem;
+        }
+        .coupons-card {
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            padding: 1.75rem 1.75rem 1.5rem;
+        }
+        .coupons-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            flex-wrap: wrap;
+        }
+        .coupons-card-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .coupons-card-title-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            background: #fef3c7;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #f59e0b;
+        }
+        .coupons-card-sub {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        .coupons-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .coupon-card {
+            position: relative;
+            border-radius: 20px;
+            background: #ffffff;
+            box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+        }
+        .coupon-card-inner {
+            display: grid;
+            grid-template-columns: minmax(140px, 190px) minmax(0, 1fr);
+        }
+        .coupon-left {
+            background: radial-gradient(circle at top left, rgba(255,255,255,0.9) 0, rgba(241,245,255,1) 45%, rgba(226,232,240,1) 100%);
+            padding: 1.4rem 1.6rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-right: 1px dashed #e5e7eb;
+            position: relative;
+        }
+        .coupon-left::before,
+        .coupon-left::after {
+            content: "";
+            position: absolute;
+            right: -12px;
+            width: 24px;
+            height: 24px;
+            border-radius: 999px;
+            background: #f3f4f6;
+        }
+        .coupon-left::before {
+            top: -12px;
+        }
+        .coupon-left::after {
+            bottom: -12px;
+        }
+        .coupon-type-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            color: #4f46e5;
+            background: rgba(224,231,255,0.85);
+        }
+        .coupon-amount {
+            margin-top: 0.7rem;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .coupon-amount-sub {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+        .coupon-right {
+            padding: 1.4rem 1.6rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+        .coupon-right-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            align-items: center;
+            margin-bottom: 0.2rem;
+        }
+        .coupon-title {
+            font-weight: 600;
+            font-size: 0.98rem;
+            color: #0f172a;
+        }
+        .coupon-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            padding: 3px 9px;
+            border-radius: 999px;
+            background: #ecfdf5;
+            color: #15803d;
+        }
+        .coupon-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: #22c55e;
+        }
+        .coupon-status--used {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        .coupon-status--used .coupon-status-dot {
+            background: #9ca3af;
+        }
+        .coupon-text {
+            font-size: 0.85rem;
+            color: #4b5563;
+        }
+        .coupon-meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.25rem;
+            margin-top: 0.3rem;
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+        .coupon-meta-label {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #9ca3af;
+            margin-bottom: 2px;
+        }
+        .coupon-meta-value {
+            font-weight: 500;
+            color: #4b5563;
+        }
+        .coupon-code-row {
+            margin-top: 0.4rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .coupon-code {
+            font-size: 0.82rem;
+            color: #111827;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            padding: 4px 10px;
+            border-radius: 10px;
+            background: #f3f4ff;
+            border: 1px dashed #c7d2fe;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .coupon-copy-btn {
+            border: none;
+            background: #eef2ff;
+            color: #4f46e5;
+            font-size: 0.78rem;
+            padding: 5px 10px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: background-color 0.15s ease, transform 0.1s ease;
+        }
+        .coupon-copy-btn:hover {
+            background: #e0e7ff;
+            transform: translateY(-0.5px);
+        }
+        .coupon-copy-btn i {
+            font-size: 0.75rem;
+        }
+        .coupons-loading {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+        .coupons-loading .loading-spinner-inline {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e2e8f0;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 6px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .coupons-empty {
+            padding: 1.75rem 1rem 1.25rem;
+            text-align: center;
+            color: #9ca3af;
+            font-size: 0.9rem;
+        }
+        .coupons-empty i {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #cbd5e1;
+            font-size: 1.8rem;
+        }
+        @media (max-width: 768px) {
+            .coupons-card {
+                padding: 1.25rem 1.25rem 1rem;
+            }
+            .coupon-card-inner {
+                grid-template-columns: 1fr;
+            }
+            .coupon-left {
+                border-right: none;
+                border-bottom: 1px dashed #e5e7eb;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar-container"></div>
+
+    <main class="page-shell">
+        <div class="container">
+            <header class="page-header-simple">
+                <h1 class="page-header-main-title">Kuponlarım</h1>
+                <p class="page-header-subtitle">
+                    Uygun olduğunuz indirim kuponlarını burada görebilir, koşullarını inceleyebilirsiniz.
+                </p>
+            </header>
+
+            <section class="coupons-card" aria-label="Kupon listesi">
+                <div class="coupons-card-header">
+                    <div class="coupons-card-title">
+                        <span class="coupons-card-title-icon">
+                            <i class="fas fa-ticket-alt"></i>
+                        </span>
+                        <span>Kuponlarım</span>
+                    </div>
+                    <div class="coupons-card-sub" id="couponsCountLabel">
+                        <i class="fas fa-info-circle" style="margin-right:4px; color:#9ca3af;"></i>
+                        Kupon durumunuz yükleniyor...
+                    </div>
+                </div>
+
+                <div id="couponsLoading" class="coupons-loading" style="display:none;">
+                    <span class="loading-spinner-inline"></span>Kuponlar yükleniyor...
+                </div>
+                <div id="couponsEmpty" class="coupons-empty" style="display:none;">
+                    <i class="fas fa-ticket"></i>
+                    <span>Şu anda hiç kuponunuz yok</span>
+                </div>
+                <div id="couponsList" class="coupons-list"></div>
+            </section>
+        </div>
+    </main>
+
+    <script src="/static/js/global/navbar-loader.js"></script>
+    <script>
+        (function() {
+            const token = localStorage.getItem('access_token');
+            const apiBase = window.location.origin;
+
+            if (!token) {
+                window.location.href = '/login?next=/tickets/my-coupons';
+                return;
+            }
+
+            function formatDate(dateStr) {
+                if (!dateStr) return '';
+                var d = new Date(dateStr);
+                if (isNaN(d.getTime())) return '';
+                return d.toLocaleDateString('tr-TR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+            }
+
+            function loadCoupons() {
+                var listEl = document.getElementById('couponsList');
+                var emptyEl = document.getElementById('couponsEmpty');
+                var loadingEl = document.getElementById('couponsLoading');
+                var countLabel = document.getElementById('couponsCountLabel');
+                if (!listEl || !emptyEl || !loadingEl || !countLabel) return;
+
+                listEl.innerHTML = '';
+                emptyEl.style.display = 'none';
+                loadingEl.style.display = 'block';
+                countLabel.textContent = 'Kuponlar yükleniyor...';
+
+                fetch(apiBase + '/api/coupons/me', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                })
+                .then(function(r) {
+                    if (r.status === 401) {
+                        window.location.href = '/login?next=/tickets/my-coupons';
+                        return [];
+                    }
+                    return r.json();
+                })
+                .then(function(coupons) {
+                    loadingEl.style.display = 'none';
+                    if (!Array.isArray(coupons) || coupons.length === 0) {
+                        emptyEl.style.display = 'block';
+                        countLabel.textContent = 'Şu anda hiç kuponunuz yok';
+                        return;
+                    }
+
+                    countLabel.textContent = coupons.length + ' kupon bulundu';
+
+                    coupons.forEach(function(c) {
+                        var card = document.createElement('div');
+                        card.className = 'coupon-card';
+
+                        var title = c.title || c.label || '';
+                        var description = c.description || '';
+                        var minText = c.minimum_amount
+                            ? 'Minimum ' + c.minimum_amount + '₺ sepet tutarı gerektirir.'
+                            : '';
+                        var airlineText = c.airline_name
+                            ? 'Sadece ' + c.airline_name + ' uçuşlarında geçerlidir.'
+                            : (c.airline_code ? 'Sadece ' + c.airline_code + ' uçuşları için geçerlidir.' : '');
+                        var expiry = c.expires_at || c.expiry_date || null;
+                        var status = (c.status || '').toLowerCase();
+                        var isUsed = status === 'used' || status === 'kullanildi';
+
+                        var badgeText = isUsed ? 'Kullanıldı' : 'Aktif';
+                        var statusClass = isUsed ? 'coupon-status coupon-status--used' : 'coupon-status';
+
+                        // Tutar / oran bilgisi
+                        var percentage = c.percentage || c.discount_rate || null;
+                        var amount = c.amount || c.discount_amount || c.fixed_amount || null;
+                        var isPercentage = !!percentage && !amount;
+
+                        var amountText = '';
+                        var amountSubText = '';
+                        if (isPercentage) {
+                            amountText = '%' + percentage;
+                            amountSubText = 'Net indirim oranı';
+                        } else if (amount) {
+                            amountText = amount + ' TL';
+                            amountSubText = 'İndirim tutarı';
+                        } else {
+                            amountText = title || 'Kupon';
+                            amountSubText = '';
+                        }
+
+                        var typeLabel = c.type_label || (isPercentage ? 'İndirim Kuponu' : 'İade Kuponu');
+
+                        var conditionsParts = [];
+                        if (airlineText) conditionsParts.push(airlineText);
+                        if (minText) conditionsParts.push(minText);
+
+                        var conditionsHtml = conditionsParts.length
+                            ? '<div class="coupon-text">' + conditionsParts.join(' ') + '</div>'
+                            : (description ? '<div class="coupon-text">' + description + '</div>' : '');
+
+                        var expiryHtml = expiry
+                            ? '<div class="coupon-meta-row"><div><div class="coupon-meta-label">Son Kullanma</div><div class="coupon-meta-value">' +
+                              formatDate(expiry) +
+                              '</div></div></div>'
+                            : '';
+
+                        var codeHtml = c.code
+                            ? '<div class="coupon-code-row">' +
+                              '<div class="coupon-code"><i class="fas fa-barcode"></i><span>' + c.code + '</span></div>' +
+                              '<button type="button" class="coupon-copy-btn" data-code="' + c.code + '">' +
+                              '<i class="fas fa-copy"></i><span>Kopyala</span></button>' +
+                              '</div>'
+                            : '';
+
+                        card.innerHTML =
+                            '<div class="coupon-card-inner">' +
+                                '<div class="coupon-left">' +
+                                    '<div class="coupon-type-badge">' +
+                                        '<i class="fas fa-ticket-alt"></i>' +
+                                        '<span>' + typeLabel + '</span>' +
+                                    '</div>' +
+                                    '<div class="coupon-amount">' + amountText + '</div>' +
+                                    (amountSubText ? '<div class="coupon-amount-sub">' + amountSubText + '</div>' : '') +
+                                '</div>' +
+                                '<div class="coupon-right">' +
+                                    '<div class="coupon-right-top">' +
+                                        '<div class="coupon-title">' + (title || 'İndirim Kuponu') + '</div>' +
+                                        '<div class="' + statusClass + '">' +
+                                            '<span class="coupon-status-dot"></span>' +
+                                            '<span>' + badgeText + '</span>' +
+                                        '</div>' +
+                                    '</div>' +
+                                    conditionsHtml +
+                                    expiryHtml +
+                                    codeHtml +
+                                '</div>' +
+                            '</div>';
+
+                        listEl.appendChild(card);
+
+                        // Kopyala butonu davranışı
+                        var copyBtn = card.querySelector('.coupon-copy-btn');
+                        if (copyBtn) {
+                            copyBtn.addEventListener('click', function() {
+                                var code = this.getAttribute('data-code') || '';
+                                if (!code) return;
+                                if (navigator.clipboard && navigator.clipboard.writeText) {
+                                    navigator.clipboard.writeText(code).catch(function() {});
+                                } else {
+                                    var temp = document.createElement('input');
+                                    temp.value = code;
+                                    document.body.appendChild(temp);
+                                    temp.select();
+                                    try { document.execCommand('copy'); } catch (e) {}
+                                    document.body.removeChild(temp);
+                                }
+                            });
+                        }
+                    });
+                })
+                .catch(function() {
+                    loadingEl.style.display = 'none';
+                    emptyEl.style.display = 'block';
+                    countLabel.textContent = 'Kuponlar yüklenemedi';
+                });
+            }
+
+            loadCoupons();
+        })();
+    </script>
+</body>
+</html>
+

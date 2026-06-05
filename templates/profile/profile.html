@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil · Nodia </title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css">
+    <!-- Inter font - standart weightler -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <!-- Ana CSS (global) -->
+    <link rel="stylesheet" href="/static/css/global/base.css">
+    <link rel="stylesheet" href="/static/css/global/components.css">
+    <link rel="stylesheet" href="/static/css/global/main.css">
+    <link rel="stylesheet" href="/static/css/profile.css">
+    <style>
+        /* ===== MODERN PROFİL - DENGELİ FONT BOYUTLARI ===== */
+        .profile-modern {
+            font-family: "Inter", system-ui, sans-serif;
+            background: #f1f5f9;
+        }
+
+        /* container geniş (isteğe bağlı) */
+        .profile-modern .container {
+            max-width: 1200px !important;
+            padding-left: 32px;
+            padding-right: 32px;
+        }
+
+        /* Kartlar - geniş ama fontlar küçüldü */
+        .profile-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(229, 231, 235, 0.4);
+            border-radius: 32px;
+            box-shadow: 0 30px 60px -15px rgba(2, 6, 23, 0.15), 0 0 0 1px rgba(0,0,0,0.02);
+            padding: 2rem 2.5rem;          /* yatay padding geniş, dikey orta */
+            width: 100%;
+            margin-bottom: 2rem;
+            transition: transform 0.2s, box-shadow 0.3s;
+        }
+
+        .profile-card:hover {
+            box-shadow: 0 35px 65px -15px rgba(2, 6, 23, 0.2);
+            transform: translateY(-3px);
+        }
+
+        /* Profil başlık (avatar + yazı) */
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        /* avatar - daha küçük ama orantılı */
+        .avatar-lg {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(145deg, #2563eb, #7c3aed);
+            border-radius: 28px;            /* köşeli ama modern */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2.2rem;              /* ikon/baş harf boyutu */
+            font-weight: 500;
+            box-shadow: 0 20px 35px -10px #2563eb;
+            border: 3px solid white;
+            flex-shrink: 0;
+        }
+
+        /* HOŞGELDİN yazısı - standart ölçü */
+        .greeting h1 {
+            font-size: 1.8rem;               /* büyük değil, dengeli */
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            -webkit-text-fill-color: transparent;
+            margin: 0 0 0.25rem 0;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+
+        /* e-posta rozeti */
+        .badge {
+            background: #eef2ff;
+            color: #2563eb;
+            padding: 0.35rem 1.2rem;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 0.85rem;              /* standart küçük rozet */
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 3'lü bilgi kutuları - yazılar sakin */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin: 2rem 0 0.5rem 0;
+        }
+
+        .info-item {
+            background: #f8fafc;
+            border-radius: 24px;
+            padding: 1.2rem 1.5rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .info-item .label {
+            font-size: 0.75rem;               /* küçük etiket */
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: #64748b;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .info-item .value {
+            font-size: 1.1rem;                /* normal metin boyutu */
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+
+        /* Bölüm başlıkları (Kişisel Bilgileri Güncelle, Şifre Değiştir) */
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.25rem;                /* h2 benzeri ama küçük */
+            font-weight: 650;
+            color: #0f172a;
+            margin-bottom: 1.8rem;
+        }
+
+        .section-title i {
+            background: #2563eb15;
+            padding: 8px;
+            border-radius: 18px;
+            color: #2563eb;
+            font-size: 1.1rem;
+        }
+
+        /* inputlar standart yükseklik, padding az */
+        .input-modern {
+            border: 2px solid #e2e8f0;
+            border-radius: 40px;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.95rem;                /* normal form yazısı */
+            transition: 0.2s;
+            background: white;
+            width: 100%;
+            font-weight: 500;
+        }
+
+        .input-modern:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 4px #2563eb20;
+            outline: none;
+        }
+
+        /* butonlar standart font */
+        .btn-modern {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 0.9rem;                  /* buton yazısı küçük */
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.2s;
+            box-shadow: 0 12px 22px -10px #2563eb;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+
+        .btn-modern:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+            box-shadow: 0 18px 28px -12px #1d4ed8;
+        }
+
+        .btn-outline-modern {
+            background: white;
+            border: 2px solid #cbd5e1;
+            color: #1e293b;
+            box-shadow: none;
+        }
+        .btn-outline-modern:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -8px #94a3b8;
+        }
+
+        /* mesaj kutuları */
+        .msg-modern {
+            border-radius: 60px;
+            padding: 0.7rem 1.5rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin: 1rem 0 0.2rem 0;
+        }
+
+        /* ikili kolonlar */
+        .dual-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .password-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.8rem;
+            margin-bottom: 1rem;
+        }
+
+        /* küçük ikon */
+        .inline-icon {
+            background: white;
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #2563eb;
+            box-shadow: 0 6px 16px -6px #94a3b8;
+        }
+
+        /* form etiketleri */
+        label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 0.75rem;
+            color: #334155;
+        }
+
+        /* mobil uyum */
+        @media (max-width: 900px) {
+            .profile-card {
+                padding: 1.8rem 1.5rem;
+            }
+            .info-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            .greeting h1 {
+                font-size: 1.6rem;
+                white-space: normal;
+            }
+            .dual-col, .password-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            .profile-header {
+                flex-direction: column;
+                text-align: center;
+                gap: 1.2rem;
+            }
+        }
+
+        /* navbar'da h2 küçültülebilir (isteğe bağlı) */
+        .nav-container h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+       
+
+    </style>
+</head>
+<body class="profile-modern">
+
+    <div id="navbar-container"></div>
+
+    <!-- ANA İÇERİK -->
+    <main class="page-content" style="padding: 2rem 0 4rem;">
+        <div class="container">
+
+            <!-- GİRİŞ YAPMAMIŞ UYARISI -->
+            <div id="profileRequireLogin" class="profile-card" style="display:none; text-align: center;">
+                <div class="avatar-lg" style="margin: 0 auto 1.8rem; background: #f1f5f9; color: #2563eb; border: none; box-shadow: none;">
+                    <i class="fas fa-lock text-3xl"></i>
+                </div>
+                <h2 style="font-size: 1.9rem; font-weight: 700; margin-bottom: 0.5rem;">Profiliniz kilitli</h2>
+                <p style="font-size: 1rem; color: #475569; margin: 0.5rem 0 2rem;">Profili görüntülemek için giriş yapın.</p>
+                <div style="display: flex; gap: 1.2rem; justify-content: center; flex-wrap: wrap;">
+                    <a href="/login?next=/profile" class="btn-modern" style="text-decoration: none;"><i class="fas fa-sign-in-alt"></i> Giriş Yap</a>
+                    <a href="/register" class="btn-modern btn-outline-modern" style="text-decoration: none;"><i class="fas fa-user-plus"></i> Üye Ol</a>
+                </div>
+            </div>
+
+            <!-- GİRİŞ YAPMIŞ PROFİL İÇERİĞİ -->
+            <div id="profileContent" style="display:none;">
+
+                <!-- KART 1: HOŞGELDİN + ÖZET BİLGİLER -->
+                <div class="profile-card">
+                    <div class="profile-header">
+                        <div class="avatar-lg" id="avatarInitial">👤</div>
+                        <div>
+                            <div class="greeting">
+                                <h1>Merhaba, <span id="profileFirstNameDisplay"></span> <span id="profileLastNameDisplay"></span></h1>
+                            </div>
+                            <div class="badge" style="margin-bottom: 0.4rem;">
+                                <i class="fas fa-circle-check"></i> <span id="profileEmailBadge"></span>
+                            </div>
+                            <div style="font-size: 0.85rem; color: #64748b;">
+                                <i class="fas fa-at" style="margin-right: 4px; color: #94a3b8;"></i>
+                                <span style="font-weight: 600; color: #0f172a;">Kullanıcı adı:</span>
+                                <span id="profileUsernameDisplay" style="margin-left: 4px;">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3'lü bilgi kartları - fontlar dengeli -->
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="label"><i class="far fa-envelope"></i> E-posta</div>
+                            <div class="value" id="profileEmailInfo">---</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="label"><i class="far fa-user"></i> Ad</div>
+                            <div class="value" id="profileFirstNameInfo">---</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="label"><i class="far fa-user"></i> Soyad</div>
+                            <div class="value" id="profileLastNameInfo">---</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KART 2: KİŞİSEL BİLGİ GÜNCELLEME -->
+                <div class="profile-card">
+                    <div class="section-title">
+                        <i class="fas fa-pen-to-square"></i> 
+                        <span>Kişisel Bilgileri Güncelle</span>
+                    </div>
+                    <form id="profileUpdateForm">
+                        <div class="dual-col">
+                            <div>
+                                <label>Ad</label>
+                                <input type="text" id="editFirstName" class="input-modern" placeholder="Ahmet" required>
+                            </div>
+                            <div>
+                                <label>Soyad</label>
+                                <input type="text" id="editLastName" class="input-modern" placeholder="Yılmaz" required>
+                            </div>
+                        </div>
+                        <div id="profileUpdateMessage" class="msg-modern hidden"></div>
+                        <div style="display: flex; gap: 1.2rem; flex-wrap: wrap; margin-top: 0.8rem;">
+                            <button type="submit" class="btn-modern"><i class="fas fa-check"></i> Bilgileri Güncelle</button>
+                            <button type="reset" class="btn-modern btn-outline-modern" id="cancelUpdateBtn"><i class="fas fa-undo-alt"></i> Vazgeç</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- KART 3: ŞİFRE DEĞİŞTİRME -->
+                <div class="profile-card">
+                    <div class="section-title">
+                        <i class="fas fa-lock"></i>
+                        <span>Şifre Değiştir</span>
+                    </div>
+                    <form id="passwordChangeForm">
+                        <div style="margin-bottom: 1.5rem;">
+                            <label>Mevcut Şifre</label>
+                            <input type="password" id="currentPassword" class="input-modern" placeholder="••••••••" required>
+                        </div>
+                        <div class="password-grid">
+                            <div>
+                                <label>Yeni Şifre (en az 6)</label>
+                                <input type="password" id="newPassword" class="input-modern" placeholder="••••••••" minlength="6" required>
+                            </div>
+                            <div>
+                                <label>Yeni Şifre Tekrar</label>
+                                <input type="password" id="newPasswordConfirm" class="input-modern" placeholder="••••••••" minlength="6" required>
+                            </div>
+                        </div>
+                        <div id="passwordChangeMessage" class="msg-modern hidden"></div>
+                        <button type="submit" class="btn-modern" style="margin-top: 1rem;"><i class="fas fa-key"></i> Şifreyi Güncelle</button>
+                    </form>
+                </div>
+
+            </div> <!-- #profileContent -->
+        </div> <!-- container -->
+        </main>
+
+        <script src="/static/js/global/navbar-loader.js"></script>
+
+        <!-- Profil bilgilerinin yüklenmesi ve güncellenmesi -->
+        <script>
+        (function() {
+            const token = localStorage.getItem('access_token');
+            const apiBase = window.location.origin;
+
+            const requireLoginDiv = document.getElementById('profileRequireLogin');
+            const profileContentDiv = document.getElementById('profileContent');
+
+            // Eski span'ler (orijinal isimlerle uyum)
+            const profileEmailSpan = document.getElementById('profileEmail');
+            const profileFirstNameSpan = document.getElementById('profileFirstName');
+            const profileLastNameSpan = document.getElementById('profileLastName');
+            const editFirstName = document.getElementById('editFirstName');
+            const editLastName = document.getElementById('editLastName');
+
+            // modern gösterim alanları
+            const profileFirstNameDisplay = document.getElementById('profileFirstNameDisplay');
+            const profileLastNameDisplay = document.getElementById('profileLastNameDisplay');
+            const profileEmailBadge = document.getElementById('profileEmailBadge');
+            const profileEmailInfo = document.getElementById('profileEmailInfo');
+            const profileFirstNameInfo = document.getElementById('profileFirstNameInfo');
+            const profileLastNameInfo = document.getElementById('profileLastNameInfo');
+            const profileUsernameDisplay = document.getElementById('profileUsernameDisplay');
+            const avatarInitial = document.getElementById('avatarInitial');
+
+            const profileUpdateMessage = document.getElementById('profileUpdateMessage');
+            const passwordChangeMessage = document.getElementById('passwordChangeMessage');
+
+            function capitalizeWords(str) {
+                if (!str) return '';
+                return str
+                    .toString()
+                    .trim()
+                    .split(/\s+/)
+                    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+                    .join(' ');
+            }
+
+            if (!token) {
+                if (requireLoginDiv) requireLoginDiv.style.display = 'block';
+                if (profileContentDiv) profileContentDiv.style.display = 'none';
+                return;
+            } else {
+                if (requireLoginDiv) requireLoginDiv.style.display = 'none';
+                if (profileContentDiv) profileContentDiv.style.display = 'block';
+            }
+
+            function loadProfile() {
+                fetch(apiBase + '/api/me', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                })
+                .then(r => {
+                    if (r.status === 401) {
+                        localStorage.removeItem('access_token');
+                        window.location.href = '/login?next=/profile';
+                        return;
+                    }
+                    return r.json();
+                })
+                .then(user => {
+                    if (!user) return;
+
+                    const firstNameFormatted = capitalizeWords(user.first_name || '');
+                    const lastNameFormatted = capitalizeWords(user.last_name || '');
+
+                    if (profileEmailSpan) profileEmailSpan.textContent = user.email;
+                    if (profileFirstNameSpan) profileFirstNameSpan.textContent = firstNameFormatted;
+                    if (profileLastNameSpan) profileLastNameSpan.textContent = lastNameFormatted;
+
+                    if (profileFirstNameDisplay) profileFirstNameDisplay.textContent = firstNameFormatted;
+                    if (profileLastNameDisplay) profileLastNameDisplay.textContent = lastNameFormatted;
+                    if (profileEmailBadge) profileEmailBadge.textContent = user.email;
+                    if (profileEmailInfo) profileEmailInfo.textContent = user.email;
+                    if (profileFirstNameInfo) profileFirstNameInfo.textContent = firstNameFormatted || '—';
+                    if (profileLastNameInfo) profileLastNameInfo.textContent = lastNameFormatted || '—';
+                    if (profileUsernameDisplay) profileUsernameDisplay.textContent = user.username || '—';
+
+                    if (avatarInitial) {
+                        const f = (firstNameFormatted?.[0] || '').toUpperCase();
+                        const l = (lastNameFormatted?.[0] || '').toUpperCase();
+                        avatarInitial.innerHTML = f && l ? `${f}${l}` : (f || l || '👤');
+                    }
+
+                    if (editFirstName) editFirstName.value = firstNameFormatted;
+                    if (editLastName) editLastName.value = lastNameFormatted;
+                })
+                .catch(() => {
+                    if (requireLoginDiv) requireLoginDiv.style.display = 'block';
+                    if (profileContentDiv) profileContentDiv.style.display = 'none';
+                });
+            }
+            loadProfile();
+
+            const updateForm = document.getElementById('profileUpdateForm');
+            if (updateForm) {
+                updateForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    hideMsg(profileUpdateMessage);
+                    const first = editFirstName.value.trim();
+                    const last = editLastName.value.trim();
+
+                    fetch(apiBase + '/api/me', {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + token
+                        },
+                        body: JSON.stringify({ first_name: first, last_name: last })
+                    })
+                    .then(r => r.json().then(data => ({ ok: r.ok, data })))
+                    .then(({ ok, data }) => {
+                        if (ok) {
+                            showMsg(profileUpdateMessage, 'Bilgileriniz güncellendi.', false);
+                            const updatedFirst = capitalizeWords(data.first_name || '');
+                            const updatedLast = capitalizeWords(data.last_name || '');
+                            if (profileFirstNameSpan) profileFirstNameSpan.textContent = updatedFirst;
+                            if (profileLastNameSpan) profileLastNameSpan.textContent = updatedLast;
+                            if (profileFirstNameDisplay) profileFirstNameDisplay.textContent = updatedFirst;
+                            if (profileLastNameDisplay) profileLastNameDisplay.textContent = updatedLast;
+                            if (profileFirstNameInfo) profileFirstNameInfo.textContent = updatedFirst;
+                            if (profileLastNameInfo) profileLastNameInfo.textContent = updatedLast;
+                            if (avatarInitial) {
+                                const f = (updatedFirst?.[0] || '').toUpperCase();
+                                const l = (updatedLast?.[0] || '').toUpperCase();
+                                avatarInitial.innerHTML = f && l ? `${f}${l}` : (f || l || '👤');
+                            }
+                        } else {
+                            showMsg(profileUpdateMessage, data.detail || 'Güncelleme başarısız.', true);
+                        }
+                    })
+                    .catch(() => showMsg(profileUpdateMessage, 'Bağlantı hatası.', true));
+                });
+
+                document.getElementById('cancelUpdateBtn')?.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (editFirstName && editLastName) {
+                        editFirstName.value = profileFirstNameSpan ? profileFirstNameSpan.textContent : '';
+                        editLastName.value = profileLastNameSpan ? profileLastNameSpan.textContent : '';
+                    }
+                    hideMsg(profileUpdateMessage);
+                });
+            }
+
+            const pwdForm = document.getElementById('passwordChangeForm');
+            if (pwdForm) {
+                pwdForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    hideMsg(passwordChangeMessage);
+                    const current = document.getElementById('currentPassword').value;
+                    const newP = document.getElementById('newPassword').value;
+                    const newPC = document.getElementById('newPasswordConfirm').value;
+
+                    if (newP !== newPC) {
+                        showMsg(passwordChangeMessage, 'Yeni şifreler eşleşmiyor.', true);
+                        return;
+                    }
+
+                    fetch(apiBase + '/api/me/change-password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + token
+                        },
+                        body: JSON.stringify({ current_password: current, new_password: newP })
+                    })
+                    .then(r => r.json().then(data => ({ ok: r.ok, data })))
+                    .then(({ ok, data }) => {
+                        if (ok) {
+                            showMsg(passwordChangeMessage, 'Şifreniz güncellendi.', false);
+                            document.getElementById('currentPassword').value = '';
+                            document.getElementById('newPassword').value = '';
+                            document.getElementById('newPasswordConfirm').value = '';
+                        } else {
+                            showMsg(passwordChangeMessage, data.detail || 'Şifre güncellenemedi.', true);
+                        }
+                    })
+                    .catch(() => showMsg(passwordChangeMessage, 'Bağlantı hatası.', true));
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
