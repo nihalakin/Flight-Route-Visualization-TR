@@ -453,43 +453,10 @@ def _compute_refund_amount_for_detail(
     detail: TicketDetail,
     segments: list[TicketSegment],
 ) -> float:
-    """
-    Uçuş tarihine göre random ama kontrollü bir iade tutarı üretir.
-    - Uçuş tarihine az kaldıkça oran düşük,
-    - Uçuş tarihine çok varsa oran yüksek olur.
-    - İade tutarı hiçbir zaman bilet tutarından fazla olamaz.
-    """
-    if not detail.ticket_amount or detail.ticket_amount <= 0:
-        return 0.0
+    # Hesaplama artık merkezi service fonksiyonunda yapılıyor.
+    from app.services.refund_service import calculate_refund_amount_for_detail
 
-    today = date.today()
-
-    future_dates: list[date] = []
-    for s in segments:
-        if s.departure_datetime:
-            future_dates.append(s.departure_datetime.date())
-
-    if not future_dates:
-        # Tarih yoksa konservatif: düşük oranlar
-        base_min, base_max = 0.05, 0.20
-    else:
-        first_dep = min(future_dates)
-        days_to_departure = (first_dep - today).days
-
-        if days_to_departure <= 0:
-            # Uçuş günü veya geçmiş
-            base_min, base_max = 0.0, 0.10
-        elif days_to_departure <= 3:
-            base_min, base_max = 0.10, 0.30
-        elif days_to_departure <= 7:
-            base_min, base_max = 0.30, 0.60
-        else:
-            base_min, base_max = 0.60, 0.90
-
-    ratio = random.uniform(base_min, base_max)
-    refund = detail.ticket_amount * ratio
-    refund = min(refund, detail.ticket_amount)
-    return round(refund, 2)
+    return calculate_refund_amount_for_detail(detail, segments)
 
 
 class TicketCancelPreviewResponse(BaseModel):
@@ -624,20 +591,34 @@ async def preview_ticket_cancellation(
         )
         .all()
     )
-    sibling_ticket_ids = [d.ticket_id for d in sibling_details]
+    # Sadece henüz iptal edilmemiş olanlar için işlem sayacı/önizleme yap.
+    active_sibling_details = [d for d in sibling_details if not d.coupon_code]
+    sibling_ticket_ids = [d.ticket_id for d in active_sibling_details]
 
-    segments = (
-        db.query(TicketSegment)
-        .filter(TicketSegment.ticket_detail_id == detail.id)
-        .all()
-    )
-    refund_amount = _compute_refund_amount_for_detail(detail, segments)
+    refund_by_detail_id: dict[int, float] = {}
+
+    # Kullanıcının ekranda gördüğü tutarı veritabanında geçici olarak saklıyoruz.
+    # İptal sırasında kupon bu değer üzerinden oluşturulacak.
+    for d in active_sibling_details:
+        segs = db.query(TicketSegment).filter(TicketSegment.ticket_detail_id == d.id).all()
+        refund_amount = _compute_refund_amount_for_detail(d, segs)
+        d.refund_preview_amount = refund_amount
+        d.refund_preview_currency = "TRY"
+        d.refund_preview_quoted_at = datetime.utcnow()
+        refund_by_detail_id[d.id] = refund_amount
+
+    db.commit()
+
+    refund_amount_for_clicked = refund_by_detail_id.get(detail.id)
+    if refund_amount_for_clicked is None:
+        # Teorik olarak bu durum olmamalı (clicked ticket iptal edilmemiş olmalı).
+        refund_amount_for_clicked = 0.0
 
     return TicketCancelPreviewResponse(
         ticket_id=ticket.id,
         pnr=pnr,
         ticket_amount=detail.ticket_amount,
-        refund_amount=refund_amount,
+        refund_amount=refund_amount_for_clicked,
         applies_to_ticket_ids=sibling_ticket_ids,
     )
 
@@ -697,7 +678,9 @@ async def cancel_ticket(
 
     created_coupons: list[dict] = []
     today = date.today()
-    expiry_date = today + timedelta(days=365)
+    # Kullanıcı iptali onayladıktan sonra kuponun son kullanım tarihi:
+    # iptal tarihinden itibaren 90 gün.
+    expiry_date = today + timedelta(days=90)
 
     try:
         for d in sibling_details:
@@ -705,12 +688,17 @@ async def cancel_ticket(
             if d.coupon_code:
                 continue
 
-            segs = (
-                db.query(TicketSegment)
-                .filter(TicketSegment.ticket_detail_id == d.id)
-                .all()
-            )
-            refund_amount = _compute_refund_amount_for_detail(d, segs)
+            segs = db.query(TicketSegment).filter(TicketSegment.ticket_detail_id == d.id).all()
+
+            # Önizlemede saklanmış tutar varsa birebir onu kullanıyoruz.
+            # Yoksa aynı merkezi fonksiyon ile hesaplayıp saklıyoruz.
+            if d.refund_preview_amount is not None:
+                refund_amount = float(d.refund_preview_amount)
+            else:
+                refund_amount = _compute_refund_amount_for_detail(d, segs)
+                d.refund_preview_amount = refund_amount
+                d.refund_preview_currency = "TRY"
+                d.refund_preview_quoted_at = datetime.utcnow()
 
             if not d.ticket_amount or d.ticket_amount <= 0 or refund_amount <= 0:
                 continue
@@ -749,6 +737,10 @@ async def cancel_ticket(
             db.flush()
 
             d.coupon_code = code
+            # Geçici preview tutarını temizliyoruz (kupon oluştuğunda tekrar kullanılmasın).
+            d.refund_preview_amount = None
+            d.refund_preview_currency = None
+            d.refund_preview_quoted_at = None
 
             uc = UserCoupon(user_id=current_user.id, coupon_id=coupon.id)
             db.add(uc)

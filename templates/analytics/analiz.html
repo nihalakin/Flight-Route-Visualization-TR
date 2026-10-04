@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Havacılık İstatistikleri 2002-2025</title>
-    <!-- Chart.js -->
+    <title>Havacılık İstatistikleri 2002-2025 - Naive Tahmin Detaylı Analiz</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * {
@@ -32,7 +31,7 @@
             padding: 14px 22px;
             display: flex;
             align-items: center;
-            gap: 20px;
+            justify-content: space-between;
             border-bottom: 3px solid #f1b13b;
         }
         .excel-header h1 {
@@ -46,6 +45,7 @@
             display: flex;
             gap: 4px;
             border-bottom: 1px solid #8fafcf;
+            flex-wrap: wrap;
         }
         .excel-tab {
             background: #d6e3f0;
@@ -68,6 +68,7 @@
         }
         .page {
             display: none;
+            padding: 20px;
         }
         .page.active-page {
             display: block;
@@ -78,7 +79,7 @@
             gap: 2px;
             background: #c3d3e3;
             padding: 2px;
-            margin: 20px 20px 0 20px;
+            margin-bottom: 20px;
             border: 1px solid #8aa1bb;
         }
         .kpi-cell {
@@ -108,12 +109,11 @@
             border-top: 1px dashed #aec6e3;
             padding-top: 5px;
         }
-        
         .chart-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
-            margin: 25px 20px;
+            margin-top: 20px;
         }
         .chart-window {
             background: white;
@@ -130,15 +130,146 @@
             border-bottom: 2px solid #b3cae2;
         }
         .chart-body {
-            padding: 15px 15px 10px 15px;
-            height: 240px;
+            padding: 15px;
+            height: 260px;
             position: relative;
+        }
+        
+        /* Detaylı Metrik Kartları */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        .metric-card {
+            background: white;
+            border: 1px solid #9fb5cf;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .metric-card .card-header {
+            background: #1e4b7a;
+            color: white;
+            padding: 12px 15px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-align: center;
+        }
+        .metric-card .card-body {
+            padding: 15px;
+        }
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0eaf5;
+        }
+        .metric-row:last-child {
+            border-bottom: none;
+        }
+        .metric-label {
+            font-weight: 600;
+            color: #2d5173;
+            font-size: 0.85rem;
+        }
+        .metric-value {
+            font-family: 'Consolas', monospace;
+            font-weight: 700;
+            color: #1e4b7a;
+            font-size: 0.95rem;
+        }
+        .metric-value.highlight {
+            color: #f1b13b;
+            font-size: 1.1rem;
+        }
+        .metric-value.positive {
+            color: #2e7d32;
+        }
+        .metric-value.negative {
+            color: #c62828;
+        }
+        
+        .forecast-tables-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .forecast-table-pane {
+            border: 1px solid #9fb5cf;
+            border-radius: 6px;
+            overflow: hidden;
+            background: white;
+        }
+        .forecast-table-pane .pane-header {
+            background: #1e4b7a;
+            color: white;
+            padding: 12px 16px;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .forecast-data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        .forecast-data-table th {
+            background: #e1eaf3;
+            padding: 10px 8px;
+            text-align: center;
+            font-weight: 600;
+            color: #1e3c5e;
+            border-bottom: 2px solid #b3cae2;
+        }
+        .forecast-data-table td {
+            padding: 8px 8px;
+            text-align: right;
+            border-bottom: 1px solid #e0eaf5;
+        }
+        .forecast-data-table td:first-child {
+            text-align: center;
+            font-weight: 500;
+            background-color: #fafcff;
+        }
+        .error-positive {
+            color: #2e7d32;
+            font-weight: 700;
+        }
+        .error-negative {
+            color: #c62828;
+            font-weight: 700;
+        }
+        .forecast-table-pane .table-wrapper {
+            max-height: 450px;
+            overflow-y: auto;
+        }
+        .forecast-panel {
+            background: #f0f7ff;
+            border: 2px solid #1e4b7a;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .forecast-header {
+            background: #1e4b7a;
+            color: white;
+            padding: 12px 20px;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .forecast-content {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
         }
         .stats-area {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 18px;
-            margin: 20px 20px 25px 20px;
+            margin-top: 20px;
         }
         .stats-pane {
             border: 1px solid #a0b9d2;
@@ -151,66 +282,22 @@
             font-weight: 700;
             color: #123257;
             border-bottom: 2px solid #7fa4c9;
-            font-size: 0.95rem;
         }
         .excel-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.85rem;
         }
-        .excel-table tr {
-            border-bottom: 1px solid #dbe6f0;
-        }
         .excel-table td {
             padding: 8px 10px;
-            color: #1e3c5e;
+            border-bottom: 1px solid #dbe6f0;
         }
         .excel-table td:first-child {
             font-weight: 500;
             background-color: #f2f8ff;
             width: 55%;
-            border-right: 1px solid #c7daf0;
-        }
-        .excel-table td:last-child {
-            font-family: 'Consolas', 'Courier New', monospace;
-            font-weight: 600;
-            text-align: right;
-            background-color: #ffffff;
-        }
-        .status-bar {
-            background: #1e4b7a;
-            color: #e8f0fe;
-            padding: 10px 22px;
-            font-size: 0.9rem;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 28px;
-            margin-top: 10px;
-            border-top: 3px solid #f1b13b;
-        }
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .status-badge {
-            background: #38658f;
-            padding: 4px 14px;
-            border-radius: 20px;
-            color: white;
-            font-weight: 500;
-        }
-        .excel-footer-note {
-            background: #f9fcfd;
-            padding: 6px 20px;
-            border-top: 1px solid #b2c7dd;
-            color: #2d4f73;
-            font-size: 0.8rem;
-            display: flex;
-            justify-content: space-between;
         }
         .correlation-content {
-            margin: 30px 20px;
             background: #f2f8fd;
             border: 1px solid #adc4e0;
             padding: 25px;
@@ -222,307 +309,484 @@
             border-collapse: collapse;
             background: white;
         }
-        .correlation-table th {
-            background: #1e4b7a;
-            color: white;
-            padding: 12px;
-            font-weight: 500;
-        }
-        .correlation-table td {
+        .correlation-table th, .correlation-table td {
             padding: 12px;
             border: 1px solid #b0c7e0;
         }
-        .correlation-table td:first-child { font-weight: 600; background: #eaf2fb; }
-        .matrix-note {
+        .correlation-table th {
+            background: #1e4b7a;
+            color: white;
+        }
+        .status-bar {
+            background: #1e4b7a;
+            color: #e8f0fe;
+            padding: 10px 22px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 28px;
+            border-top: 3px solid #f1b13b;
+        }
+        .status-badge {
+            background: #38658f;
+            padding: 4px 14px;
+            border-radius: 20px;
+        }
+        .excel-footer-note {
+            background: #f9fcfd;
+            padding: 6px 20px;
+            border-top: 1px solid #b2c7dd;
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        .forecast-note {
+            background: #f9fcfd;
+            padding: 15px;
+            border-left: 4px solid #f1b13b;
             margin-top: 20px;
-            font-style: italic;
+        }
+        .summary-stats {
+            background: #e8f0fe;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .summary-item {
+            text-align: center;
+            flex: 1;
+            min-width: 150px;
+        }
+        .summary-item .label {
+            font-size: 0.8rem;
+            color: #1e4b7a;
+            font-weight: 600;
+        }
+        .summary-item .value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #103256;
+        }
+        h4 {
+            color: #1e4b7a;
+            margin-bottom: 15px;
         }
     </style>
 </head>
 <body>
 <div class="excel-container">
     <div class="excel-header">
-        <h1>HAVACILIK İSTATİSTİKLERİ (2002-2025)</h1>
-        <div style="margin-left: auto; display: flex; gap: 20px;">
-            <span>Uçak/Yolcu/Kargo/Yük</span>
-            <span>Detaylı analiz</span>
-        </div>
+        <h1>HAVACILIK ISTATISTIKLERI (2002-2025)</h1>
+        <div>Naive Forecast - Detayli Metrik Analizi (ME, MAE, R, R², STD)</div>
     </div>
     
     <div class="excel-tab-bar">
         <div class="excel-tab active" data-page="main">Ana Veri</div>
-        <div class="excel-tab" data-page="charts">Özet Grafikler</div>
-        <div class="excel-tab" data-page="stats">İstatistikler</div>
+        <div class="excel-tab" data-page="metrics">Detayli Metrikler</div>
+        <div class="excel-tab" data-page="charts">Grafikler</div>
+        <div class="excel-tab" data-page="naive-tables">Tahmin Tablolari</div>
         <div class="excel-tab" data-page="correlation">Korelasyon</div>
     </div>
 
-    <!-- SAYFA: ANA VERİ -->
+    <!-- SAYFA 1: ANA VERİ -->
     <div id="page-main" class="page active-page">
         <div class="kpi-panel">
-            <div class="kpi-cell">
-                <div class="kpi-label">UÇAK TRAFİĞİ 2025</div>
-                <div class="kpi-value">2.097.037</div>
-                <div class="kpi-desc">%7,2 son 1 yıl</div>
-            </div>
-            <div class="kpi-cell">
-                <div class="kpi-label">YOLCU 2025</div>
-                <div class="kpi-value">245,1 M</div>
-                <div class="kpi-desc">%6,3 | rekor</div>
-            </div>
-            <div class="kpi-cell">
-                <div class="kpi-label">KARGO 2024</div>
-                <div class="kpi-value">2.166.797 t</div>
-                <div class="kpi-desc">zirve, 2025 azalış</div>
-            </div>
-            <div class="kpi-cell">
-                <div class="kpi-label">YÜK 2024</div>
-                <div class="kpi-value">5.156.701 t</div>
-                <div class="kpi-desc">tüm zamanlar rekoru</div>
-            </div>
+            <div class="kpi-cell"><div class="kpi-label">Uçak Trafiği 2025</div><div class="kpi-value" id="kpiAir">-</div><div class="kpi-desc">%7,2 artis</div></div>
+            <div class="kpi-cell"><div class="kpi-label">YOLCU 2025</div><div class="kpi-value" id="kpiPax">-</div><div class="kpi-desc">%6,3 artis</div></div>
+            <div class="kpi-cell"><div class="kpi-label">KARGO 2024</div><div class="kpi-value" id="kpiCargo">-</div><div class="kpi-desc">rekor seviye</div></div>
+            <div class="kpi-cell"><div class="kpi-label">YUK 2024</div><div class="kpi-value" id="kpiFreight">-</div><div class="kpi-desc">tum zamanlar rekoru</div></div>
         </div>
-        
         <div class="chart-grid">
-            <div class="chart-window">
-                <div class="chart-title">Yıllık Uçak Trafiği (iniş+kalkış) · 2002-2025</div>
-                <div class="chart-body"><canvas id="airCanvasMain"></canvas></div>
-            </div>
-            <div class="chart-window">
-                <div class="chart-title">Yolcu Trafiği (transit dahil) · 2002-2025</div>
-                <div class="chart-body"><canvas id="paxCanvasMain"></canvas></div>
-            </div>
-            <div class="chart-window">
-                <div class="chart-title">Kargo Trafiği (ton) · 2002-2025</div>
-                <div class="chart-body"><canvas id="cargoCanvasMain"></canvas></div>
-            </div>
-            <div class="chart-window">
-                <div class="chart-title">Yük Trafiği (ton) · 2002-2025</div>
-                <div class="chart-body"><canvas id="freightCanvasMain"></canvas></div>
+            <div class="chart-window"><div class="chart-title">Uçak Trafiği (2002-2025)</div><div class="chart-body"><canvas id="airMainChart"></canvas></div></div>
+            <div class="chart-window"><div class="chart-title">Yolcu Trafiği (2002-2025)</div><div class="chart-body"><canvas id="paxMainChart"></canvas></div></div>
+            <div class="chart-window"><div class="chart-title">Kargo Trafiği (Ton)</div><div class="chart-body"><canvas id="cargoMainChart"></canvas></div></div>
+            <div class="chart-window"><div class="chart-title">Yuk Trafiği (Ton)</div><div class="chart-body"><canvas id="freightMainChart"></canvas></div></div>
+        </div>
+    </div>
+
+    <!-- SAYFA 2: DETAYLI METRİKLER -->
+    <div id="page-metrics" class="page">
+        <div class="summary-stats">
+            <div class="summary-item"><div class="label">En Dusuk MAE</div><div class="value" id="bestMAEValue">-</div></div>
+            <div class="summary-item"><div class="label">En Yuksek R²</div><div class="value" id="bestR2Value">-</div></div>
+            <div class="summary-item"><div class="label">En Dusuk Hata Std</div><div class="value" id="bestStdValue">-</div></div>
+            <div class="summary-item"><div class="label">Ortalama Hata Yonu</div><div class="value" id="meDirection">-</div></div>
+        </div>
+        <h4>Naive Forecast Performans Metrikleri (2003-2025)</h4>
+        <div class="metrics-grid" id="metricsGrid"></div>
+        
+        <div class="forecast-panel" style="margin-top: 20px;">
+            <div class="forecast-header">Metrik Aciklamalari</div>
+            <div class="forecast-content">
+                <div>
+                    <strong>Toplam Mutlak Hata (Sum of Absolute Errors):</strong> Tum yillardaki hatalarin mutlak değerlerinin toplami.<br><br>
+                    <strong>Ortalama Hata (Mean Error - ME):</strong> Hatalarin aritmetik ortalamasi. Pozitif değer tahminlerin genelde dusuk kaldigini, negatif değer tahminlerin genelde yuksek oldugunu gosterir.<br><br>
+                    <strong>Ortalama Mutlak Hata (MAE):</strong> Hatalarin mutlak değerlerinin ortalamasi. Ne kadar kucukse tahmin o kadar basarili.
+                </div>
+                <div>
+                    <strong>Pearson R (Korelasyon):</strong> Gerçek Değerler ile tahminler arasindaki dogrusal iliskinin gucunu gosterir. -1 ile +1 arasinda değer alir.<br><br>
+                    <strong>Pearson R² (Belirleme Katsayisi):</strong> R'nin karesi. Tahminlerin Gerçek Değerlerdeki varyansin ne kadarini acikladigini gosterir.<br><br>
+                    <strong>Standart Sapma (Gerçek Değerler):</strong> Gercek verilerin ortalamadan ne kadar saptigini gosterir.<br><br>
+                    <strong>Standart Sapma (Hatalar):</strong> Tahmin hatalarinin dagilim genisligini gosterir.
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- SAYFA: ÖZET GRAFİKLER -->
+    <!-- SAYFA 3: GRAFİKLER -->
     <div id="page-charts" class="page">
-        <div class="chart-grid" style="margin-top: 25px;">
-            <div class="chart-window">
-                <div class="chart-title">Uçak Trafiği (2002-2025)</div>
-                <div class="chart-body"><canvas id="airCanvasChart"></canvas></div>
-            </div>
-            <div class="chart-window">
-                <div class="chart-title">Yolcu Trafiği</div>
-                <div class="chart-body"><canvas id="paxCanvasChart"></canvas></div>
-            </div>
-            <div class="chart-window">
-                <div class="chart-title">Kargo Trafiği (ton)</div>
-                <div class="chart-body"><canvas id="cargoCanvasChart"></canvas></div>
-            </div>
-            <div class="chart-window">
-                <div class="chart-title">Yük Trafiği (ton)</div>
-                <div class="chart-body"><canvas id="freightCanvasChart"></canvas></div>
-            </div>
+        <div class="chart-grid">
+            <div class="chart-window"><div class="chart-title">Uçak - Gercek vs Tahmin</div><div class="chart-body"><canvas id="airCompareChart"></canvas></div></div>
+            <div class="chart-window"><div class="chart-title">Yolcu - Gercek vs Tahmin</div><div class="chart-body"><canvas id="paxCompareChart"></canvas></div></div>
+            <div class="chart-window"><div class="chart-title">Kargo - Gercek vs Tahmin</div><div class="chart-body"><canvas id="cargoCompareChart"></canvas></div></div>
+            <div class="chart-window"><div class="chart-title">Yuk - Gercek vs Tahmin</div><div class="chart-body"><canvas id="freightCompareChart"></canvas></div></div>
+        </div>
+        <div class="chart-grid" style="margin-top: 20px;">
+            <div class="chart-window"><div class="chart-title">Uçak - Hata Dagitimi</div><div class="chart-body"><canvas id="airErrorChart"></canvas></div></div>
+            <div class="chart-window"><div class="chart-title">Yolcu - Hata Dagitimi</div><div class="chart-body"><canvas id="paxErrorChart"></canvas></div></div>
+            <div class="chart-window"><div class="chart-title">Kargo - Hata Dagitimi</div><div class="chart-body"><canvas id="cargoErrorChart"></canvas></div></div>
+            <div class="chart-window"><div class="chart-title">Yuk - Hata Dagitimi</div><div class="chart-body"><canvas id="freightErrorChart"></canvas></div></div>
         </div>
     </div>
 
-    <!-- SAYFA: İSTATİSTİKLER -->
-    <div id="page-stats" class="page">
-        <div class="stats-area" style="margin-top: 25px;">
-            <div class="stats-pane">
-                <div class="pane-header">Uçak trafiği (uçak sayısı)</div>
-                <table class="excel-table" id="airStatsTable"></table>
-            </div>
-            <div class="stats-pane">
-                <div class="pane-header">Yolcu (kişi)</div>
-                <table class="excel-table" id="paxStatsTable"></table>
-            </div>
-            <div class="stats-pane">
-                <div class="pane-header">Kargo (ton)</div>
-                <table class="excel-table" id="cargoStatsTable"></table>
-            </div>
-            <div class="stats-pane">
-                <div class="pane-header">Yük (ton)</div>
-                <table class="excel-table" id="freightStatsTable"></table>
-            </div>
+    <!-- SAYFA 4: NAIVE TAHMIN TABLOLARI -->
+    <div id="page-naive-tables" class="page">
+        <h4>Naive Forecast - Yil Yil Tahmin Karsilastirmalari</h4>
+        <div class="forecast-tables-container" id="naiveTablesContainer"></div>
+        <div class="forecast-note">
+            <strong>Naive Forecast:</strong> Tahmin = Bir onceki yilin Gerçek Değeri<br>
+            <strong>Pozitif Hata:</strong> Gerçek Değer tahminin uzerinde &nbsp;|&nbsp;
+            <strong>Negatif Hata:</strong> Gerçek Değer tahminin altinda<br>
+            <strong>Ortalama Hata (ME):</strong> Pozitif ise tahminler genelde dusuk, negatif ise tahminler genelde yuksek kalmistir.
         </div>
     </div>
 
-    <!-- SAYFA: KORELASYON -->
+    <!-- SAYFA 5: KORELASYON -->
     <div id="page-correlation" class="page">
         <div class="correlation-content">
-            <h3 style="color:#1e3c5e; margin-bottom: 20px;">Korelasyon Matrisi (Pearson)</h3>
-            <table class="correlation-table">
-                <tr><th>Değişken Çifti</th><th>Korelasyon (r)</th></tr>
-                <tr><td>Uçak Trafiği - Yolcu</td><td id="corAP" class="status-badge" style="background:#38658f;">0.992</td></tr>
-                <tr><td>Uçak Trafiği - Yük</td><td id="corAF" class="status-badge" style="background:#38658f;">0.975</td></tr>
-                <tr><td>Uçak Trafiği - Kargo</td><td id="corAC" class="status-badge" style="background:#38658f;">0.962</td></tr>
-                <tr><td>Yolcu - Yük</td><td id="corPF" class="status-badge" style="background:#38658f;">0.971</td></tr>
-                <tr><td>Yolcu - Kargo</td><td id="corPC" class="status-badge" style="background:#38658f;">0.960</td></tr>
+            <h3>Degiskenler Arasi Korelasyon Matrisi (Pearson R)</h3>
+            <table class="correlation-table" style="margin-top: 20px;">
+                <thead>
+                    <tr><th>Degisken Cifti</th><th>Pearson R</th><th>R² (Aciklama Orani)</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Uçak Trafiği - Yolcu</td><td id="corAP">-</td><td id="r2AP">-</td></tr>
+                    <tr><td>Uçak Trafiği - Yük</td><td id="corAF">-</td><td id="r2AF">-</td></tr>
+                    <tr><td>Uçak Trafiği - Kargo</td><td id="corAC">-</td><td id="r2AC">-</td></tr>
+                    <tr><td>Yolcu - Yük</td><td id="corPF">-</td><td id="r2PF">-</td></tr>
+                    <tr><td>Yolcu - Kargo</td><td id="corPC">-</td><td id="r2PC">-</td></tr>
+                </tbody>
             </table>
-            <div class="matrix-note">Tüm korelasyonlar çok güçlü pozitif (pandemi dahil).</div>
-            <div style="margin-top: 25px; background:#e1eaf3; padding: 15px; border-radius: 6px;">
-                <strong>Pandemi Etkisi (2019-2020)</strong><br>
-                Yolcu: -60.7% | Kargo: -10.1% | Yük: -39.1% | Uçak: -54.5%
-            </div>
+            <div class="matrix-note" style="margin-top: 20px;">Tum degiskenler arasinda cok guclu pozitif korelasyon vardir (pandemi donemi dahil).</div>
         </div>
     </div>
 
-    <!-- Alt bilgi -->
     <div class="status-bar">
-        <span class="status-item">Korelasyon (uçak vs yolcu): <span class="status-badge">0.992</span></span>
-        <span class="status-item">uçak vs yük: <span class="status-badge">0.975</span></span>
-        <span class="status-item">yolcu vs kargo: <span class="status-badge">0.960</span></span>
-        <span class="status-item">Pandemi (2019-2020) yolcu: <span class="status-badge">-60.7%</span> kargo: -10.1%</span>
+        <span class="status-item">Uçak-Yolcu R: <span class="status-badge" id="statusCorAP">-</span></span>
+        <span class="status-item">En Dusuk MAE: <span class="status-badge" id="bestMAPE">-</span></span>
+        <span class="status-item">Ortalama Hata (ME): <span class="status-badge" id="globalME">-</span></span>
     </div>
     <div class="excel-footer-note">
-        <span>Tüm yıllar 2002-2025 dahil | Mod: bütün serilerde tüm değerler farklı</span>
-        <span>2025 dış hat yolcu 144M (iç hat 101.6M)</span>
+        <span>Veri Araligi: 2002-2025 | Tahmin Yontemi: Naive Forecast (Önceki Yıl)</span>
+        <span>ME: Ortalama Hata - Tahminlerin sistematik yonunu gosterir</span>
     </div>
 </div>
 
 <script>
 (function() {
+    // VERILER
     const years = [2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
+    
     const airData = [532531,529205,640549,757983,852175,935567,1010937,1066053,1213125,1335185,1305598,1435163,1596630,1751659,1754897,1837246,1956323,1943006,884535,1189931,1662986,1872665,1959961,2097037];
     const paxData = [33783892,34443655,45057371,55570472,62271876,70715263,79887380,86001343,103536513,117791800,130954919,149540869,165653346,181171606,174045146,193282844,210872639,209430338,82203685,128350222,182144531,214037575,230438911,245096783];
     const cargoData = [251987,276283,324588,331116,357221,395831,402039,425228,541357,584475,624058,731962,842241.493,904761.757,1032943.403,1256223.623,1388622.949,1522403.851,1368576.626,1711150.513,1678249.275,1670078.271,2166797.249,2062729.843];
     const freightData = [896865,964080,1164349,1304241,1360550,1546184,1644014,1726345,2021076,2249473.235,2249133,2595317,2893000.13,3072831,3076913.699,3481210.565,3855230.638,4090167.807,2490521.167,3432517.384,4163141.561,4447864.916,5156700.958,5102994.241];
-
-    function calcStats(d) {
-        let n = d.length;
-        let sorted = [...d].sort((a,b)=>a-b);
-        let mean = d.reduce((a,b)=>a+b,0)/n;
-        let median = (n%2===1) ? sorted[Math.floor(n/2)] : (sorted[n/2-1]+sorted[n/2])/2;
-        let variance = d.reduce((acc,val)=>acc+(val-mean)**2,0)/n;
-        let std = Math.sqrt(variance);
-        let minVal = Math.min(...d), maxVal = Math.max(...d);
-        let minYil = years[d.indexOf(minVal)], maxYil = years[d.indexOf(maxVal)];
-        let freq={}, maxFreq=1; 
-        d.forEach(v=>freq[v]=(freq[v]||0)+1);
-        for(let k in freq) if(freq[k]>maxFreq) maxFreq=freq[k];
-        let modStr = (maxFreq===1) ? "benzersiz" : Object.keys(freq).filter(k=>freq[k]===maxFreq).join(', ');
-        let varianceInt = Math.round(variance);
-        return { mean, median, mod: modStr, std, variance: varianceInt, minVal, maxVal, minYil, maxYil, range: maxVal-minVal };
-    }
-
-    let airS = calcStats(airData);
-    let paxS = calcStats(paxData);
-    let cargoS = calcStats(cargoData);
-    let freightS = calcStats(freightData);
-
-    function formatNumber(num) {
-        return num.toLocaleString(undefined, {maximumFractionDigits: 0});
-    }
-
-    function fillTable(elId, s) {
-        let t = document.getElementById(elId);
-        if(!t) return;
-        t.innerHTML = `
-            <tr><td>Ortalama</td><td>${formatNumber(s.mean)}</td></tr>
-            <tr><td>Medyan</td><td>${formatNumber(s.median)}</td></tr>
-            <tr><td>Mod</td><td>${s.mod}</td></tr>
-            <tr><td>Standart Sapma</td><td>${formatNumber(s.std)}</td></tr>
-            <tr><td>Varyans</td><td>${formatNumber(s.variance)}</td></tr>
-            <tr><td>Minimum</td><td>${formatNumber(s.minVal)} (${s.minYil})</td></tr>
-            <tr><td>Maximum</td><td>${formatNumber(s.maxVal)} (${s.maxYil})</td></tr>
-            <tr><td>Aralık</td><td>${formatNumber(s.range)}</td></tr>
-        `;
-    }
-    fillTable('airStatsTable', airS);
-    fillTable('paxStatsTable', paxS);
-    fillTable('cargoStatsTable', cargoS);
-    fillTable('freightStatsTable', freightS);
-
-    function corr(x,y) {
-        let n=x.length, mx=x.reduce((a,b)=>a+b,0)/n, my=y.reduce((a,b)=>a+b,0)/n;
-        let sxy=0, sxx=0, syy=0;
-        for(let i=0;i<n;i++) { 
-            sxy+=(x[i]-mx)*(y[i]-my); 
-            sxx+=(x[i]-mx)**2; 
-            syy+=(y[i]-my)**2; 
-        }
-        return sxy/Math.sqrt(sxx*syy);
+    
+    function formatFull(num) {
+        if (num === undefined || isNaN(num)) return '-';
+        return Math.round(num).toLocaleString('tr-TR');
     }
     
-    document.getElementById('corAP').innerText = corr(airData, paxData).toFixed(3);
-    document.getElementById('corAF').innerText = corr(airData, freightData).toFixed(3);
-    document.getElementById('corAC').innerText = corr(airData, cargoData).toFixed(3);
-    document.getElementById('corPF').innerText = corr(paxData, freightData).toFixed(3);
-    document.getElementById('corPC').innerText = corr(paxData, cargoData).toFixed(3);
-
-    let badges = document.querySelectorAll('.status-bar .status-badge');
-    if(badges.length>=3) {
-        badges[0].innerText = corr(airData, paxData).toFixed(3);
-        badges[1].innerText = corr(airData, freightData).toFixed(3);
-        badges[2].innerText = corr(paxData, cargoData).toFixed(3);
+    function formatNumber(num) {
+        if (num === undefined || isNaN(num)) return '-';
+        if (Math.abs(num) >= 1000000) return (num / 1000000).toFixed(2) + ' M';
+        if (Math.abs(num) >= 1000) return (num / 1000).toFixed(1) + ' K';
+        return num.toFixed(2);
     }
-
-    function createChart(ctx, data, color) {
+    
+    function calculateMetrics(data, name) {
+        let forecasts = [];
+        let errors = [];
+        let absoluteErrors = [];
+        
+        for(let i = 1; i < data.length; i++) {
+            let forecast = data[i-1];
+            let actual = data[i];
+            let error = actual - forecast;
+            forecasts.push(forecast);
+            errors.push(error);
+            absoluteErrors.push(Math.abs(error));
+        }
+        
+        let actualValues = data.slice(1);
+        let sumAbsoluteErrors = absoluteErrors.reduce((a,b) => a + b, 0);
+        let meanError = errors.reduce((a,b) => a + b, 0) / errors.length;
+        let mae = sumAbsoluteErrors / absoluteErrors.length;
+        let pearsonR = pearsonCorrelation(actualValues, forecasts);
+        let rSquared = pearsonR * pearsonR;
+        
+        let meanActual = actualValues.reduce((a,b) => a + b, 0) / actualValues.length;
+        let varianceActual = actualValues.reduce((acc, val) => acc + (val - meanActual) ** 2, 0) / actualValues.length;
+        let stdActual = Math.sqrt(varianceActual);
+        
+        let varianceError = errors.reduce((acc, val) => acc + (val - meanError) ** 2, 0) / errors.length;
+        let stdError = Math.sqrt(varianceError);
+        
+        return {
+            name: name,
+            sumAbsoluteErrors: sumAbsoluteErrors,
+            meanError: meanError,
+            mae: mae,
+            pearsonR: pearsonR,
+            rSquared: rSquared,
+            stdActual: stdActual,
+            stdError: stdError,
+            errors: errors,
+            forecasts: forecasts,
+            actualValues: actualValues
+        };
+    }
+    
+    function pearsonCorrelation(x, y) {
+        let n = x.length;
+        let meanX = x.reduce((a,b) => a + b, 0) / n;
+        let meanY = y.reduce((a,b) => a + b, 0) / n;
+        let numerator = 0, denomX = 0, denomY = 0;
+        for(let i = 0; i < n; i++) {
+            numerator += (x[i] - meanX) * (y[i] - meanY);
+            denomX += (x[i] - meanX) ** 2;
+            denomY += (y[i] - meanY) ** 2;
+        }
+        return numerator / Math.sqrt(denomX * denomY);
+    }
+    
+    const airMetrics = calculateMetrics(airData, 'Uçak Trafiği');
+    const paxMetrics = calculateMetrics(paxData, 'Yolcu Trafiği');
+    const cargoMetrics = calculateMetrics(cargoData, 'Kargo Trafiği');
+    const freightMetrics = calculateMetrics(freightData, 'Yuk Trafiği');
+    
+    const allMetrics = [airMetrics, paxMetrics, cargoMetrics, freightMetrics];
+    
+    function createMetricCard(metric) {
+        let meClass = metric.meanError >= 0 ? 'positive' : 'negative';
+        let meSign = metric.meanError >= 0 ? '+' : '';
+        
+        return `
+            <div class="metric-card">
+                <div class="card-header">${metric.name}</div>
+                <div class="card-body">
+                    <div class="metric-row">
+                        <span class="metric-label">Toplam Mutlak Hata</span>
+                        <span class="metric-value">${formatNumber(metric.sumAbsoluteErrors)}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Ortalama Hata (Mean Error - ME)</span>
+                        <span class="metric-value ${meClass}">${meSign}${formatNumber(metric.meanError)}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Ortalama Mutlak Hata (MAE)</span>
+                        <span class="metric-value">${formatNumber(metric.mae)}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Pearson R (Korelasyon)</span>
+                        <span class="metric-value highlight">${metric.pearsonR.toFixed(4)}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Pearson R² (Belirleme)</span>
+                        <span class="metric-value">${metric.rSquared.toFixed(4)} (${(metric.rSquared * 100).toFixed(2)}%)</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Std Sapma (Gerçek değerler)</span>
+                        <span class="metric-value">${formatNumber(metric.stdActual)}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Std Sapma (Hatalar)</span>
+                        <span class="metric-value">${formatNumber(metric.stdError)}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    document.getElementById('metricsGrid').innerHTML = allMetrics.map(m => createMetricCard(m)).join('');
+    
+    let bestMAE = Math.min(...allMetrics.map(m => m.mae));
+    let bestMAEMetric = allMetrics.find(m => m.mae === bestMAE);
+    document.getElementById('bestMAEValue').innerHTML = bestMAEMetric ? `${bestMAEMetric.name} (${formatNumber(bestMAE)})` : '-';
+    document.getElementById('bestMAPE').innerHTML = bestMAEMetric ? bestMAEMetric.name : '-';
+    
+    let bestR2 = Math.max(...allMetrics.map(m => m.rSquared));
+    let bestR2Metric = allMetrics.find(m => m.rSquared === bestR2);
+    document.getElementById('bestR2Value').innerHTML = bestR2Metric ? `${bestR2Metric.name} (${(bestR2 * 100).toFixed(1)}%)` : '-';
+    
+    let bestStd = Math.min(...allMetrics.map(m => m.stdError));
+    let bestStdMetric = allMetrics.find(m => m.stdError === bestStd);
+    document.getElementById('bestStdValue').innerHTML = bestStdMetric ? `${bestStdMetric.name} (${formatNumber(bestStd)})` : '-';
+    
+    let avgME = allMetrics.reduce((a,b) => a + b.meanError, 0) / allMetrics.length;
+    let meDirectionText = avgME >= 0 ? 'Pozitif (Tahminler Dusuk)' : 'Negatif (Tahminler Yuksek)';
+    document.getElementById('meDirection').innerHTML = meDirectionText;
+    document.getElementById('globalME').innerHTML = formatNumber(avgME);
+    
+    function generateNaiveTable(title, data, unit) {
+        let rows = '';
+        for(let i = 1; i < data.length; i++) {
+            let actual = data[i];
+            let forecast = data[i-1];
+            let error = actual - forecast;
+            let errorClass = error >= 0 ? 'error-positive' : 'error-negative';
+            let errorSign = error >= 0 ? '+' : '';
+            rows += `<tr>
+                <td style="text-align:center">${years[i]}</td>
+                <td style="text-align:right">${formatFull(actual)}</td>
+                <td style="text-align:right">${formatFull(forecast)}</td>
+                <td class="${errorClass}" style="text-align:right">${errorSign}${formatFull(error)}</td>
+            </tr>`;
+        }
+        return `
+            <div class="forecast-table-pane">
+                <div class="pane-header">${title} (${unit})</div>
+                <div class="table-wrapper">
+                    <table class="forecast-data-table">
+                        <thead><tr><th>Yıl</th><th>Gerçek Değer</th><th>Naive Tahmin</th><th>Hata</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+    
+    const container = document.getElementById('naiveTablesContainer');
+    if(container) {
+        container.innerHTML = 
+            generateNaiveTable('Uçak Trafiği', airData, 'Uçak Sayısı') +
+            generateNaiveTable('Yolcu Trafiği', paxData, 'Kişi') +
+            generateNaiveTable('Kargo Trafiği', cargoData, 'Ton') +
+            generateNaiveTable('Yük Trafiği', freightData, 'Ton');
+    }
+    
+    function pearsonCorrelationFull(x, y) {
+        let n = x.length;
+        let meanX = x.reduce((a,b) => a + b, 0) / n;
+        let meanY = y.reduce((a,b) => a + b, 0) / n;
+        let numerator = 0, denomX = 0, denomY = 0;
+        for(let i = 0; i < n; i++) {
+            numerator += (x[i] - meanX) * (y[i] - meanY);
+            denomX += (x[i] - meanX) ** 2;
+            denomY += (y[i] - meanY) ** 2;
+        }
+        return numerator / Math.sqrt(denomX * denomY);
+    }
+    
+    let corAP = pearsonCorrelationFull(airData, paxData);
+    let corAF = pearsonCorrelationFull(airData, freightData);
+    let corAC = pearsonCorrelationFull(airData, cargoData);
+    let corPF = pearsonCorrelationFull(paxData, freightData);
+    let corPC = pearsonCorrelationFull(paxData, cargoData);
+    
+    document.getElementById('corAP').innerHTML = corAP.toFixed(4);
+    document.getElementById('r2AP').innerHTML = (corAP * corAP).toFixed(4) + ' (' + ((corAP * corAP) * 100).toFixed(1) + '%)';
+    document.getElementById('corAF').innerHTML = corAF.toFixed(4);
+    document.getElementById('r2AF').innerHTML = (corAF * corAF).toFixed(4) + ' (' + ((corAF * corAF) * 100).toFixed(1) + '%)';
+    document.getElementById('corAC').innerHTML = corAC.toFixed(4);
+    document.getElementById('r2AC').innerHTML = (corAC * corAC).toFixed(4) + ' (' + ((corAC * corAC) * 100).toFixed(1) + '%)';
+    document.getElementById('corPF').innerHTML = corPF.toFixed(4);
+    document.getElementById('r2PF').innerHTML = (corPF * corPF).toFixed(4) + ' (' + ((corPF * corPF) * 100).toFixed(1) + '%)';
+    document.getElementById('corPC').innerHTML = corPC.toFixed(4);
+    document.getElementById('r2PC').innerHTML = (corPC * corPC).toFixed(4) + ' (' + ((corPC * corPC) * 100).toFixed(1) + '%)';
+    document.getElementById('statusCorAP').innerHTML = corAP.toFixed(3);
+    
+    function createLineChart(ctx, data, color) {
         if(!ctx) return;
         return new Chart(ctx, {
             type: 'line',
-            data: {
-                labels: years,
-                datasets: [{
-                    data: data,
-                    borderColor: color,
-                    backgroundColor: 'transparent',
-                    tension: 0,
-                    pointRadius: 3,
-                    pointBackgroundColor: color,
-                    pointBorderColor: 'white',
-                    pointBorderWidth: 1,
-                    fill: false,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
-                scales: {
-                    y: { 
-                        beginAtZero: false, 
-                        grid: { color: '#d6dde5' },
-                        ticks: { callback: val => val>=1e6 ? (val/1e6).toFixed(1)+'M' : val>=1e3 ? (val/1e3).toFixed(0)+'K' : val }
-                    },
-                    x: { grid: { display: false } }
-                },
-                elements: { line: { borderWidth: 2 } }
-            }
+            data: { labels: years, datasets: [{ data: data, borderColor: color, backgroundColor: 'transparent', borderWidth: 2, pointRadius: 3, pointBackgroundColor: color, fill: false }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { callback: (val) => formatNumber(val) } } } }
         });
     }
-
-    createChart(document.getElementById('airCanvasMain')?.getContext('2d'), airData, '#1e5b9c');
-    createChart(document.getElementById('paxCanvasMain')?.getContext('2d'), paxData, '#c95a0f');
-    createChart(document.getElementById('cargoCanvasMain')?.getContext('2d'), cargoData, '#2f7f5c');
-    createChart(document.getElementById('freightCanvasMain')?.getContext('2d'), freightData, '#904e8e');
-    createChart(document.getElementById('airCanvasChart')?.getContext('2d'), airData, '#1e5b9c');
-    createChart(document.getElementById('paxCanvasChart')?.getContext('2d'), paxData, '#c95a0f');
-    createChart(document.getElementById('cargoCanvasChart')?.getContext('2d'), cargoData, '#2f7f5c');
-    createChart(document.getElementById('freightCanvasChart')?.getContext('2d'), freightData, '#904e8e');
-
+    
+    function createCompareChart(ctx, actual, forecast, color) {
+        if(!ctx) return;
+        let forecastYears = years.slice(1);
+        return new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: forecastYears,
+                datasets: [
+                    { label: 'Gerçek Değer', data: actual, borderColor: color, backgroundColor: 'transparent', borderWidth: 2, pointRadius: 3, pointBackgroundColor: color },
+                    { label: 'Naive Tahmin', data: forecast, borderColor: '#f1b13b', backgroundColor: 'transparent', borderWidth: 2, borderDash: [5, 5], pointRadius: 2 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: (ctx) => ctx.dataset.label + ': ' + formatFull(ctx.raw) } } }, scales: { y: { ticks: { callback: (val) => formatNumber(val) } } } }
+        });
+    }
+    
+    function createErrorChart(ctx, errors) {
+        if(!ctx) return;
+        let errYears = years.slice(1);
+        return new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: errYears,
+                datasets: [{ data: errors, backgroundColor: errors.map(e => e >= 0 ? 'rgba(46,125,50,0.7)' : 'rgba(211,47,47,0.7)'), borderWidth: 0 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => 'Hata: ' + (ctx.raw >= 0 ? '+' : '') + formatFull(ctx.raw) } } }, scales: { y: { ticks: { callback: (val) => formatNumber(val) } } } }
+        });
+    }
+    
+    createLineChart(document.getElementById('airMainChart')?.getContext('2d'), airData, '#1e5b9c');
+    createLineChart(document.getElementById('paxMainChart')?.getContext('2d'), paxData, '#c95a0f');
+    createLineChart(document.getElementById('cargoMainChart')?.getContext('2d'), cargoData, '#2f7f5c');
+    createLineChart(document.getElementById('freightMainChart')?.getContext('2d'), freightData, '#904e8e');
+    
+    createCompareChart(document.getElementById('airCompareChart')?.getContext('2d'), airMetrics.actualValues, airMetrics.forecasts, '#1e5b9c');
+    createCompareChart(document.getElementById('paxCompareChart')?.getContext('2d'), paxMetrics.actualValues, paxMetrics.forecasts, '#c95a0f');
+    createCompareChart(document.getElementById('cargoCompareChart')?.getContext('2d'), cargoMetrics.actualValues, cargoMetrics.forecasts, '#2f7f5c');
+    createCompareChart(document.getElementById('freightCompareChart')?.getContext('2d'), freightMetrics.actualValues, freightMetrics.forecasts, '#904e8e');
+    
+    createErrorChart(document.getElementById('airErrorChart')?.getContext('2d'), airMetrics.errors);
+    createErrorChart(document.getElementById('paxErrorChart')?.getContext('2d'), paxMetrics.errors);
+    createErrorChart(document.getElementById('cargoErrorChart')?.getContext('2d'), cargoMetrics.errors);
+    createErrorChart(document.getElementById('freightErrorChart')?.getContext('2d'), freightMetrics.errors);
+    
+    document.getElementById('kpiAir').innerText = formatFull(airData[airData.length-1]);
+    document.getElementById('kpiPax').innerText = formatNumber(paxData[paxData.length-1]);
+    document.getElementById('kpiCargo').innerText = formatFull(cargoData[cargoData.length-2]);
+    document.getElementById('kpiFreight').innerText = formatFull(freightData[freightData.length-2]);
+    
     const tabs = document.querySelectorAll('.excel-tab');
     const pages = {
-        main: document.getElementById('page-main'),
-        charts: document.getElementById('page-charts'),
-        stats: document.getElementById('page-stats'),
-        correlation: document.getElementById('page-correlation')
+        'main': document.getElementById('page-main'),
+        'metrics': document.getElementById('page-metrics'),
+        'charts': document.getElementById('page-charts'),
+        'naive-tables': document.getElementById('page-naive-tables'),
+        'correlation': document.getElementById('page-correlation')
     };
-
-    function activatePage(pageId) {
-        Object.values(pages).forEach(p => p.classList.remove('active-page'));
-        tabs.forEach(t => t.classList.remove('active'));
+    
+    function switchPage(pageId) {
+        Object.keys(pages).forEach(key => { if(pages[key]) pages[key].classList.remove('active-page'); });
+        tabs.forEach(tab => tab.classList.remove('active'));
         if(pages[pageId]) pages[pageId].classList.add('active-page');
-        const activeTab = Array.from(tabs).find(t => t.dataset.page === pageId);
+        const activeTab = Array.from(tabs).find(tab => tab.dataset.page === pageId);
         if(activeTab) activeTab.classList.add('active');
     }
-
+    
     tabs.forEach(tab => {
-        tab.addEventListener('click', (e) => {
-            const pageId = tab.dataset.page;
-            activatePage(pageId);
-        });
+        tab.addEventListener('click', function() { switchPage(this.dataset.page); });
     });
-
-    activatePage('main');
 })();
 </script>
 </body>

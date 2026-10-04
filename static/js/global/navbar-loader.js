@@ -69,7 +69,11 @@
 
                     // Dropdown'da isim / email
                     if (profileNameEl) {
-                        var fullName = ((me.first_name || '') + ' ' + (me.last_name || '')).trim();
+                        var firstName = (me.first_name || '').trim();
+                        var lastName = (me.last_name || '').trim();
+                        var capitalizedFirstName = firstName ? firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase() : '';
+                        var capitalizedLastName = lastName ? lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase() : '';
+                        var fullName = (capitalizedFirstName + ' ' + capitalizedLastName).trim();
                         profileNameEl.textContent = fullName || (me.username || 'Kullanıcı');
                     }
                     if (profileEmailEl) {

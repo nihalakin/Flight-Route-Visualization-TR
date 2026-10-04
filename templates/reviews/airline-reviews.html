@@ -42,7 +42,7 @@
                         Veri Kümesi Analizleri
                     </button>
                 </div>
-                <p class="page-header-subtitle">Kullanıcılarımızın uçuş deneyimleri. Admin onayından geçen değerlendirmeler havayoluna göre listelenir.</p>
+                <p class="page-header-subtitle">Gerçek yolcu deneyimlerini keşfedin. Havayolları hakkında detaylı analizler, puanlamalar ve yorumlar.</p>
             </header>
 
             <div id="loading-state" class="loading-state">
@@ -78,7 +78,7 @@
 
                 <!-- Tüm havayolları için yapay zeka özeti (şikayetler / övgüler) -->
                 <section id="all-airlines-summary-section" class="analysis-summary-section" style="display: none;" aria-label="Tüm havayolları için yapay zeka özeti">
-                    <h2 class="analysis-summary-heading">Yapay Zeka Özeti · Tüm Havayolları</h2>
+                    <h2 class="analysis-summary-heading">Analiz Özeti · Tüm Havayolları</h2>
                     <div class="analysis-summary-grid">
                         <div class="summary-card summary-card-complaints">
                             <h3 class="summary-card-title summary-card-title--negative">
@@ -98,11 +98,9 @@
                 </section>
 
                 <!-- Çoklu havayolu karşılaştırması -->
-                <h2 class="multi-airline-page-heading" style="display:none;">Çoklu Havayolu Karşılaştırması</h2>
-                <p class="multi-airline-page-subtitle" style="display:none;">Duygu dağılımı ve hacim trendleri</p>
                 <section id="multi-airline-comparison-section" class="multi-airline-comparison-section" aria-label="Çoklu havayolu karşılaştırması" style="display: none;">
                     <div class="multi-airline-content">
-                        <div class="multi-airline-sentiment">
+                        <div class="multi-airline-box">
                             <h3 class="multi-airline-section-title">Duygu Dağılımı</h3>
                             <div id="multi-airline-sentiment-list" class="multi-airline-sentiment-list"></div>
                             <div class="multi-airline-legend">
@@ -111,13 +109,44 @@
                                 <span><span class="legend-dot negative"></span>Olumsuz</span>
                             </div>
                         </div>
-                        <div class="multi-airline-trend">
+                        <div class="multi-airline-box">
                             <div class="multi-airline-trend-header">
                                 <h3 class="multi-airline-section-title">İnceleme Hacmi Trendi</h3>
-                                <span class="multi-airline-range-pill">Son 6 Ay</span>
+                                <div class="multi-airline-filters">
+                                    <select id="trend-year-filter" class="trend-year-select">
+                                        <option value="2026">2026</option>
+                                        <option value="2025">2025</option>
+                                        <option value="2024">2024</option>
+                                        <option value="2023">2023</option>
+                                        <option value="2022">2022</option>
+                                        <option value="2021">2021</option>
+                                        <option value="2020">2020</option>
+                                        <option value="2019">2019</option>
+                                    </select>
+                                                                    </div>
                             </div>
                             <div class="multi-airline-trend-chart-wrap">
                                 <canvas id="multi-airline-volume-trend" width="400" height="220" aria-label="Havayolu bazında inceleme hacmi trendi"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Rötar/Gecikme Analizleri -->
+                <section id="delay-analysis-section" class="multi-airline-comparison-section" aria-label="Rötar/Gecikme Analizleri" style="display: none;">
+                    <div class="multi-airline-content">
+                        <div class="multi-airline-box">
+                            <h3 class="multi-airline-section-title">Rötar/Gecikme Şikayet Oranı</h3>
+                            <p class="score-distribution-subtitle">Havayolu bazında rötar veya gecikme şikayetlerinin toplam yorumlara oranı</p>
+                            <div class="multi-airline-trend-chart-wrap">
+                                <canvas id="delay-complaint-chart" width="400" height="300" aria-label="Havayolu bazında rötar/gecikme şikayet oranı"></canvas>
+                            </div>
+                        </div>
+                        <div class="multi-airline-box">
+                            <h3 class="multi-airline-section-title">Ortalama Rötar Süresi</h3>
+                            <p class="score-distribution-subtitle">Havayolu bazında ortalama rötar süresi (dakika cinsinden)</p>
+                            <div class="multi-airline-trend-chart-wrap">
+                                <canvas id="average-delay-chart" width="400" height="300" aria-label="Havayollarına göre ortalama rötar süresi"></canvas>
                             </div>
                         </div>
                     </div>
@@ -226,7 +255,7 @@
 
                 <!-- Yapay zeka özeti: Beğenilenler, Şikayetler, Puan dağılımı, Uçuş tarihine göre trend -->
                 <section id="analysis-summary-section" class="analysis-summary-section" style="display: none;" aria-labelledby="analysis-summary-heading">
-                    <h2 id="analysis-summary-heading" class="analysis-summary-heading">Yapay Zeka Özeti</h2>
+                    <h2 id="analysis-summary-heading" class="analysis-summary-heading">Analiz Özeti</h2>
                     <div class="analysis-summary-grid">
                         <div class="summary-card summary-card-complaints">
                             <h3 class="summary-card-title summary-card-title--negative"><i class="fas fa-circle-xmark" aria-hidden="true"></i> En Sık Görülen Şikayetler</h3>
@@ -237,15 +266,48 @@
                             <div id="summary-liked-list" class="summary-list summary-list-liked"></div>
                         </div>
                         <div class="summary-row-charts">
+                            <div class="summary-card summary-card-chart score-trend-card">
+                                <div class="summary-card-header">
+                                    <div>
+                                        <h3 class="summary-card-title"><i class="fas fa-chart-line" aria-hidden="true"></i> Son 12 Ay Puan Trendi</h3>
+                                        <p class="score-distribution-subtitle">Aylık ortalama puan değişimi</p>
+                                    </div>
+                                    <select id="score-trend-year-filter" class="trend-year-select">
+                                        <option value="2026">2026</option>
+                                        <option value="2025">2025</option>
+                                        <option value="2024">2024</option>
+                                        <option value="2023">2023</option>
+                                        <option value="2022">2022</option>
+                                        <option value="2021">2021</option>
+                                        <option value="2020">2020</option>
+                                        <option value="2019">2019</option>
+                                    </select>
+                                </div>
+                                <div class="summary-chart-wrap">
+                                    <canvas id="score-trend-chart" width="400" height="280" aria-label="Son 12 ay puan trendi"></canvas>
+                                </div>
+                            </div>
                             <div class="summary-card summary-card-chart score-distribution-card">
                                 <h3 class="summary-card-title"><i class="fas fa-chart-bar" aria-hidden="true"></i> Puan Dağılımı</h3>
                                 <p class="score-distribution-subtitle">Tüm uçuşlardaki tarihsel dağılım</p>
                                 <div id="score-distribution-list" class="score-distribution-list"></div>
                             </div>
                             <div class="summary-card summary-card-chart trend-by-flight-date-card">
-                                <h3 class="summary-card-title"><i class="fas fa-plane-departure" aria-hidden="true"></i> Uçuş Tarihine Göre Yorum Trendi</h3>
+                                <div class="summary-card-header">
+                                    <h3 class="summary-card-title"><i class="fas fa-plane-departure" aria-hidden="true"></i> Uçuş Tarihine Göre Yorum Trendi</h3>
+                                    <select id="flight-trend-year-filter" class="trend-year-select">
+                                        <option value="2026">2026</option>
+                                        <option value="2025">2025</option>
+                                        <option value="2024">2024</option>
+                                        <option value="2023">2023</option>
+                                        <option value="2022">2022</option>
+                                        <option value="2021">2021</option>
+                                        <option value="2020">2020</option>
+                                        <option value="2019">2019</option>
+                                    </select>
+                                </div>
                                 <div class="summary-chart-wrap">
-                                    <canvas id="trend-by-flight-date-chart" width="300" height="220" aria-label="Uçuş tarihine göre yorum sayısı"></canvas>
+                                    <canvas id="trend-by-flight-date-chart" width="400" height="280" aria-label="Uçuş tarihine göre yorum sayısı"></canvas>
                                 </div>
                             </div>
                         </div>
@@ -262,9 +324,6 @@
                                 </span>
                                 Yolcu Tavsiyeleri
                             </h3>
-                            <p class="route-card-description">
-                                Müşteri deneyimini artırmak için yapay zeka tarafından önceliklendirilmiş aksiyon alanları.
-                            </p>
                             <div id="summary-recommendations-list" class="summary-recommendations"></div>
                         </article>
 
@@ -299,46 +358,15 @@
                     </div>
                 </section>
 
-                <!-- Yorum filtreleri (tarih aralığı + duygu + arama) -->
-                <div class="review-filter-bar" aria-label="Yorum filtresi">
-                    <div class="review-filter-left">
-                        <div class="review-date-filter" aria-label="Tarih aralığı filtresi">
-                            <select id="review-date-select" class="review-date-select" aria-label="Tarih aralığı seçin">
-                                <option value="all" selected>Tümü</option>
-                                <option value="30d">Son 30 Gün</option>
-                                <option value="90d">Son 90 Gün</option>
-                                <option value="1y">Son 1 Yıl</option>
-                            </select>
-                            <i class="fas fa-chevron-down review-date-select-arrow" aria-hidden="true"></i>
-                        </div>
-                        <div class="review-filter-buttons" id="review-filter-buttons">
-                            <button type="button" class="review-filter-btn" data-sentiment="">Tümü</button>
-                            <button type="button" class="review-filter-btn" data-sentiment="positive">Olumlu</button>
-                            <button type="button" class="review-filter-btn" data-sentiment="neutral">Nötr</button>
-                            <button type="button" class="review-filter-btn" data-sentiment="negative">Olumsuz</button>
-                        </div>
-                    </div>
-                    <div class="review-filter-right">
-                        <div class="review-search-wrapper">
-                            <i class="fas fa-search review-search-icon" aria-hidden="true"></i>
-                            <input
-                                type="search"
-                                id="review-search-input"
-                                class="review-search-input"
-                                placeholder="Aramak için kelime girin"
-                                aria-label="Yorumlarda kelime ara"
-                            >
-                        </div>
-                    </div>
-                </div>
-
                 <div id="airline-sections" class="airline-sections"></div>
+
             </div>
         </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="/static/js/global/navbar-loader.js"></script>
-    <script src="/static/js/reviews/airline-reviews.js"></script>
+    <script src="/static/js/reviews/reviews-common.js"></script>
+    <script src="/static/js/reviews/airline-reviews.js?v=22"></script>
 </body>
 </html>

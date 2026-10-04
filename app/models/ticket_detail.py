@@ -34,3 +34,9 @@ class TicketDetail(Base):
     pnr = Column(String(20), nullable=False, index=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # İptal önizlemesinde hesaplanan tutarı iptal anında birebir kullanmak için geçici alanlar
+    # (kupon oluşturma akışı ikinci kez hesaplama yapmamalı).
+    refund_preview_amount = Column(Float, nullable=True)
+    refund_preview_currency = Column(String(3), nullable=True)
+    refund_preview_quoted_at = Column(DateTime, nullable=True)

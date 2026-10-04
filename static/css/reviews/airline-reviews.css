@@ -170,7 +170,7 @@
 
 .airline-overview-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1.25rem;
 }
 
@@ -297,8 +297,8 @@
 }
 
 .airline-overview-ring {
-    width: 200px;
-    height: 200px;
+    width: 140px;
+    height: 140px;
     border-radius: 50%;
     position: relative;
     display: flex;
@@ -310,7 +310,7 @@
 .airline-overview-ring::before {
     content: "";
     position: absolute;
-    inset: 6px;
+    inset: 4px;
     border-radius: inherit;
     background: #ffffff;
 }
@@ -325,13 +325,13 @@
 
 .airline-overview-ring-center {
     position: relative;
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 600;
     color: #0f172a;
 }
 
 .airline-overview-ring-label {
-    font-size: 0.78rem;
+    font-size: 0.7rem;
     color: #94a3b8;
 }
 
@@ -342,34 +342,36 @@
 }
 
 /* ----- Çoklu havayolu karşılaştırması ----- */
-.multi-airline-page-heading {
-    margin: 2.25rem 0 0.3rem;
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: #0f172a;
-    letter-spacing: -0.02em;
-}
-
-.multi-airline-page-subtitle {
-    margin: 0 0 0.9rem;
-    font-size: 0.95rem;
-    color: #6b7280;
-}
-
 .multi-airline-comparison-section {
     margin-bottom: 2.25rem;
-    background: #ffffff;
-    border-radius: 16px;
-    padding: 1.35rem 1.5rem 1.4rem;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
-    border: 1px solid #e2e8f0;
 }
 
 .multi-airline-content {
     display: grid;
-    grid-template-columns: 1.05fr 1.15fr;
+    grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
     align-items: stretch;
+}
+
+.multi-airline-box {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 1.35rem 1.5rem;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+}
+
+.multi-airline-box-full {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 1.35rem 1.5rem;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
 }
 
 .multi-airline-section-title {
@@ -450,6 +452,28 @@
     align-items: center;
     justify-content: space-between;
     margin-bottom: 0.35rem;
+}
+
+.multi-airline-filters {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.trend-year-select {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    color: #374151;
+    cursor: pointer;
+    outline: none;
+}
+
+.trend-year-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
 .multi-airline-range-pill {
@@ -973,6 +997,36 @@
     .sentiment-chart-row {
         grid-template-columns: 1fr;
     }
+    
+    /* Mobil cihazlar için yan sayfalama butonları */
+    .route-card-left .summary-recommendation-pager[data-position="left"] {
+        left: 0.5rem;
+    }
+    
+    .route-card-left .summary-recommendation-pager[data-position="right"] {
+        right: 0.5rem;
+    }
+    
+    .route-card-left .summary-recommendation-page-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+    }
+    
+    /* Summary list sayfalama butonları için mobil uyum */
+    .summary-pager[data-position="left"] {
+        left: -10px;
+    }
+    
+    .summary-pager[data-position="right"] {
+        right: -10px;
+    }
+    
+    .summary-page-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+    }
 }
 
 /* ----- Analiz özeti (2x2 grid: şikayetler, beğenilenler, puan dağılımı, trend) ----- */
@@ -990,7 +1044,17 @@
 .analysis-summary-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1.25rem;
+    gap: 2.25rem;
+    margin-bottom: 1.25rem;
+}
+
+/* Full-width row for the three charts */
+.summary-row-charts {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.75rem;
+    width: 100%;
 }
 
 .summary-card {
@@ -1001,21 +1065,15 @@
     border: 1px solid #e2e8f0;
     display: flex;
     flex-direction: column;
-    min-height: 280px;
-}
-
-.summary-row-charts {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 1.25rem;
-    margin-top: 0.25rem;
-    grid-column: 1 / -1; /* üçlü kart satırı tüm genişliği kaplasın */
-    max-height: 400px;
+    height: 600px;
+    position: relative;
 }
 
 .summary-card-chart {
-    flex: 1 1 33.333%;
-    min-width: 0;
+    height: 450px;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 0.75rem;
 }
 
 .summary-card-recommendations {
@@ -1052,7 +1110,7 @@
 
 .score-distribution-bar-track {
     position: relative;
-    height: 8px;
+    height: 16px;
     border-radius: 999px;
     background: #e5e7eb;
     overflow: hidden;
@@ -1065,11 +1123,11 @@
     border-radius: inherit;
 }
 
-.score-distribution-row--5 .score-distribution-bar-fill { background: #06b6d4; }
-.score-distribution-row--4 .score-distribution-bar-fill { background: #22c55e; }
-.score-distribution-row--3 .score-distribution-bar-fill { background: #cbd5f5; }
-.score-distribution-row--2 .score-distribution-bar-fill { background: #fbbf24; }
-.score-distribution-row--1 .score-distribution-bar-fill { background: #f97316; }
+.score-distribution-row--5 .score-distribution-bar-fill { background: #3b82f6; }
+.score-distribution-row--4 .score-distribution-bar-fill { background: #10b981; }
+.score-distribution-row--3 .score-distribution-bar-fill { background: #8b5cf6; }
+.score-distribution-row--2 .score-distribution-bar-fill { background: #f59e0b; }
+.score-distribution-row--1 .score-distribution-bar-fill { background: #ef4444; }
 
 .score-distribution-percent {
     font-size: 0.88rem;
@@ -1116,6 +1174,19 @@
     gap: 0.5rem;
 }
 
+.summary-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.summary-card-header .summary-card-title {
+    margin-bottom: 0;
+    flex: 1;
+}
+
 .summary-card-title i {
     flex-shrink: 0;
 }
@@ -1134,7 +1205,8 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    min-height: 0;
+    padding-right: 0.5rem;
+    margin: -0.25rem 0;
 }
 
 .summary-item {
@@ -1203,9 +1275,61 @@
     padding: 1rem 0;
 }
 
+/* Summary list sayfalama butonları */
+.summary-pager {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+}
+
+.summary-pager[data-position="left"] {
+    left: -15px;
+}
+
+.summary-pager[data-position="right"] {
+    right: -15px;
+}
+
+.summary-page-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #475569;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+    min-width: auto;
+}
+
+.summary-page-btn:hover:not(:disabled) {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.summary-page-btn:active:not(:disabled) {
+    transform: scale(1.05);
+}
+
+.summary-page-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    background: #f1f5f9;
+    color: #94a3b8;
+}
+
 .summary-chart-wrap {
     flex: 1;
-    min-height: 220px;
+    min-height: 320px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1377,18 +1501,53 @@
     }
 }
 
+@media (max-width: 1200px) {
+    .summary-row-charts {
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+    
+    .summary-row-charts .summary-card:last-child {
+        grid-column: 1 / -1;
+    }
+}
+
 @media (max-width: 900px) {
     .analysis-summary-grid {
         grid-template-columns: 1fr;
     }
 
     .summary-card {
-        min-height: 240px;
+        height: 500px;
     }
 
     .summary-row-charts {
-        flex-direction: column;
-        flex-wrap: wrap;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .summary-card-chart {
+        height: 350px;
+    }
+}
+
+@media (max-width: 640px) {
+    .summary-card {
+        height: 450px;
+    }
+    
+    .summary-pager[data-position="left"] {
+        left: -5px;
+    }
+    
+    .summary-pager[data-position="right"] {
+        right: -5px;
+    }
+    
+    .summary-page-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
     }
 }
 
@@ -1900,7 +2059,7 @@
 
 .route-row-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: 2fr 1.5fr 2.5fr;
     gap: 1.25rem;
 }
 
@@ -1913,11 +2072,85 @@
     border: 1px solid rgba(226, 232, 240, 0.9);
     display: flex;
     flex-direction: column;
-    min-height: 230px;
+    height: 380px;
 }
 
 .route-card-left {
-    background: radial-gradient(circle at top left, #f8fafc, #ffffff);
+position: relative;
+background: radial-gradient(circle at top left, #f8fafc, #ffffff);
+}
+
+/* Yolcu tavsiyeleri kutusu için sayfalama butonları */
+.route-card-left .summary-recommendation-pager {
+position: absolute;
+top: 50%;
+transform: translateY(-50%);
+display: flex;
+flex-direction: column;
+gap: 0.5rem;
+padding: 0;
+background: transparent;
+border: none;
+border-radius: 0;
+z-index: 10;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    z-index: 10;
+}
+
+.route-card-left .summary-recommendation-pager[data-position="left"] {
+    left: -15px;
+}
+
+.route-card-left .summary-recommendation-pager[data-position="right"] {
+    right: -15px;
+}
+
+.route-card-left .summary-recommendation-page-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #e2e8f0;
+    background: #ffffff;
+    color: #2563eb;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    min-width: auto;
+}
+
+.route-card-left .summary-recommendation-page-btn:hover:not(:disabled) {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    transform: scale(1.1);
+}
+
+.route-card-left .summary-recommendation-page-btn:active:not(:disabled) {
+    transform: scale(1.05);
+}
+
+.route-card-left .summary-recommendation-page-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    background: #f1f5f9;
+    color: #94a3b8;
+    border-color: #e2e8f0;
+}
+
+.route-card-left .summary-recommendation-page-info {
+    display: none;
 }
 
 .route-card-center {
@@ -1968,16 +2201,34 @@
     color: #dc2626;
 }
 
-.route-card-description {
-    font-size: 0.9rem;
-    color: #6b7280;
-    margin: 0 0 0.9rem 0;
-}
 
 .summary-recommendations {
     display: flex;
     flex-direction: column;
     gap: 0.7rem;
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+/* Özel scrollbar stillemesi */
+.summary-recommendations::-webkit-scrollbar {
+    width: 6px;
+}
+
+.summary-recommendations::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+}
+
+.summary-recommendations::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+    transition: background 0.2s ease;
+}
+
+.summary-recommendations::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
 
 .summary-recommendation-item {
@@ -2008,7 +2259,7 @@
     position: relative;
     width: 160px;
     height: 160px;
-    margin: 0.3rem auto 0.75rem;
+    margin: 1.5rem auto 1.1rem;
     border-radius: 50%;
 }
 
@@ -2054,7 +2305,7 @@
 .route-row {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.4rem;
     font-size: 0.9rem;
 }
 
@@ -2064,6 +2315,7 @@
 
 .route-row-bar-track {
     flex: 1;
+    max-width: 250px;
     height: 8px;
     border-radius: 999px;
     background: #e5e7eb;
@@ -2076,16 +2328,42 @@
 }
 
 .route-name {
-    min-width: 120px;
+    width: 150px;
+    min-width: 150px;
     font-weight: 600;
     color: #334155;
+    flex-shrink: 0;
+}
+
+.route-score-container {
+    display: flex;
+    justify-content: flex-end;
+    min-width: 100px;
+}
+
+.route-score-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .route-score {
     font-weight: 600;
     font-size: 0.9rem;
-    min-width: 40px;
     text-align: right;
+}
+
+.route-count {
+    font-size: 0.75rem;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    font-weight: 500;
+    white-space: nowrap;
+    max-width: 70px;
+    text-align: center;
+    display: inline-block;
 }
 
 .route-score-positive {

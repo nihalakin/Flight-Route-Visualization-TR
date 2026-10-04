@@ -7,6 +7,7 @@ import httpx
 from fastapi import APIRouter, HTTPException, Query
 
 from app.services import amadeus
+from app.services.flight_cache import get_cached_response, is_date_in_cache_range
 
 router = APIRouter(prefix="/flights", tags=["flights"])
 
@@ -40,5 +41,15 @@ async def search_flights(
             currency_code=currency_code,
             max_results=max_results,
         )
+    except HTTPException:
+        if is_date_in_cache_range(departure_date):
+            cached = get_cached_response(origin, destination, departure_date)
+            if cached is not None:
+                return cached
+        raise
     except httpx.RequestError as e:
+        if is_date_in_cache_range(departure_date):
+            cached = get_cached_response(origin, destination, departure_date)
+            if cached is not None:
+                return cached
         raise HTTPException(status_code=500, detail=f"HTTP isteği hatası: {str(e)}")

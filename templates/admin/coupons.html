@@ -1,15 +1,12 @@
 {% extends "admin/layout.html" %}
 
 {% block page_heading %}Kupon Yönetimi{% endblock %}
-{% block page_subtitle %}İade kuponlarını ekleyin, düzenleyin veya soft delete yapın.{% endblock %}
+{% block page_subtitle %}İade kuponlarını ekleyin, düzenleyin veya silin.{% endblock %}
 
 {% block content %}
     <section class="space-y-4">
         <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-                <h2 class="text-sm font-semibold text-slate-900">Kupon Yönetimi</h2>
-                <p class="text-xs text-slate-500">İade kuponlarını ekleyin, düzenleyin veya soft delete yapın.</p>
-            </div>
+
             <div class="flex flex-wrap gap-2 items-center">
                 <input id="couponSearchInput" type="search" placeholder="Kupon kodu veya havayolu ara..."
                        class="w-full sm:w-56 border border-slate-200 rounded-full px-3 py-1.5 text-xs text-slate-700 placeholder-slate-400" />
@@ -20,6 +17,9 @@
                     <option value="full">Kullanım dolu</option>
                 </select>
             </div>
+            <button id="addCouponBtn" onclick="document.getElementById('couponAddModal').classList.remove('hidden')" class="px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700">
+                + Yeni Kupon Ekle
+            </button>
         </header>
         <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-4 py-3 border-b border-slate-100">
@@ -32,30 +32,6 @@
                 </div>
                 <div class="flex items-center gap-3">
                     <span id="couponCountText" class="text-xs text-slate-500">Yükleniyor...</span>
-                </div>
-            </div>
-            <!-- Yeni Kupon Ekle formu -->
-            <div class="px-4 py-4 border-b border-slate-100 bg-slate-50/50">
-                <h3 class="text-xs font-semibold text-slate-600 mb-3">Yeni Kupon Ekle</h3>
-                <form id="couponCreateForm" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 text-sm">
-                    <input type="text" id="newCouponCode" name="code" placeholder="Kupon kodu" class="border border-slate-200 rounded-lg px-3 py-2 text-slate-800 placeholder-slate-400" required maxlength="20" />
-                    <input type="text" id="newCouponAirline" name="airline_name" placeholder="Havayolu" class="border border-slate-200 rounded-lg px-3 py-2 text-slate-800 placeholder-slate-400" />
-                    <input type="number" id="newCouponRefund" name="refund_amount" placeholder="İndirim (TL)" class="border border-slate-200 rounded-lg px-3 py-2 text-slate-800 placeholder-slate-400" step="0.01" min="0" required />
-                    <input type="date" id="newCouponExpiry" name="expiry_date" placeholder="Son kullanım" class="border border-slate-200 rounded-lg px-3 py-2 text-slate-800" required />
-                    <input type="number" id="newCouponMaxUses" name="max_uses" placeholder="Max kişi" class="border border-slate-200 rounded-lg px-3 py-2 text-slate-800" min="1" value="1" title="Kaç kişi bu kuponu kullanabilir" />
-                    <div class="flex items-center gap-2">
-                        <button type="submit" id="couponCreateBtn" class="px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700">Ekle</button>
-                        <button type="button" id="couponCreateMore" class="px-3 py-2 rounded-lg border border-slate-200 text-slate-600 text-sm hover:bg-slate-50">+ Daha fazla alan</button>
-                    </div>
-                </form>
-                <div id="couponCreateExtra" class="hidden mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-                    <input type="number" id="newCouponOriginal" name="original_amount" placeholder="Bilet tutarı (TL)" class="border border-slate-200 rounded-lg px-3 py-2" step="0.01" min="0" />
-                    <input type="date" id="newCouponIssue" name="issue_date" placeholder="İade tarihi" class="border border-slate-200 rounded-lg px-3 py-2" />
-                    <input type="text" id="newCouponCancelReason" name="cancel_reason" placeholder="İptal nedeni" class="border border-slate-200 rounded-lg px-3 py-2" />
-                    <label class="col-span-2 flex items-center gap-2 text-slate-600">
-                        <input type="checkbox" id="newCouponActive" name="is_active" checked class="rounded border-slate-300" />
-                        <span>Aktif</span>
-                    </label>
                 </div>
             </div>
             <div class="overflow-x-auto">
@@ -84,6 +60,119 @@
 {% endblock %}
 
 {% block modals %}
+    <!-- Yeni Kupon Ekle modalı -->
+    <div id="couponAddModal" onclick="if(event.target === this) this.classList.add('hidden')" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" aria-hidden="true">
+        <div class="bg-slate-50 rounded-[32px] shadow-2xl max-w-4xl w-full p-6 sm:p-7 text-sm border border-slate-100">
+            <div class="flex items-start justify-between gap-3 mb-5">
+                <div>
+                    <h3 class="text-base font-semibold text-slate-900">Yeni Kupon Ekle</h3>
+                    <p class="text-xs text-slate-500 mt-1">Kupon detaylarını girin ve belirli kullanıcılara atayın.</p>
+                </div>
+                <button id="closeAddModal" onclick="document.getElementById('couponAddModal').classList.add('hidden')" class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition">
+                    <span class="sr-only">Kapat</span>
+                    &times;
+                </button>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6 items-start">
+                <!-- Sol: Kupon formu -->
+                <form id="couponAddForm" onsubmit="submitCouponForm(event)" class="space-y-4 bg-white border border-slate-100 rounded-3xl px-5 py-4 shadow-sm">
+                    <div class="space-y-1.5">
+                        <label class="block text-[11px] font-medium text-slate-500">Kupon kodu *</label>
+                        <input type="text" id="addCouponCode" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500" required maxlength="20" />
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="block text-[11px] font-medium text-slate-500">Havayolu</label>
+                        <input type="text" id="addCouponAirline" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500" />
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-medium text-slate-500">İndirim Tutarı</label>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="addCouponRefund" step="0.01" min="0" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500" required />
+                                <span class="text-[11px] text-slate-500">TL</span>
+                            </div>
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-medium text-slate-500">Son Kullanım</label>
+                            <input type="date" id="addCouponExpiry" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500" required />
+                        </div>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="block text-[11px] font-medium text-slate-500">Max Kullanım (Kişi)</label>
+                        <input type="number" id="addCouponMaxUses" min="1" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500" value="1" />
+                    </div>
+                    <div id="couponAddExtra" class="hidden space-y-1.5">
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-medium text-slate-500">Bilet tutarı (TL)</label>
+                            <input type="number" id="addCouponOriginal" step="0.01" min="0" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500" />
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-medium text-slate-500">İade tarihi</label>
+                            <input type="date" id="addCouponIssue" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500" />
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-medium text-slate-500">İptal nedeni</label>
+                            <input type="text" id="addCouponCancelReason" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500" />
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between gap-3 pt-1">
+                        <button type="button" id="couponAddMore" onclick="document.getElementById('couponAddExtra').classList.toggle('hidden')" class="text-[11px] text-violet-600 hover:text-violet-700">+ Daha fazla alan</button>
+                        <label class="inline-flex items-center gap-2 text-slate-600 text-xs">
+                            <div class="relative w-9 h-5 cursor-pointer">
+                                <input type="checkbox" id="addCouponActive" name="is_active" checked class="sr-only peer absolute inset-0 w-full h-full cursor-pointer z-10" />
+                                <div class="absolute inset-0 rounded-full bg-slate-200 peer-checked:bg-green-500 transition-colors pointer-events-none"></div>
+                                <div class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white shadow peer-checked:translate-x-4 transition-transform pointer-events-none"></div>
+                            </div>
+                            <span>Aktif Kupon</span>
+                        </label>
+                    </div>
+                    <div class="flex justify-end pt-1">
+                        <button type="submit" class="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 text-xs font-medium shadow-sm">
+                            Kupon Oluştur
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Sağ: Kullanıcı atama -->
+                <section class="bg-white border border-slate-100 rounded-3xl px-5 py-4 space-y-3 shadow-sm">
+                    <header class="flex items-center justify-between gap-2 mb-1">
+                        <div>
+                            <h4 class="text-xs font-semibold text-slate-800">Kullanıcılara Ata</h4>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Kullanıcı adı veya e-posta ile arayıp birden fazla kullanıcı seçebilirsiniz.</p>
+                        </div>
+                        <span id="newCouponAssignedCount" class="text-[11px] text-slate-500">0 seçili</span>
+                    </header>
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-500 mb-1" for="newCouponUserSearchInput">Kullanıcı Ara</label>
+                        <div class="relative">
+                            <input id="newCouponUserSearchInput" type="search" autocomplete="off" placeholder="Örn: @kullanici veya kullanici@mail.com" class="w-full border border-slate-200 rounded-full px-3 py-2 pr-8 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500" />
+                            <span class="absolute inset-y-0 right-3 flex items-center text-slate-300 text-xs">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </span>
+                        </div>
+                        <div id="newCouponUserSearchResults" class="mt-1 border border-slate-100 rounded-xl bg-white shadow-sm max-h-40 overflow-auto text-xs hidden"></div>
+                    </div>
+                    <div>
+                        <h5 class="text-[11px] font-medium text-slate-500 mb-1">Seçilen Kullanıcılar</h5>
+                        <div id="newCouponSelectedUsers" class="min-h-[72px] flex flex-col items-center justify-center gap-1.5 text-[11px] border border-dashed border-slate-200 rounded-2xl bg-slate-50/70 px-3 py-4 text-slate-400">
+                            <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm mb-1">
+                                <i class="fa-regular fa-user text-slate-300"></i>
+                            </div>
+                            <p class="text-[11px] font-medium text-slate-500">Henüz kullanıcı seçilmedi.</p>
+                            <p class="text-[10px] text-slate-400">Arama yaparak listeye ekleyin.</p>
+                        </div>
+                    </div>
+                    <div class="border-t border-slate-100 pt-3 mt-1 space-y-1.5">
+                        <h5 class="text-[11px] font-medium text-slate-500 mb-1">Seçilenler</h5>
+                        <div id="newCouponSelectedUsersList" class="max-h-40 overflow-auto text-[11px] text-slate-700 space-y-1.5">
+                            <span class="text-slate-400">Henüz kullanıcı seçilmedi.</span>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
     <!-- Düzenle kupon modal + kullanıcı atama (modern kart tasarımı) -->
     <div id="couponEditModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4 py-6 bg-slate-900/30 backdrop-blur-sm" aria-hidden="true">
         <div class="bg-slate-50 rounded-[32px] shadow-2xl max-w-4xl w-full p-6 sm:p-7 text-sm border border-slate-100">
@@ -128,10 +217,11 @@
                     </div>
                     <div class="flex items-center justify-between gap-3 pt-1">
                         <label class="inline-flex items-center gap-2 text-slate-600 text-xs">
-                            <span class="inline-flex items-center justify-center w-9 h-5 rounded-full bg-violet-100 relative">
-                                <input type="checkbox" id="editCouponActive" name="is_active" class="peer sr-only" />
-                                <span class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white shadow peer-checked:translate-x-4 transition-transform"></span>
-                            </span>
+                            <div class="relative w-9 h-5 cursor-pointer">
+                                <input type="checkbox" id="editCouponActive" name="is_active" class="sr-only peer absolute inset-0 w-full h-full cursor-pointer z-10" />
+                                <div class="absolute inset-0 rounded-full bg-slate-200 peer-checked:bg-green-500 transition-colors pointer-events-none"></div>
+                                <div class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white shadow peer-checked:translate-x-4 transition-transform pointer-events-none"></div>
+                            </div>
                             <span>Aktif Kupon</span>
                         </label>
                         <button type="submit" id="couponEditSubmit" class="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 text-xs font-medium shadow-sm">
@@ -145,7 +235,7 @@
                     <header class="flex items-center justify-between gap-2 mb-1">
                         <div>
                             <h4 class="text-xs font-semibold text-slate-800">Kullanıcılara Ata</h4>
-                            <p class="text-[11px] text-slate-500 mt-0.5">Nickname veya e-posta ile arayıp birden fazla kullanıcı seçebilirsiniz.</p>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Kullanıcı adı veya e-posta ile arayıp birden fazla kullanıcı seçebilirsiniz.</p>
                         </div>
                         <span id="couponAssignedCount" class="text-[11px] text-slate-500">0 atanmış</span>
                     </header>
@@ -187,4 +277,185 @@
         </div>
     </div>
 {% endblock %}
+
+<script>
+    // Yeni kupon için kullanıcı seçimi
+    let selectedUsersForNewCoupon = [];
+
+    function renderSelectedNewCouponUsers() {
+        const container = document.getElementById('newCouponSelectedUsersList');
+        const countEl = document.getElementById('newCouponAssignedCount');
+        
+        if (!container) return;
+        
+        if (selectedUsersForNewCoupon.length === 0) {
+            container.innerHTML = '<span class="text-slate-400">Henüz kullanıcı seçilmedi.</span>';
+            if (countEl) countEl.textContent = '0 seçili';
+            return;
+        }
+        
+        if (countEl) countEl.textContent = selectedUsersForNewCoupon.length + ' seçili';
+        container.innerHTML = '';
+        
+        selectedUsersForNewCoupon.forEach((u, index) => {
+            const row = document.createElement('div');
+            row.className = 'flex items-center justify-between gap-2 px-2 py-1 rounded-lg border border-slate-100 bg-slate-50';
+            const fullName = ((u.first_name || '') + ' ' + (u.last_name || '')).trim();
+            const primary = fullName || u.email || (u.username ? '@' + u.username : 'Kullanıcı');
+            const secondary = u.email && u.username ? u.email + ' · @' + u.username : (u.email || (u.username ? '@' + u.username : ''));
+            
+            row.innerHTML = `
+                <div class="flex flex-col min-w-0">
+                    <span class="font-medium text-slate-800 truncate">${primary}</span>
+                    ${secondary ? `<span class="text-[10px] text-slate-500 truncate">${secondary}</span>` : ''}
+                </div>
+                <button type="button" class="shrink-0 text-rose-600 hover:text-rose-700 text-[10px]" onclick="removeSelectedNewCouponUser(${index})">Kaldır</button>
+            `;
+            container.appendChild(row);
+        });
+    }
+
+    function removeSelectedNewCouponUser(index) {
+        selectedUsersForNewCoupon.splice(index, 1);
+        renderSelectedNewCouponUsers();
+    }
+
+    function renderNewCouponUserSearchResults(users) {
+        const resultsContainer = document.getElementById('newCouponUserSearchResults');
+        if (!resultsContainer) return;
+        
+        resultsContainer.innerHTML = '';
+        users.forEach(function(u) {
+            const row = document.createElement('button');
+            row.type = 'button';
+            row.className = 'w-full flex items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50 border-b border-slate-50 last:border-b-0';
+            const fullName = ((u.first_name || '') + ' ' + (u.last_name || '')).trim();
+            const primary = fullName || u.email || u.username || 'Kullanıcı';
+            const secondary = u.email && u.username ? u.email + ' · @' + u.username : (u.email || (u.username ? '@' + u.username : ''));
+            
+            row.innerHTML = `
+                <div class="flex flex-col">
+                    <span class="text-[11px] font-medium text-slate-800">${primary}</span>
+                    ${secondary ? `<span class="text-[10px] text-slate-500">${secondary}</span>` : ''}
+                </div>
+                <span class="text-[10px] text-slate-400">Seç</span>
+            `;
+            
+            row.addEventListener('click', function() {
+                const exists = selectedUsersForNewCoupon.some(function(x) {
+                    return String(x.id) === String(u.id);
+                });
+                if (!exists) {
+                    selectedUsersForNewCoupon.push(u);
+                    renderSelectedNewCouponUsers();
+                }
+                resultsContainer.classList.add('hidden');
+                resultsContainer.innerHTML = '';
+                const searchInput = document.getElementById('newCouponUserSearchInput');
+                if (searchInput) searchInput.value = '';
+            });
+            resultsContainer.appendChild(row);
+        });
+    }
+
+    function searchUsersForNewCoupon(term) {
+        if (!term || term.trim().length < 2) {
+            renderNewCouponUserSearchResults([]);
+            return;
+        }
+        
+        const token = localStorage.getItem('access_token');
+        fetch('/api/admin/users/search?q=' + encodeURIComponent(term.trim()), {
+            headers: { 'Authorization': 'Bearer ' + token }
+        })
+        .then(function(r) {
+            if (!r.ok) return [];
+            return r.json();
+        })
+        .then(function(users) {
+            if (!Array.isArray(users)) users = [];
+            renderNewCouponUserSearchResults(users);
+        })
+        .catch(function() {
+            renderNewCouponUserSearchResults([]);
+        });
+    }
+
+    // Event listener'ları
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('newCouponUserSearchInput');
+        if (searchInput) {
+            let searchTimeoutId;
+            searchInput.addEventListener('input', function() {
+                const term = this.value;
+                clearTimeout(searchTimeoutId);
+                searchTimeoutId = setTimeout(function() {
+                    searchUsersForNewCoupon(term);
+                }, 250);
+            });
+            
+            searchInput.addEventListener('blur', function() {
+                setTimeout(function() {
+                    const resultsContainer = document.getElementById('newCouponUserSearchResults');
+                    if (resultsContainer) {
+                        resultsContainer.classList.add('hidden');
+                    }
+                }, 200);
+            });
+        }
+    });
+
+    async function submitCouponForm(e) {
+        e.preventDefault();
+        
+        const formData = {
+            code: document.getElementById('addCouponCode').value,
+            airline_name: document.getElementById('addCouponAirline').value,
+            refund_amount: parseFloat(document.getElementById('addCouponRefund').value),
+            expiry_date: document.getElementById('addCouponExpiry').value,
+            max_uses: parseInt(document.getElementById('addCouponMaxUses').value) || 1,
+            original_amount: parseFloat(document.getElementById('addCouponOriginal').value) || null,
+            issue_date: document.getElementById('addCouponIssue').value || null,
+            cancel_reason: document.getElementById('addCouponCancelReason').value || null,
+            is_active: document.getElementById('addCouponActive').checked,
+            user_ids: selectedUsersForNewCoupon.map(u => u.id)
+        };
+
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch('/api/admin/coupons', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Başarılı',
+                    text: 'Kupon başarıyla eklendi',
+                    confirmButtonColor: '#007e8a'
+                }).then(() => {
+                    document.getElementById('couponAddModal').classList.add('hidden');
+                    document.getElementById('couponAddForm').reset();
+                    selectedUsersForNewCoupon = [];
+                    renderSelectedNewCouponUsers();
+                    window.location.reload();
+                });
+            } else {
+                throw new Error('Kupon eklenemedi');
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Hata',
+                text: error.message || 'Kupon eklenemedi',
+                confirmButtonColor: '#007e8a'
+            });
+        }
+    }
+</script>
 

@@ -30,7 +30,7 @@ if str(_ROOT) not in sys.path:
 import logging
 import os
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -53,6 +53,7 @@ from app.models import (
     Airline,
     Airport,
     PasswordReset,
+    ContactForm,
 )
 from app.routes import (
     auth,
@@ -65,6 +66,8 @@ from app.routes import (
     coupons,
     airports_public,
     statistics,
+    airline_reviews_dataset,
+    contact,
 )
 
 logging.basicConfig(
@@ -427,6 +430,57 @@ def ensure_ticket_detail_route_category_column():
     except Exception as e:
         logger.warning("ticket_details.route_category migration step failed: %s", e)
 
+
+def ensure_ticket_detail_refund_preview_columns():
+    """
+    ticket_details tablosuna refund önizleme tutarını saklamak için alanlar ekler.
+
+    Amaç: Önizleme ekranında gösterilen tutar, iptal sırasında kupon oluştururken birebir aynen kullanılabilsin.
+    """
+    from sqlalchemy import text
+
+    try:
+        dialect = engine.dialect.name
+
+        if dialect == "sqlite":
+            with engine.begin() as conn:
+                rows = conn.execute(text("PRAGMA table_info('ticket_details')")).mappings().all()
+                names = {r.get("name") for r in rows}
+
+                if "refund_preview_amount" not in names:
+                    logger.info("Adding refund_preview_amount column (sqlite)")
+                    conn.execute(text("ALTER TABLE ticket_details ADD COLUMN refund_preview_amount FLOAT"))
+                if "refund_preview_currency" not in names:
+                    logger.info("Adding refund_preview_currency column (sqlite)")
+                    conn.execute(
+                        text("ALTER TABLE ticket_details ADD COLUMN refund_preview_currency VARCHAR(3) DEFAULT 'TRY'")
+                    )
+                if "refund_preview_quoted_at" not in names:
+                    logger.info("Adding refund_preview_quoted_at column (sqlite)")
+                    conn.execute(text("ALTER TABLE ticket_details ADD COLUMN refund_preview_quoted_at DATETIME"))
+            return
+
+        if dialect in {"postgresql", "postgres"}:
+            with engine.begin() as conn:
+                logger.info("Ensuring refund preview columns (postgres)")
+                conn.execute(
+                    text("ALTER TABLE ticket_details ADD COLUMN IF NOT EXISTS refund_preview_amount DOUBLE PRECISION")
+                )
+                conn.execute(
+                    text("ALTER TABLE ticket_details ADD COLUMN IF NOT EXISTS refund_preview_currency VARCHAR(3)")
+                )
+                conn.execute(
+                    text("ALTER TABLE ticket_details ADD COLUMN IF NOT EXISTS refund_preview_quoted_at TIMESTAMP")
+                )
+            return
+
+        logger.info(
+            "ticket_details refund preview migration skipped (unsupported dialect=%s)",
+            dialect,
+        )
+    except Exception as e:
+        logger.warning("ticket_details refund preview migration step failed: %s", e)
+
 # Veritabanı tabloları
 try:
     Base.metadata.create_all(bind=engine)
@@ -676,6 +730,11 @@ def ensure_comments_extra_columns():
                 if "updated_at" not in names:
                     conn.execute(text("ALTER TABLE user_reviews ADD COLUMN updated_at DATETIME"))
                     logger.info("Added user_reviews.updated_at (sqlite)")
+                if "is_analyzed" not in names:
+                    conn.execute(
+                        text("ALTER TABLE user_reviews ADD COLUMN is_analyzed BOOLEAN NOT NULL DEFAULT 0")
+                    )
+                    logger.info("Added user_reviews.is_analyzed (sqlite)")
             return
 
         if dialect in {"postgresql", "postgres"}:
@@ -689,7 +748,12 @@ def ensure_comments_extra_columns():
                     {"def": COMMENT_STATUS_PENDING},
                 )
                 conn.execute(text("ALTER TABLE user_reviews ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP"))
-                logger.info("Ensured user_reviews title, status, updated_at (postgres)")
+                conn.execute(
+                    text(
+                        "ALTER TABLE user_reviews ADD COLUMN IF NOT EXISTS is_analyzed BOOLEAN NOT NULL DEFAULT FALSE"
+                    )
+                )
+                logger.info("Ensured user_reviews title, status, updated_at, is_analyzed (postgres)")
             return
 
         logger.info(
@@ -698,6 +762,60 @@ def ensure_comments_extra_columns():
         )
     except Exception as e:
         logger.warning("ensure_comments_extra_columns failed: %s", e)
+
+
+def backfill_user_reviews_is_analyzed_from_links():
+    """
+    user_review_analysis_reviews tablosuna göre is_analyzed bayrağını doldurur.
+    Kolon veya link tablosu yoksa sessizce çıkılır.
+    """
+    from sqlalchemy import inspect, text
+
+    try:
+        insp = inspect(engine)
+        existing = set(insp.get_table_names())
+        if "user_reviews" not in existing or "user_review_analysis_reviews" not in existing:
+            return
+        dialect = engine.dialect.name
+        if dialect == "sqlite":
+            with engine.begin() as conn:
+                conn.execute(
+                    text(
+                        "UPDATE user_reviews SET is_analyzed = 1 "
+                        "WHERE id IN (SELECT user_review_id FROM user_review_analysis_reviews)"
+                    )
+                )
+            logger.info("Backfilled user_reviews.is_analyzed from link table (sqlite)")
+            return
+        if dialect in {"postgresql", "postgres"}:
+            with engine.begin() as conn:
+                conn.execute(
+                    text(
+                        "UPDATE user_reviews u SET is_analyzed = TRUE "
+                        "FROM user_review_analysis_reviews l WHERE u.id = l.user_review_id"
+                    )
+                )
+            logger.info("Backfilled user_reviews.is_analyzed from link table (postgres)")
+    except Exception as e:
+        logger.warning("backfill_user_reviews_is_analyzed_from_links failed: %s", e)
+
+
+def ensure_contact_forms_table():
+    """
+    contact_forms tablosunu oluşturur (yoksa).
+    İletişim formu gönderileri için gerekli.
+    """
+    try:
+        from sqlalchemy import inspect
+        from app.models.contact_form import ContactForm
+        
+        insp = inspect(engine)
+        existing = set(insp.get_table_names())
+        if "contact_forms" not in existing:
+            ContactForm.__table__.create(bind=engine, checkfirst=True)
+            logger.info("Created table contact_forms")
+    except Exception as e:
+        logger.warning("ensure_contact_forms_table failed: %s", e)
 
 
 app = FastAPI(
@@ -722,6 +840,7 @@ def on_startup():
         drop_ticket_detail_legacy_time_columns()
         drop_ticket_detail_segment_columns()
         ensure_ticket_detail_route_category_column()
+        ensure_ticket_detail_refund_preview_columns()
         ensure_password_reset_is_active_column()
         ensure_comments_table_renamed_to_user_reviews()
         ensure_ticket_segments_and_comments_tables()
@@ -729,6 +848,8 @@ def on_startup():
         ensure_user_review_analysis_tables()
         ensure_user_review_analysis_airline_column()
         ensure_user_review_analysis_extra_columns()
+        backfill_user_reviews_is_analyzed_from_links()
+        ensure_contact_forms_table()
     except Exception as e:
         logger.warning("Startup admin check skipped (veritabanı bağlantısı yok veya hata): %s", e)
 
@@ -784,6 +905,15 @@ async def partial_navbar(request: Request):
 async def partial_footer(request: Request):
     return templates.TemplateResponse("partials/footer.html", {"request": request})
 
+# Ticket template for JavaScript generation
+@app.get("/templates/tickets/ticket.html", response_class=HTMLResponse)
+async def ticket_template(request: Request):
+    """Ticket template for JavaScript PDF generation."""
+    template_path = ROOT_DIR / "templates" / "tickets" / "ticket.html"
+    if template_path.exists():
+        return FileResponse(template_path)
+    raise HTTPException(status_code=404, detail="Template not found")
+
 # API router'ları: /api/auth/*, /api/flights, /api/tickets, /api/admin/*, /api/reviews, /api/public/*, /api/coupons/*
 app.include_router(auth.router, prefix="/api")
 app.include_router(flights.router, prefix="/api")
@@ -795,6 +925,8 @@ app.include_router(review_analysis.router, prefix="/api")
 app.include_router(coupons.router, prefix="/api")
 app.include_router(airports_public.router, prefix="/api")
 app.include_router(statistics.router, prefix="/api")
+app.include_router(airline_reviews_dataset.router, prefix="/api")
+app.include_router(contact.router)
 
 # Health: tek endpoint, veritabanı varsa kontrol et
 @app.get("/api/health")
@@ -881,11 +1013,6 @@ async def airline_reviews_page(request: Request):
     return templates.TemplateResponse("reviews/airline-reviews.html", {"request": request})
 
 
-@app.get("/airline-reviews-dataset", response_class=HTMLResponse)
-async def airline_reviews_dataset_page(request: Request):
-    """Havayolu yorumları – farklı veri kümeleri için kopya analiz sayfası."""
-    return templates.TemplateResponse("reviews/airline-reviews-dataset.html", {"request": request})
-
 
 @app.get("/analytics", response_class=HTMLResponse)
 async def analytics_page(request: Request):
@@ -932,10 +1059,16 @@ async def admin_statistics_page(request: Request):
     return templates.TemplateResponse("admin/statistics.html", {"request": request})
 
 
+@app.get("/admin/contact-forms", response_class=HTMLResponse)
+async def admin_contact_forms_page(request: Request):
+    """Admin iletişim formları yönetimi sayfası."""
+    return templates.TemplateResponse("admin/contact-forms.html", {"request": request})
+
+
 @app.get("/ticket-preview", response_class=HTMLResponse)
 async def ticket_preview_page(request: Request):
     """Bilet önizleme sayfası (yeni sekmede açılır, token ile API'den bilet HTML'i alır)."""
-    return templates.TemplateResponse("ticket-preview.html", {"request": request})
+    return templates.TemplateResponse("tickets/ticket-preview.html", {"request": request})
 
 
 @app.get("/info")

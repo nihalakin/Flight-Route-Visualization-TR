@@ -1,0 +1,172 @@
+/* SweetAlert Custom Styles */
+
+/* Success Modal Styles */
+.swal2-popup.custom-success-modal {
+    padding: 0 !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
+}
+
+.swal2-popup.custom-success-modal .swal2-html-container {
+    margin: 0 !important;
+    padding: 50px !important;
+    text-align: center !important;
+}
+
+.swal2-popup.custom-success-modal .success-icon-container {
+    width: 64px !important;
+    height: 64px !important;
+    background-color: #dcfce7 !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-bottom: 16px !important;
+}
+
+.swal2-popup.custom-success-modal .success-icon {
+    color: #16a34a !important;
+    width: 32px !important;
+    height: 32px !important;
+}
+
+.swal2-popup.custom-success-modal .success-title {
+    font-weight: 600 !important;
+    font-size: 18px !important;
+    color: #000 !important;
+    margin-bottom: 8px !important;
+}
+
+.swal2-popup.custom-success-modal .success-description {
+    color: #6b7280 !important;
+    font-size: 14px !important;
+    margin-bottom: 24px !important;
+}
+
+.swal2-popup.custom-success-modal .success-button {
+    background-color: #22c55e !important;
+    color: white !important;
+    border: none !important;
+    padding: 12px 24px !important;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: background-color 0.2s ease !important;
+}
+
+.swal2-popup.custom-success-modal .success-button:hover {
+    background-color: #16a34a !important;
+}
+
+/* Error Modal Styles */
+.swal2-popup.custom-error-modal {
+    padding: 0 !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
+}
+
+.swal2-popup.custom-error-modal .swal2-html-container {
+    margin: 0 !important;
+    padding: 20px !important;
+    text-align: center !important;
+}
+
+.swal2-popup.custom-error-modal .error-icon-container {
+    width: 64px !important;
+    height: 64px !important;
+    background-color: #fee2e2 !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-bottom: 16px !important;
+}
+
+.swal2-popup.custom-error-modal .error-icon {
+    color: #dc2626 !important;
+    width: 32px !important;
+    height: 32px !important;
+}
+
+.swal2-popup.custom-error-modal .error-title {
+    font-weight: 600 !important;
+    font-size: 18px !important;
+    color: #000 !important;
+    margin-bottom: 8px !important;
+}
+
+.swal2-popup.custom-error-modal .error-description {
+    color: #6b7280 !important;
+    font-size: 14px !important;
+    margin-bottom: 24px !important;
+}
+
+.swal2-popup.custom-error-modal .error-button {
+    background-color: #ef4444 !important;
+    color: white !important;
+    border: none !important;
+    padding: 12px 24px !important;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: background-color 0.2s ease !important;
+}
+
+.swal2-popup.custom-error-modal .error-button:hover {
+    background-color: #dc2626 !important;
+}
+
+/* Loading Modal Styles */
+.swal2-popup.custom-loading-modal {
+    padding: 0 !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
+}
+
+.swal2-popup.custom-loading-modal .swal2-html-container {
+    margin: 0 !important;
+    padding: 20px !important;
+    text-align: center !important;
+}
+
+.swal2-popup.custom-loading-modal .loading-icon-container {
+    width: 64px !important;
+    height: 64px !important;
+    background-color: #dbeafe !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-bottom: 16px !important;
+}
+
+.swal2-popup.custom-loading-modal .loading-icon {
+    color: #2563eb !important;
+    width: 32px !important;
+    height: 32px !important;
+    animation: spin 1s linear infinite !important;
+}
+
+.swal2-popup.custom-loading-modal .loading-title {
+    font-weight: 600 !important;
+    font-size: 18px !important;
+    color: #000 !important;
+    margin-bottom: 8px !important;
+}
+
+.swal2-popup.custom-loading-modal .loading-description {
+    color: #6b7280 !important;
+    font-size: 14px !important;
+    margin-bottom: 24px !important;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}

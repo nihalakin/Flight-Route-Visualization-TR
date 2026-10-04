@@ -381,20 +381,23 @@
                         var amount = c.amount || c.discount_amount || c.fixed_amount || null;
                         var isPercentage = !!percentage && !amount;
 
+                        var typeLabel = c.type_label || (isPercentage ? 'İndirim Kuponu' : 'İade Kuponu');
+
                         var amountText = '';
                         var amountSubText = '';
                         if (isPercentage) {
                             amountText = '%' + percentage;
                             amountSubText = 'Net indirim oranı';
-                        } else if (amount) {
-                            amountText = amount + ' TL';
-                            amountSubText = 'İndirim tutarı';
+                        } else if (amount != null) {
+                            var amountNum = Number(amount);
+                            amountText = !isNaN(amountNum) ? amountNum.toFixed(2) + ' TL' : String(amount) + ' TL';
+                            amountSubText = (String(typeLabel || '').toLowerCase().indexOf('iade') >= 0)
+                                ? 'İade tutarı'
+                                : 'İndirim tutarı';
                         } else {
                             amountText = title || 'Kupon';
                             amountSubText = '';
                         }
-
-                        var typeLabel = c.type_label || (isPercentage ? 'İndirim Kuponu' : 'İade Kuponu');
 
                         var conditionsParts = [];
                         if (airlineText) conditionsParts.push(airlineText);
@@ -451,16 +454,36 @@
                                 var code = this.getAttribute('data-code') || '';
                                 if (!code) return;
                                 if (navigator.clipboard && navigator.clipboard.writeText) {
-                                    navigator.clipboard.writeText(code).catch(function() {});
+                                    navigator.clipboard.writeText(code).then(function() {
+                                        showCopiedFeedback(copyBtn);
+                                    }).catch(function() {});
                                 } else {
                                     var temp = document.createElement('input');
                                     temp.value = code;
                                     document.body.appendChild(temp);
                                     temp.select();
-                                    try { document.execCommand('copy'); } catch (e) {}
+                                    try { 
+                                        document.execCommand('copy');
+                                        showCopiedFeedback(copyBtn);
+                                    } catch (e) {}
                                     document.body.removeChild(temp);
                                 }
                             });
+                        }
+                        
+                        function showCopiedFeedback(btn) {
+                            var originalText = '<i class="fas fa-copy"></i><span>Kopyala</span>';
+                            var copiedText = '<i class="fas fa-check"></i><span>Kopyalandı!</span>';
+                            
+                            btn.innerHTML = copiedText;
+                            btn.style.background = '#10b981';
+                            btn.style.color = '#ffffff';
+                            
+                            setTimeout(function() {
+                                btn.innerHTML = originalText;
+                                btn.style.background = '';
+                                btn.style.color = '';
+                            }, 2000);
                         }
                     });
                 })

@@ -4,7 +4,7 @@ Her uçuş segmenti için ayrı yorum (Comment) yapılabilir.
 """
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, ForeignKey, Integer, String, Text
 
 from app.database import Base
 
@@ -32,6 +32,8 @@ class Comment(Base):
     rating = Column(Integer, nullable=False)
     content = Column(Text, nullable=False)
     status = Column(String(32), nullable=False, default=COMMENT_STATUS_PENDING, index=True)
+    # LLM analizi tamamlandığında True; user_review_analysis_reviews ile senkron tutulur.
+    is_analyzed = Column(Boolean, nullable=False, default=False, index=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)

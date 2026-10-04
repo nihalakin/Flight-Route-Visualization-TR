@@ -4,19 +4,32 @@ Admin işlemleri:
 - Segment bazlı yorumları (comments) listeleme ve silme.
 Sadece is_admin = True kullanıcılar erişebilir.
 """
+import logging
 from datetime import date, datetime
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Airport, Coupon, User, Comment, TicketSegment, TicketDetail, UserCoupon
+from app.models import Airport, Coupon, User, Comment, TicketSegment, TicketDetail, UserCoupon, ContactForm
 from app.models.comment import COMMENT_STATUS_APPROVED, COMMENT_STATUS_PENDING, COMMENT_STATUS_REJECTED
+from app.repositories.review_analysis_repo import (
+    get_airlines_with_unanalyzed_reviews,
+    get_unanalyzed_approved_reviews_for_airline,
+    get_unanalyzed_reviews_count,
+    save_analysis_batch,
+)
 from app.routes.auth import get_current_admin
-from app.routes.review_analysis import run_analysis_for_airline_background
+from app.services.review_analysis import ReviewAnalysisError, analyze_reviews
+from app.services.api_health import get_all_api_statuses
+from app.services.email_service import email_service
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+logger = logging.getLogger(__name__)
+
+# Model token limit sebebiyle tek havayolu için yorumları parça parça göndermek daha güvenlidir.
+REVIEW_ANALYSIS_BATCH_SIZE = 50
 
 
 class ReviewUpdateBody(BaseModel):
@@ -122,6 +135,7 @@ async def list_reviews(
                 "rating": c.rating,
                 "content": c.content,
                 "status": c.status or COMMENT_STATUS_PENDING,
+                "is_analyzed": bool(getattr(c, "is_analyzed", False)),
                 "created_at": c.created_at.isoformat() if c.created_at else None,
                 "updated_at": c.updated_at.isoformat() if c.updated_at else None,
             }
@@ -132,22 +146,16 @@ async def list_reviews(
 @router.post("/reviews/{review_id}/approve", status_code=status.HTTP_200_OK)
 async def approve_review(
     review_id: int,
-    background_tasks: BackgroundTasks,
     current_admin: User = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
-    """Yorumu onaylar (status=approved). Onaylanan yorum arka planda Gemma 3 27B ile analiz edilir."""
+    """Yorumu onaylar (status=approved)."""
     comment = db.query(Comment).filter(Comment.id == review_id).first()
     if not comment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Yorum bulunamadı")
-    segment = db.query(TicketSegment).filter(TicketSegment.id == comment.ticket_segment_id).first()
-    airline_name = (segment.airline_name or "").strip() if segment else ""
-    if not airline_name:
-        airline_name = "Diğer"
     comment.status = COMMENT_STATUS_APPROVED
     comment.updated_at = datetime.utcnow()
     db.commit()
-    background_tasks.add_task(run_analysis_for_airline_background, airline_name)
     return {"detail": "Yorum onaylandı"}
 
 
@@ -171,11 +179,10 @@ async def reject_review(
 async def update_review(
     review_id: int,
     data: ReviewUpdateBody,
-    background_tasks: BackgroundTasks,
     current_admin: User = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
-    """Yorumu günceller (title, content, status). Status approved yapılırsa arka planda analiz tetiklenir."""
+    """Yorumu günceller (title, content, status)."""
     comment = db.query(Comment).filter(Comment.id == review_id).first()
     if not comment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Yorum bulunamadı")
@@ -183,20 +190,66 @@ async def update_review(
         comment.title = data.title.strip() or None
     if data.content is not None:
         comment.content = data.content.strip() or comment.content
-    newly_approved = False
     if data.status is not None and data.status in (COMMENT_STATUS_PENDING, COMMENT_STATUS_APPROVED, COMMENT_STATUS_REJECTED):
-        if data.status == COMMENT_STATUS_APPROVED and (comment.status or COMMENT_STATUS_PENDING) != COMMENT_STATUS_APPROVED:
-            newly_approved = True
         comment.status = data.status
     comment.updated_at = datetime.utcnow()
     db.commit()
-    if newly_approved:
-        segment = db.query(TicketSegment).filter(TicketSegment.id == comment.ticket_segment_id).first()
-        airline_name = (segment.airline_name or "").strip() if segment else ""
-        if not airline_name:
-            airline_name = "Diğer"
-        background_tasks.add_task(run_analysis_for_airline_background, airline_name)
     return {"detail": "Yorum güncellendi"}
+
+
+@router.get("/reviews/analysis-pending", response_model=dict)
+async def get_pending_review_analysis_count(
+    current_admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """Onaylı ve henüz analiz edilmemiş yorum sayısını döndürür."""
+    pending_count = get_unanalyzed_reviews_count(db)
+    return {"pending_count": pending_count}
+
+
+@router.post("/reviews/analyze", status_code=status.HTTP_200_OK, response_model=dict)
+async def analyze_pending_reviews(
+    current_admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    Onaylı ve analiz edilmemiş yorumları admin tarafından tetiklenerek havayolu bazında batch analiz eder.
+    Bekleyen veya reddedilen yorumlar işlenmez. Başarısız olursa ilgili yorumlar analiz edilmemiş kalır.
+    """
+    airlines = get_airlines_with_unanalyzed_reviews(db)
+    if not airlines:
+        return {"detail": "Onaylı ve analiz bekleyen yorum yok.", "processed_count": 0, "pending_count": 0}
+
+    total_processed = 0
+    failed_airlines: list[dict] = []
+
+    # Havayolu bazında analiz yapmak UI tarafındaki `airline` parametresiyle birebir eşleşir.
+    for airline_name in airlines:
+        unanalyzed = get_unanalyzed_approved_reviews_for_airline(db, airline_name)
+        if not unanalyzed:
+            continue
+
+        # Tek seferde tüm yorumları göndermek token limitine takılabileceği için güvenli chunk.
+        for i in range(0, len(unanalyzed), REVIEW_ANALYSIS_BATCH_SIZE):
+            batch = unanalyzed[i : i + REVIEW_ANALYSIS_BATCH_SIZE]
+            review_ids = [r[0] for r in batch]
+            if not review_ids:
+                continue
+            try:
+                result = await analyze_reviews(batch)
+                save_analysis_batch(db, review_ids, result, airline_name)
+                total_processed += len(review_ids)
+            except ReviewAnalysisError as e:
+                # Hata olan parçadaki yorumlar `Comment.is_analyzed=False` kalır; tekrar basılınca yeniden analiz edilebilir.
+                failed_airlines.append({"airline_name": airline_name, "error": str(e)})
+
+    pending_count = get_unanalyzed_reviews_count(db)
+    return {
+        "detail": f"{total_processed} yorum havayolu bazlı batch analiz edildi.",
+        "processed_count": total_processed,
+        "pending_count": pending_count,
+        "failed_airlines": failed_airlines,
+    }
 
 
 @router.delete("/reviews/{review_id}", status_code=status.HTTP_200_OK)
@@ -435,6 +488,7 @@ class CouponCreate(BaseModel):
     expiry_date: date
     max_uses: int = Field(default=1, ge=1, description="Kaç kişi bu kuponu kullanabilir")
     is_active: bool = True
+    user_ids: list[int] = Field(default=[], description="Kuponu kullanabilecek kullanıcı ID'leri. Boş ise tüm kullanıcılar için geçerli")
 
 
 class CouponUpdate(BaseModel):
@@ -480,6 +534,18 @@ async def create_coupon(
     db.add(coupon)
     db.commit()
     db.refresh(coupon)
+
+    # Belirli kullanıcılara atama
+    if data.user_ids:
+        for user_id in data.user_ids:
+            assignment = CouponUserAssignment(
+                coupon_id=coupon.id,
+                user_id=user_id,
+                assigned_at=datetime.utcnow()
+            )
+            db.add(assignment)
+        db.commit()
+
     return {"id": coupon.id, "code": coupon.code}
 
 
@@ -725,3 +791,165 @@ async def delete_airport(
     db.delete(airport)
     db.commit()
     return {"detail": "Havalimanı silindi"}
+
+
+@router.get("/api-status", response_model=dict)
+async def get_api_status(
+    current_admin: User = Depends(get_current_admin),
+):
+    """
+    Tüm API bağlantı durumlarını döndürür.
+    """
+    statuses = await get_all_api_statuses()
+    return statuses
+
+
+# --- İletişim formu yönetimi ---
+
+
+@router.get("/contact-forms", response_model=list[dict])
+async def list_contact_forms(
+    current_admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+    status_filter: str | None = None,
+):
+    """
+    İletişim formu gönderilerini listeler.
+    status_filter: pending | in_progress | resolved | closed ile filtreleyebilirsiniz.
+    """
+    q = db.query(ContactForm)
+    if status_filter:
+        q = q.filter(ContactForm.status == status_filter)
+    forms = q.order_by(ContactForm.created_at.desc()).all()
+    results: list[dict] = []
+    for f in forms:
+        results.append(
+            {
+                "id": f.id,
+                "name": f.name,
+                "email": f.email,
+                "subject": f.subject,
+                "message": f.message,
+                "status": f.status,
+                "created_at": f.created_at.isoformat() if f.created_at else None,
+                "updated_at": f.updated_at.isoformat() if f.updated_at else None,
+            }
+        )
+    return results
+
+
+class ContactFormUpdate(BaseModel):
+    status: str = Field(..., description="pending | in_progress | resolved | closed")
+
+
+@router.patch("/contact-forms/{form_id}", status_code=status.HTTP_200_OK, response_model=dict)
+async def update_contact_form_status(
+    form_id: int,
+    data: ContactFormUpdate,
+    current_admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    İletişim formu durumunu günceller.
+    """
+    valid_statuses = {"pending", "in_progress", "resolved", "closed"}
+    if data.status not in valid_statuses:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Geçersiz durum. Geçerli değerler: {', '.join(valid_statuses)}",
+        )
+
+    contact_form = db.query(ContactForm).filter(ContactForm.id == form_id).first()
+    if not contact_form:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="İletişim formu bulunamadı")
+
+    contact_form.status = data.status
+    contact_form.updated_at = datetime.utcnow()
+    db.commit()
+    return {"detail": "İletişim formu durumu güncellendi"}
+
+
+@router.delete("/contact-forms/{form_id}", status_code=status.HTTP_200_OK, response_model=dict)
+async def delete_contact_form(
+    form_id: int,
+    current_admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    İletişim formunu siler.
+    """
+    contact_form = db.query(ContactForm).filter(ContactForm.id == form_id).first()
+    if not contact_form:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="İletişim formu bulunamadı")
+
+    db.delete(contact_form)
+    db.commit()
+    return {"detail": "İletişim formu silindi"}
+
+
+class ContactFormReply(BaseModel):
+    subject: str = Field(..., min_length=1, max_length=255)
+    message: str = Field(..., min_length=1, max_length=5000)
+
+
+@router.post("/contact-forms/{form_id}/reply", status_code=status.HTTP_200_OK, response_model=dict)
+async def reply_to_contact_form(
+    form_id: int,
+    reply_data: ContactFormReply,
+    current_admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    İletişim formuna cevap gönderir.
+    E-posta gönderme işlemi SMTP üzerinden yapılır.
+    """
+    contact_form = db.query(ContactForm).filter(ContactForm.id == form_id).first()
+    if not contact_form:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="İletişim formu bulunamadı")
+
+    # E-posta gönderme işlemi
+    email_body = f"""
+Sayın {contact_form.name},
+
+İletişim formunuza verdiğiniz cevap için teşekkür ederiz.
+
+Orijinal Mesajınız:
+{contact_form.message}
+
+Cevabımız:
+{reply_data.message}
+
+Saygılarımızla,
+Nodia Destek Ekibi
+"""
+
+    success = email_service.send_email(
+        to_email=contact_form.email,
+        subject=reply_data.subject,
+        body=email_body.strip(),
+    )
+
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="E-posta gönderilemedi"
+        )
+
+    # Form durumunu güncelle
+    contact_form.status = "replied"
+    contact_form.updated_at = datetime.utcnow()
+    db.commit()
+
+    logger.info(
+        f"Email reply sent to {contact_form.email} from nodiadestek@gmail.com\n"
+        f"Subject: {reply_data.subject}\n"
+        f"Message: {reply_data.message}"
+    )
+
+    return {
+        "detail": "Cevap gönderildi",
+        "to": contact_form.email,
+        "from": "nodiadestek@gmail.com",
+        "subject": reply_data.subject,
+        "status": "replied"
+    }

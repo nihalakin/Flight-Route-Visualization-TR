@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/static/css/global/sweetalert-custom.css">
     <link rel="stylesheet" href="/static/css/global/base.css">
     <link rel="stylesheet" href="/static/css/global/components.css">
     <link rel="stylesheet" href="/static/css/global/main.css">
@@ -921,6 +923,27 @@
                     .then(function() {
                         closeReviewModal();
                         loadTickets();
+                        
+                        // Show SweetAlert2 notification
+                        Swal.fire({
+                            html: `
+                                <div class="success-icon-container">
+                                    <svg class="success-icon" viewBox="0 0 24 24" fill="none">
+                                        <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </div>
+                                <div class="success-title">Yorumunuz başarıyla gönderildi!</div>
+                                <div class="success-description">Onaylandıktan sonra yayımlanacaktır.</div>
+                                <button class="success-button" onclick="Swal.close()">Tamam</button>
+                            `,
+                            showConfirmButton: false,
+                            showCloseButton: false,
+                            timer: 4000,
+                            timerProgressBar: true,
+                            customClass: {
+                                popup: 'custom-success-modal'
+                            }
+                        });
                     })
                     .catch(function(err) {
                         errorEl.textContent = err.message || 'Yorum kaydedilemedi.';

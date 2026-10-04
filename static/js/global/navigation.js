@@ -943,10 +943,6 @@ displayOptimizationCard(containerId, route, title, searchParams = null) {
                         <span class="stat-label">Tip:</span>
                         <span class="stat-value">${route.summary.isDirect ? 'Direkt' : 'Aktarmalı'}</span>
                     </div>
-                    <div class="stat">
-                        <span class="stat-label">Uçuşlar:</span>
-                        <span class="stat-value">${route.segments ? route.segments.length : 0}</span>
-                    </div>
                     ${cabinClassInfo}
                 </div>
                 
@@ -981,10 +977,10 @@ async downloadTicketAsPDF(route, routeType) {
         return;
     }
 
-    // Giriş yapmamışsa Giriş Yap sayfasına yönlendir (girişten sonra bu sayfaya dönülecek)
-    if (!localStorage.getItem('access_token')) {
-        const returnUrl = encodeURIComponent(window.location.pathname || '/create-route.html');
-        window.location.href = '/login?next=' + returnUrl;
+    // Kullanıcı giriş yapmış mı kontrol et
+    const isAuthenticated = await this.checkAuthentication();
+    if (!isAuthenticated) {
+        this.redirectToLogin();
         return;
     }
 
@@ -2764,6 +2760,47 @@ calculateRealRegionalDistribution() {
         } catch (error) {
             console.error('Backend bağlantı kontrolü hatası:', error);
         }
+    }
+
+    // Kullanıcı authentication kontrolü
+    async checkAuthentication() {
+        try {
+            const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+            if (!token) {
+                return false;
+            }
+
+            const response = await fetch('/api/me', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            return response.ok;
+        } catch (error) {
+            console.error('Authentication check error:', error);
+            return false;
+        }
+    }
+
+    // Login sayfasına yönlendirme
+    redirectToLogin() {
+        // Mevcut sayfa URL'sini sakla
+        const currentUrl = window.location.pathname + window.location.search;
+        
+        // Rota oluşturma sayfasından geliyorsa özel olarak işaretle
+        if (currentUrl.includes('/tickets/create-route') || currentUrl.includes('rota-olustur')) {
+            sessionStorage.setItem('intendedDestination', '/tickets/create-route');
+        } else {
+            sessionStorage.setItem('intendedDestination', currentUrl);
+        }
+        
+        const encodedUrl = encodeURIComponent(currentUrl);
+        
+        // Login sayfasına yönlendir, next parametresi ile geri dönüş bilgisi
+        window.location.href = `/login?next=${encodedUrl}`;
     }
 }
 

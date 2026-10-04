@@ -5,14 +5,16 @@ from sqlalchemy.orm import Session
 from app.models import AirlineDatasetReview
 
 
-def get_dataset_reviews_grouped_by_airline(db: Session) -> Dict[str, Any]:
+def get_dataset_reviews_grouped_by_airline(db: Session, category: str | None = None) -> Dict[str, Any]:
     """
     Dataset tablosundaki ham yorumları havayoluna göre gruplayarak döndürür.
     Frontend'de airline-reviews-dataset sayfasındaki yorum listelerini besler.
+    Tüm kategorilerdeki yorumları döndürür.
     """
+    q = db.query(AirlineDatasetReview)
+    # Category filtresini kaldırdık - tüm kategorilerdeki yorumları getir
     rows: List[AirlineDatasetReview] = (
-        db.query(AirlineDatasetReview)
-        .order_by(AirlineDatasetReview.airline_name.asc(), AirlineDatasetReview.review_date.asc())
+        q.order_by(AirlineDatasetReview.airline_name.asc(), AirlineDatasetReview.review_date.asc())
         .all()
     )
     by_airline: Dict[str, List[Dict[str, Any]]] = {}

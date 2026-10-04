@@ -10,16 +10,19 @@
         body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-sm">
-        <!-- Başlık -->
-        <div class="text-center mb-8">
-            <h1 class="text-2xl font-semibold text-gray-900">nodia</h1>
-            <p class="text-sm text-gray-500 mt-1">Hesabına giriş yap</p>
-        </div>
-
+<body class="bg-gradient-to-br from-[#007e8a]/20 via-[#007e8a]/10 to-white min-h-screen flex items-center justify-center p-4 relative">
+    <!-- Bulanık arka plan -->
+    <div class="absolute inset-0 bg-white/40 backdrop-blur-md"></div>
+    
+    <div class="w-full max-w-sm relative z-10">
         <!-- Kart -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+            <!-- Logo ve Başlık -->
+            <div class="text-center mb-8">
+                <img src="/static/img/nodia-logo.png" alt="Nodia Logo" class="w-20 h-20 mx-auto rounded-2xl">
+                <h1 class="text-2xl font-bold text-[#007e8a] mt-4">Nodia</h1>
+                <p class="text-sm text-gray-500 mt-1">Hesabına giriş yap</p>
+            </div>
             <form id="loginForm" class="space-y-5">
                 <!-- E-posta -->
                 <div>
@@ -29,31 +32,31 @@
                         id="email" 
                         name="email" 
                         required
-                        class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                        class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-[#007e8a]/20 focus:border-[#007e8a] outline-none transition"
                         placeholder="ornek@email.com"
                     >
                 </div>
                 
                 <!-- Şifre -->
                 <div>
-                    <div class="flex items-center justify-between mb-1.5">
-                        <label for="password" class="block text-sm font-medium text-gray-700">Şifre</label>
-                        <button 
-                            type="button" 
-                            id="forgotPasswordBtn"
-                            class="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                        >
-                            Şifremi unuttum
-                        </button>
-                    </div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1.5">Şifre</label>
                     <input 
                         type="password" 
                         id="password" 
                         name="password" 
                         required
-                        class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                        class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-[#007e8a]/20 focus:border-[#007e8a] outline-none transition"
                         placeholder="••••••••"
                     >
+                    <div class="mt-2 text-right">
+                        <button 
+                            type="button" 
+                            id="forgotPasswordBtn"
+                            class="text-xs text-[#007e8a] hover:text-[#006675] font-medium"
+                        >
+                            Şifremi unuttum
+                        </button>
+                    </div>
                 </div>
                 
                 <!-- Hata mesajı -->
@@ -69,7 +72,7 @@
                 <!-- Giriş butonu -->
                 <button 
                     type="submit" 
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-xl transition duration-200 text-sm"
+                    class="w-full bg-[#007e8a] hover:bg-[#006675] text-white font-medium py-2.5 px-4 rounded-xl transition duration-200 text-sm"
                 >
                     Giriş yap
                 </button>
@@ -78,7 +81,7 @@
             <!-- Üye ol bağlantısı (next parametresi ile, giriş sonrası aynı sayfaya dönülebilir) -->
             <p class="mt-6 text-center text-sm text-gray-500">
                 Henüz hesabın yok mu?
-                <a href="/register" id="registerLink" class="text-blue-600 hover:text-blue-700 font-medium">Hesap oluştur</a>
+                <a href="/register" id="registerLink" class="text-[#007e8a] hover:text-[#006675] font-medium">Hesap oluştur</a>
             </p>
         </div>
 
@@ -185,12 +188,20 @@
                             if (me && me.is_admin) {
                                 window.location.href = '/admin/dashboard';
                             } else {
-                                window.location.href = '/profile';
+                                // Session storage'da intended destination varsa kontrol et
+                                const intendedDestination = sessionStorage.getItem('intendedDestination');
+                                if (intendedDestination) {
+                                    sessionStorage.removeItem('intendedDestination'); // Temizle
+                                    window.location.href = intendedDestination;
+                                } else {
+                                    // next parametresi varsa oraya yönlendir, yoksa anasayfaya
+                                    window.location.href = nextUrl !== '/' ? nextUrl : '/';
+                                }
                             }
                         })
                         .catch(function() {
-                            // Her ihtimale karşı profil sayfasına gönder
-                            window.location.href = '/profile';
+                            // Her ihtimale karşı anasayfaya gönder
+                            window.location.href = '/';
                         });
                     } else {
                         var msg = (data.detail && (typeof data.detail === 'string' ? data.detail : data.detail.map(function(x) { return x.msg || x.loc; }).join(', '))) || data.message || 'Giriş başarısız.';

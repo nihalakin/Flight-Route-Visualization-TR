@@ -14,6 +14,34 @@ class CouponManager {
         } catch (error) {
             console.warn('Kupon verileri yüklenemedi, kupon özelliği devre dışı:', error);
         }
+
+        // DB'den kullanıcı iptali sırasında üretilen kuponları da ekle.
+        try {
+            const activeResp = await fetch('/api/coupons/active');
+            if (!activeResp.ok) return;
+            const activeCoupons = await activeResp.json();
+            if (!Array.isArray(activeCoupons)) return;
+
+            activeCoupons.forEach(c => {
+                if (!c || !c.code) return;
+                const code = String(c.code).trim().toUpperCase();
+                if (!code) return;
+
+                this.coupons.set(code, {
+                    code: code,
+                    airline: (c.airline_name || '').toString(),
+                    originalAmount: c.original_amount != null ? Number(c.original_amount) : null,
+                    discountAmount: c.discount_amount != null ? Number(c.discount_amount) : 0,
+                    issueDate: c.issue_date ? String(c.issue_date) : null,
+                    reason: c.cancel_reason ? String(c.cancel_reason) : null,
+                    expiryDate: c.expiry_date ? new Date(c.expiry_date) : new Date(0)
+                });
+            });
+
+            console.log(` ${this.coupons.size} adet kupon yüklendi (DB aktif kuponlar eklendi)`);
+        } catch (error) {
+            console.warn('DB aktif kuponlar yüklenemedi:', error);
+        }
     }
 
     parseCSV(csvText) {
@@ -639,7 +667,7 @@ prepareTicketData(flight, passengerInfo, searchParams = null) {
 
     // Ticket.html şablonunu al
    getTicketTemplate() {
-        return this.loadTemplateFile('templates/ticket.html');
+        return this.loadTemplateFile('/templates/tickets/ticket.html');
     }
 
     // Template yükleme fonksiyonu

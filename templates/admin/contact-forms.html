@@ -1,0 +1,511 @@
+{% extends "admin/layout.html" %}
+
+{% block page_heading %}İletişim Formları{% endblock %}
+{% block page_subtitle %}Kullanıcıların destek taleplerini, istek ve şikayetlerini yönetin.{% endblock %}
+
+{% block content %}
+    <section class="space-y-4">
+        <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="flex flex-wrap gap-2 items-center">
+                <select id="statusFilter" class="border border-slate-200 rounded-full px-3 py-1.5 text-xs text-slate-700 bg-slate-50">
+                    <option value="">Tüm durumlar</option>
+                    <option value="pending">Bekliyor</option>
+                    <option value="replied">Cevap Verildi</option>
+                    <option value="resolved">Çözüldü</option>
+                </select>
+            </div>
+        </header>
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100 text-xs text-slate-500">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span id="contactCountText">İletişim formları yükleniyor...</span>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-50 text-xs font-semibold text-slate-500 border-b border-slate-100">
+                        <tr>
+                            <th class="py-3.5 pl-4 pr-3 text-left">Ad Soyad</th>
+                            <th class="px-3 py-3.5 text-left">E-posta</th>
+                            <th class="px-3 py-3.5 text-left">Konu</th>
+                            <th class="px-3 py-3.5 text-left">Durum</th>
+                            <th class="px-3 py-3.5 text-left">Tarih</th>
+                            <th class="py-3.5 pl-3 pr-4 text-right">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="contactFormsTableBody" class="divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
+            <div id="loadingRow" class="px-4 py-6 text-sm text-slate-500 flex items-center gap-2">
+                <span class="w-4 h-4 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin"></span>
+                İletişim formları yükleniyor...
+            </div>
+            <div id="emptyRow" class="hidden px-4 py-6 text-sm text-slate-500">Filtreye uygun iletişim formu bulunamadı.</div>
+        </div>
+    </section>
+
+    <!-- Detay Modal -->
+    <div id="detailModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-slate-900">İletişim Formu Detayı</h3>
+                    <button id="closeDetailModal" class="text-slate-400 hover:text-slate-600">
+                        <svg class="w-6 h-6" viewBox="0 0 20 20" fill="none">
+                            <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                        </svg>
+                    </button>
+                </div>
+                <div id="detailContent" class="space-y-4">
+                    <!-- İçerik dinamik olarak doldurulacak -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Durum Güncelleme Modal -->
+    <div id="statusModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-slate-900">Durum Güncelle</h3>
+                    <button id="closeStatusModal" class="text-slate-400 hover:text-slate-600">
+                        <svg class="w-6 h-6" viewBox="0 0 20 20" fill="none">
+                            <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Yeni Durum</label>
+                        <select id="newStatusSelect" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700">
+                            <option value="pending">Bekliyor</option>
+                            <option value="replied">Cevap Verildi</option>
+                            <option value="resolved">Çözüldü</option>
+                        </select>
+                    </div>
+                    <input type="hidden" id="currentFormId">
+                    <div class="flex gap-2 justify-end">
+                        <button id="cancelStatusUpdate" class="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 hover:bg-slate-50">
+                            İptal
+                        </button>
+                        <button id="confirmStatusUpdate" class="px-4 py-2 rounded-lg bg-blue-600 text-sm text-white hover:bg-blue-700">
+                            Güncelle
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cevap Verme Modal -->
+    <div id="replyModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-slate-900">Cevap Gönder</h3>
+                    <button id="closeReplyModal" class="text-slate-400 hover:text-slate-600">
+                        <svg class="w-6 h-6" viewBox="0 0 20 20" fill="none">
+                            <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Alıcı</label>
+                        <p id="replyToEmail" class="text-sm text-slate-900 font-medium"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Orijinal Konu</label>
+                        <p id="originalSubject" class="text-sm text-slate-600"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Cevap Konusu</label>
+                        <input type="text" id="replySubject" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700" placeholder="Cevap konusu">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Cevap Mesajı</label>
+                        <textarea id="replyMessage" rows="6" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 resize-vertical" placeholder="Cevabınızı buraya yazın..."></textarea>
+                    </div>
+                    <input type="hidden" id="currentReplyFormId">
+                    <div class="flex gap-2 justify-end">
+                        <button id="cancelReply" class="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 hover:bg-slate-50">
+                            İptal
+                        </button>
+                        <button id="sendReply" class="px-4 py-2 rounded-lg bg-green-600 text-sm text-white hover:bg-green-700">
+                            Gönder
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block modals %}
+    <script>
+        let contactForms = [];
+        let currentFilter = '';
+
+        async function loadContactForms() {
+            const loadingRow = document.getElementById('loadingRow');
+            const emptyRow = document.getElementById('emptyRow');
+            const tbody = document.getElementById('contactFormsTableBody');
+            const countText = document.getElementById('contactCountText');
+
+            if (!loadingRow || !emptyRow || !tbody || !countText) {
+                console.error('Required DOM elements not found');
+                console.log('loadingRow:', loadingRow);
+                console.log('emptyRow:', emptyRow);
+                console.log('tbody:', tbody);
+                console.log('countText:', countText);
+                return;
+            }
+
+            loadingRow.classList.remove('hidden');
+            emptyRow.classList.add('hidden');
+            tbody.innerHTML = '';
+
+            try {
+                const token = localStorage.getItem('access_token');
+                let url = '/api/admin/contact-forms';
+                if (currentFilter) {
+                    url += `?status_filter=${currentFilter}`;
+                }
+
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    contactForms = await response.json();
+                    console.log('Loaded contact forms:', contactForms);
+                    console.log('Contact forms length:', contactForms.length);
+                    renderContactForms();
+                    countText.textContent = `${contactForms.length} iletişim formu`;
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.detail || 'İletişim formları yüklenemedi');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                countText.textContent = 'Hata oluştu: ' + error.message;
+            } finally {
+                console.log('Finally block - hiding loading row');
+                if (loadingRow) {
+                    loadingRow.classList.add('hidden');
+                    loadingRow.style.display = 'none';
+                }
+            }
+        }
+
+        function renderContactForms() {
+            const tbody = document.getElementById('contactFormsTableBody');
+            const emptyRow = document.getElementById('emptyRow');
+
+            if (contactForms.length === 0) {
+                emptyRow.classList.remove('hidden');
+                return;
+            }
+
+            emptyRow.classList.add('hidden');
+
+            const statusColors = {
+                'pending': 'bg-yellow-100 text-yellow-700',
+                'replied': 'bg-blue-100 text-blue-700',
+                'resolved': 'bg-green-100 text-green-700'
+            };
+
+            const statusLabels = {
+                'pending': 'Bekliyor',
+                'replied': 'Cevap Verildi',
+                'resolved': 'Çözüldü'
+            };
+
+            tbody.innerHTML = contactForms.map(form => `
+                <tr class="hover:bg-slate-50">
+                    <td class="py-3.5 pl-4 pr-3 text-slate-900">${escapeHtml(form.name)}</td>
+                    <td class="px-3 py-3.5 text-slate-600">${escapeHtml(form.email)}</td>
+                    <td class="px-3 py-3.5 text-slate-600">${escapeHtml(form.subject)}</td>
+                    <td class="px-3 py-3.5">
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusColors[form.status] || 'bg-gray-100 text-gray-700'}">
+                            ${statusLabels[form.status] || form.status}
+                        </span>
+                    </td>
+                    <td class="px-3 py-3.5 text-slate-500 text-xs">${formatDate(form.created_at)}</td>
+                    <td class="py-3.5 pl-3 pr-4 text-right">
+                        <div class="flex items-center justify-end gap-2">
+                            <button onclick="viewDetail(${form.id})" class="px-3 py-1.5 rounded-lg text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100">
+                                Detay
+                            </button>
+                            <button onclick="openReplyModal(${form.id})" class="px-3 py-1.5 rounded-lg text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100">
+                                Cevap Ver
+                            </button>
+                            <button onclick="openStatusModal(${form.id}, '${form.status}')" class="px-3 py-1.5 rounded-lg text-xs font-medium text-amber-600 bg-amber-50 hover:bg-amber-100">
+                                Durum
+                            </button>
+                            <button onclick="deleteContactForm(${form.id})" class="px-3 py-1.5 rounded-lg text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100">
+                                Sil
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function viewDetail(formId) {
+            const form = contactForms.find(f => f.id === formId);
+            if (!form) return;
+
+            const detailContent = document.getElementById('detailContent');
+            detailContent.innerHTML = `
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-xs font-medium text-slate-500">Ad Soyad</label>
+                        <p class="text-sm text-slate-900">${escapeHtml(form.name)}</p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-slate-500">E-posta</label>
+                        <p class="text-sm text-slate-900">${escapeHtml(form.email)}</p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-slate-500">Konu</label>
+                        <p class="text-sm text-slate-900">${escapeHtml(form.subject)}</p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-slate-500">Mesaj</label>
+                        <p class="text-sm text-slate-900 whitespace-pre-wrap">${escapeHtml(form.message)}</p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-slate-500">Durum</label>
+                        <p class="text-sm text-slate-900">${form.status}</p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-slate-500">Gönderim Tarihi</label>
+                        <p class="text-sm text-slate-900">${formatDate(form.created_at)}</p>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        function openStatusModal(formId, currentStatus) {
+            document.getElementById('currentFormId').value = formId;
+            document.getElementById('newStatusSelect').value = currentStatus;
+            document.getElementById('statusModal').classList.remove('hidden');
+        }
+
+        function openReplyModal(formId) {
+            const form = contactForms.find(f => f.id === formId);
+            if (!form) return;
+
+            document.getElementById('replyToEmail').textContent = form.email;
+            document.getElementById('originalSubject').textContent = form.subject;
+            document.getElementById('replySubject').value = 'RE: ' + form.subject;
+            document.getElementById('replyMessage').value = '';
+            document.getElementById('currentReplyFormId').value = formId;
+            document.getElementById('replyModal').classList.remove('hidden');
+        }
+
+        async function sendReply() {
+            const formId = document.getElementById('currentReplyFormId').value;
+            const replySubject = document.getElementById('replySubject').value;
+            const replyMessage = document.getElementById('replyMessage').value;
+
+            if (!replySubject.trim() || !replyMessage.trim()) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Uyarı',
+                    text: 'Lütfen konu ve mesaj alanlarını doldurun',
+                    confirmButtonColor: '#007e8a'
+                });
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`/api/admin/contact-forms/${formId}/reply`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        subject: replySubject,
+                        message: replyMessage
+                    })
+                });
+
+                if (response.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Başarılı',
+                        text: 'Cevap gönderildi',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    document.getElementById('replyModal').classList.add('hidden');
+                    loadContactForms();
+                } else {
+                    throw new Error('Cevap gönderilemedi');
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Hata',
+                    text: error.message || 'Cevap gönderilemedi',
+                    confirmButtonColor: '#007e8a'
+                });
+            }
+        }
+
+        async function updateStatus() {
+            const formId = document.getElementById('currentFormId').value;
+            const newStatus = document.getElementById('newStatusSelect').value;
+
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`/api/admin/contact-forms/${formId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                if (response.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Başarılı',
+                        text: 'Durum güncellendi',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    document.getElementById('statusModal').classList.add('hidden');
+                    loadContactForms();
+                } else {
+                    throw new Error('Durum güncellenemedi');
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Hata',
+                    text: error.message
+                });
+            }
+        }
+
+        async function deleteContactForm(formId) {
+            const result = await Swal.fire({
+                title: 'Emin misiniz?',
+                text: 'Bu iletişim formunu silmek istediğinize emin misiniz?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Evet, sil',
+                cancelButtonText: 'İptal'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    const token = localStorage.getItem('access_token');
+                    const response = await fetch(`/api/admin/contact-forms/${formId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Silindi',
+                            text: 'İletişim formu başarıyla silindi',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                        loadContactForms();
+                    } else {
+                        throw new Error('Silme işlemi başarısız');
+                    }
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Hata',
+                        text: error.message
+                    });
+                }
+            }
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleString('tr-TR');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Event Listeners
+        document.getElementById('statusFilter').addEventListener('change', function() {
+            currentFilter = this.value;
+            loadContactForms();
+        });
+
+        document.getElementById('closeDetailModal').addEventListener('click', function() {
+            document.getElementById('detailModal').classList.add('hidden');
+        });
+
+        document.getElementById('closeReplyModal').addEventListener('click', function() {
+            document.getElementById('replyModal').classList.add('hidden');
+        });
+
+        document.getElementById('cancelReply').addEventListener('click', function() {
+            document.getElementById('replyModal').classList.add('hidden');
+        });
+
+        document.getElementById('sendReply').addEventListener('click', sendReply);
+
+        document.getElementById('closeStatusModal').addEventListener('click', function() {
+            document.getElementById('statusModal').classList.add('hidden');
+        });
+
+        document.getElementById('cancelStatusUpdate').addEventListener('click', function() {
+            document.getElementById('statusModal').classList.add('hidden');
+        });
+
+        document.getElementById('confirmStatusUpdate').addEventListener('click', updateStatus);
+
+        // Modal dışına tıklanınca kapat
+        document.getElementById('detailModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.add('hidden');
+            }
+        });
+
+        document.getElementById('statusModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.add('hidden');
+            }
+        });
+
+        document.getElementById('replyModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.add('hidden');
+            }
+        });
+
+        // Sayfa yüklendiğinde verileri çek
+        loadContactForms();
+    </script>
+{% endblock %}

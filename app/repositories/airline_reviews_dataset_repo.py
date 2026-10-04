@@ -7,29 +7,15 @@ from app.models import (
     AirlineDatasetAnalysisReview,
     AirlineDatasetReview,
 )
-
-# (id, content, title, rating, created_at, route)
-ReviewItem = tuple[int, str, str | None, int, Any, str]
-
-DEFAULT_AGGREGATED = {
-    "most_complained_topics": [],
-    "most_liked_aspects": [],
-    "sentiment_distribution": {"positive": 0, "negative": 0, "neutral": 0},
-    "preference_reasons": [],
-    "avoidance_reasons": [],
-    "customer_recommendations": [],
-    "time_trends": [],
-    "route_satisfaction": [],
-    "rating_analysis": {},
-    "title_themes": [],
-    "frequent_words": [],
-}
-
-
-def _normalize_airline_name(name: str | None) -> str:
-    if not name or not str(name).strip():
-        return "Diğer"
-    return str(name).strip()
+from app.utils.analysis_utils import (
+    DEFAULT_AGGREGATED,
+    ReviewItem,
+    merge_frequent_words,
+    merge_route_satisfaction,
+    merge_time_trends,
+    normalize_airline_name,
+)
+from app.utils.text_utils import group_similar_topics, merge_string_lists
 
 
 def get_unprocessed_reviews_for_airline(db: Session, airline_name: str) -> list[ReviewItem]:
@@ -37,7 +23,7 @@ def get_unprocessed_reviews_for_airline(db: Session, airline_name: str) -> list[
     Belirtilen havayoluna ait, henüz is_processed = False olan dataset kayıtlarını döndürür.
     Returns: [(id, content, title, rating, created_at, route), ...]
     """
-    normalized = _normalize_airline_name(airline_name)
+    normalized = normalize_airline_name(airline_name)
     q = db.query(AirlineDatasetReview).filter(AirlineDatasetReview.is_processed.is_(False))
     if normalized == "Diğer":
         q = q.filter(
@@ -70,7 +56,7 @@ def get_airlines_with_unprocessed_reviews(db: Session) -> list[str]:
         .distinct()
         .all()
     )
-    return sorted({_normalize_airline_name(r[0]) for r in rows})
+    return sorted({normalize_airline_name(r[0]) for r in rows})
 
 
 def save_dataset_analysis_batch(
@@ -83,7 +69,7 @@ def save_dataset_analysis_batch(
     Bir batch dataset analiz sonucunu belirtilen havayolu adıyla kaydeder
     ve ilgili kayıtları is_processed = True yapar.
     """
-    normalized = _normalize_airline_name(airline_name)
+    normalized = normalize_airline_name(airline_name)
     sd = result.get("sentiment_distribution") or {}
     analysis = AirlineDatasetAnalysis(
         airline_name=normalized,
@@ -122,82 +108,6 @@ def save_dataset_analysis_batch(
     db.commit()
     db.refresh(analysis)
     return analysis
-
-
-def _merge_string_lists(*lists: list[list]) -> list[str]:
-    """Birden fazla listeyi birleştirir, tekrarları ilk geçtiği yerde bırakır."""
-    seen: set[str] = set()
-    out: list[str] = []
-    for lst in lists:
-        for x in lst:
-            if isinstance(x, str):
-                s = x.strip()
-                if s and s not in seen:
-                    seen.add(s)
-                    out.append(s)
-    return out
-
-
-def _merge_time_trends(batches: list[AirlineDatasetAnalysis]) -> list[dict]:
-    """Dönem bazlı trendleri birleştirir (period key ile toplayarak)."""
-    by_period: dict[str, dict[str, int]] = {}
-    for b in batches:
-        for item in b.time_trends or []:
-            if not isinstance(item, dict):
-                continue
-            period = (item.get("period") or "").strip()
-            if not period:
-                continue
-            if period not in by_period:
-                by_period[period] = {"positive": 0, "negative": 0, "neutral": 0}
-            by_period[period]["positive"] += int(item.get("positive") or 0)
-            by_period[period]["negative"] += int(item.get("negative") or 0)
-            by_period[period]["neutral"] += int(item.get("neutral") or 0)
-    return [{"period": p, **v} for p, v in sorted(by_period.items())]
-
-
-def _merge_route_satisfaction(batches: list[AirlineDatasetAnalysis]) -> list[dict]:
-    """Rota bazlı memnuniyeti birleştirir (route key ile gruplayıp tek kayıt)."""
-    by_route: dict[str, dict] = {}
-    for b in batches:
-        for item in b.route_satisfaction or []:
-            if not isinstance(item, dict):
-                continue
-            route = (item.get("route") or "").strip()
-            if not route:
-                continue
-            if route not in by_route:
-                by_route[route] = {
-                    "route": route,
-                    "sentiment": item.get("sentiment") or "neutral",
-                    "complaints": _merge_string_lists(item.get("complaints") or []),
-                    "liked": _merge_string_lists(item.get("liked") or []),
-                }
-            else:
-                by_route[route]["complaints"] = _merge_string_lists(
-                    by_route[route]["complaints"],
-                    item.get("complaints") or [],
-                )
-                by_route[route]["liked"] = _merge_string_lists(
-                    by_route[route]["liked"],
-                    item.get("liked") or [],
-                )
-    return list(by_route.values())
-
-
-def _merge_frequent_words(
-    batches: list[AirlineDatasetAnalysis],
-    top_n: int = 30,
-) -> list[str]:
-    """Sık kelimeleri birleştirir, sayıya göre sıralayıp top_n döner."""
-    from collections import Counter
-
-    counter: Counter[str] = Counter()
-    for b in batches:
-        for w in b.frequent_words or []:
-            if isinstance(w, str) and w.strip():
-                counter[w.strip().lower()] += 1
-    return [x[0] for x in counter.most_common(top_n)]
 
 
 def _get_rating_and_time_trends_for_airline(db: Session, airline_name: str) -> dict[str, Any]:
@@ -243,7 +153,7 @@ def get_aggregated_result_for_airline(db: Session, airline_name: str) -> dict[st
     """
     Sadece belirtilen havayoluna ait batch sonuçlarını birleştirir.
     """
-    normalized = _normalize_airline_name(airline_name)
+    normalized = normalize_airline_name(airline_name)
     batches = (
         db.query(AirlineDatasetAnalysis)
         .filter(AirlineDatasetAnalysis.airline_name == normalized)
@@ -257,15 +167,15 @@ def get_aggregated_result_for_airline(db: Session, airline_name: str) -> dict[st
     total_negative = sum(b.sentiment_negative or 0 for b in batches)
     total_neutral = sum(b.sentiment_neutral or 0 for b in batches)
 
-    complained = _merge_string_lists(*[b.most_complained_topics or [] for b in batches])
-    liked = _merge_string_lists(*[b.most_liked_aspects or [] for b in batches])
-    preference = _merge_string_lists(*[b.preference_reasons or [] for b in batches])
-    avoidance = _merge_string_lists(*[b.avoidance_reasons or [] for b in batches])
-    recommendations = _merge_string_lists(*[b.customer_recommendations or [] for b in batches])
-    time_trends = _merge_time_trends(batches)
-    route_satisfaction = _merge_route_satisfaction(batches)
-    title_themes = _merge_string_lists(*[b.title_themes or [] for b in batches])
-    frequent_words = _merge_frequent_words(batches)
+    complained = group_similar_topics(merge_string_lists(*[b.most_complained_topics or [] for b in batches]))
+    liked = group_similar_topics(merge_string_lists(*[b.most_liked_aspects or [] for b in batches]))
+    preference = group_similar_topics(merge_string_lists(*[b.preference_reasons or [] for b in batches]))
+    avoidance = group_similar_topics(merge_string_lists(*[b.avoidance_reasons or [] for b in batches]))
+    recommendations = group_similar_topics(merge_string_lists(*[b.customer_recommendations or [] for b in batches]))
+    time_trends = merge_time_trends(batches)
+    route_satisfaction = merge_route_satisfaction(batches)
+    title_themes = group_similar_topics(merge_string_lists(*[b.title_themes or [] for b in batches]))
+    frequent_words = merge_frequent_words(batches)
 
     rating_trends = _get_rating_and_time_trends_for_airline(db, airline_name)
     rating_analysis = rating_trends.get("rating_analysis") or {}
@@ -318,15 +228,15 @@ def get_aggregated_result_for_all_airlines(db: Session) -> dict[str, Any]:
     total_negative = sum(b.sentiment_negative or 0 for b in batches)
     total_neutral = sum(b.sentiment_neutral or 0 for b in batches)
 
-    complained = _merge_string_lists(*[b.most_complained_topics or [] for b in batches])
-    liked = _merge_string_lists(*[b.most_liked_aspects or [] for b in batches])
-    preference = _merge_string_lists(*[b.preference_reasons or [] for b in batches])
-    avoidance = _merge_string_lists(*[b.avoidance_reasons or [] for b in batches])
-    recommendations = _merge_string_lists(*[b.customer_recommendations or [] for b in batches])
-    time_trends = _merge_time_trends(batches)
-    route_satisfaction = _merge_route_satisfaction(batches)
-    title_themes = _merge_string_lists(*[b.title_themes or [] for b in batches])
-    frequent_words = _merge_frequent_words(batches)
+    complained = group_similar_topics(merge_string_lists(*[b.most_complained_topics or [] for b in batches]))
+    liked = group_similar_topics(merge_string_lists(*[b.most_liked_aspects or [] for b in batches]))
+    preference = group_similar_topics(merge_string_lists(*[b.preference_reasons or [] for b in batches]))
+    avoidance = group_similar_topics(merge_string_lists(*[b.avoidance_reasons or [] for b in batches]))
+    recommendations = group_similar_topics(merge_string_lists(*[b.customer_recommendations or [] for b in batches]))
+    time_trends = merge_time_trends(batches)
+    route_satisfaction = merge_route_satisfaction(batches)
+    title_themes = group_similar_topics(merge_string_lists(*[b.title_themes or [] for b in batches]))
+    frequent_words = merge_frequent_words(batches)
 
     rating_trends = _get_rating_and_time_trends_for_airline(db, "Tüm Havayolları")
     rating_analysis = rating_trends.get("rating_analysis") or {}
@@ -350,6 +260,36 @@ def get_aggregated_result_for_all_airlines(db: Session) -> dict[str, Any]:
         "title_themes": title_themes,
         "frequent_words": frequent_words,
     }
+
+
+def get_all_dataset_reviews(db: Session) -> list[dict[str, Any]]:
+    """
+    airline_dataset_reviews tablosundaki tüm yorumları döndürür.
+    Yorum tarihi en yeni olan en üstte olacak şekilde sıralanır.
+    """
+    rows = (
+        db.query(AirlineDatasetReview)
+        .order_by(AirlineDatasetReview.review_date.desc().nulls_last())
+        .all()
+    )
+    
+    reviews = []
+    for r in rows:
+        reviews.append({
+            "id": r.id,
+            "airline_name": r.airline_name or "Bilinmiyor",
+            "user_name": r.user_name,
+            "rating": int(r.rating or 0),
+            "title": r.title,
+            "route": r.route,
+            "category": r.category,
+            "review_date": r.review_date.isoformat() if r.review_date else None,
+            "content": r.content,
+            "sentiment_label": r.sentiment_label,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        })
+    
+    return reviews
 
 
 def get_multi_airline_overview(db: Session) -> list[dict[str, Any]]:

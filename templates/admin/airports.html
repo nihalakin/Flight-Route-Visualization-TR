@@ -6,12 +6,6 @@
 {% block content %}
     <section class="space-y-4">
         <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-                <h2 class="text-sm font-semibold text-slate-900">Havalimanları</h2>
-                <p class="text-xs text-slate-500">
-                    Türkiye havalimanlarını veritabanından yönetin; yeni ekleyin, düzenleyin veya silin.
-                </p>
-            </div>
             <div class="flex flex-wrap gap-2 items-center">
                 <input id="airportSearchInput" type="search" placeholder="İsim / şehir / IATA ara..."
                        class="w-full sm:w-60 border border-slate-200 rounded-full px-3 py-1.5 text-xs text-slate-700 placeholder-slate-400" />
@@ -40,6 +34,9 @@
                     <option value="iata_desc">IATA (Z-A)</option>
                 </select>
             </div>
+            <button id="addAirportBtn" onclick="document.getElementById('airportAddModal').classList.remove('hidden')" class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700">
+                + Yeni Havalimanı Ekle
+            </button>
         </header>
         <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
             <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100 text-xs text-slate-500">
@@ -48,33 +45,6 @@
                     <span id="airportCountText">Havalimanları yükleniyor...</span>
                 </div>
                 <div id="airportPaginationInfo" class="hidden sm:inline text-[11px] text-slate-500"></div>
-            </div>
-
-            <!-- Yeni Havalimanı Ekle -->
-            <div class="px-4 py-4 border-b border-slate-100 bg-slate-50/50">
-                <h3 class="text-xs font-semibold text-slate-600 mb-3">Yeni Havalimanı Ekle</h3>
-                <form id="airportCreateForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-                    <input type="text" id="newAirportName" name="name" placeholder="Havalimanı adı" class="border border-slate-200 rounded-lg px-3 py-2 text-slate-800 placeholder-slate-400" required />
-                    <input type="text" id="newAirportCity" name="city" placeholder="Şehir" class="border border-slate-200 rounded-lg px-3 py-2 text-slate-800 placeholder-slate-400" required />
-                    <input type="text" id="newAirportRegion" name="region" placeholder="Bölge (örn. Marmara)" class="border border-slate-200 rounded-lg px-3 py-2 text-slate-800 placeholder-slate-400" />
-                    <input type="text" id="newAirportIata" name="iata" placeholder="IATA (örn. IST)" class="border border-slate-200 rounded-lg px-3 py-2 text-slate-800 placeholder-slate-400 uppercase" maxlength="5" required />
-                    <input type="text" id="newAirportIcao" name="icao" placeholder="ICAO (örn. LTFM)" class="border border-slate-200 rounded-lg px-3 py-2 text-slate-800 placeholder-slate-400 uppercase" maxlength="6" required />
-                    <input type="text" id="newAirportType" name="type" placeholder="Tür (Sivil / Askerî)" class="border border-slate-200 rounded-lg px-3 py-2 text-slate-800 placeholder-slate-400" />
-                    <input type="number" id="newAirportYear" name="year" placeholder="Açılış yılı" class="border border-slate-200 rounded-lg px-3 py-2 text-slate-800 placeholder-slate-400" min="1900" max="2100" />
-                    <input type="number" id="newAirportLat" name="lat" placeholder="Enlem (lat)" class="border border-slate-200 rounded-lg px-3 py-2 text-slate-800 placeholder-slate-400" step="0.0001" />
-                    <input type="number" id="newAirportLon" name="lon" placeholder="Boylam (lon)" class="border border-slate-200 rounded-lg px-3 py-2 text-slate-800 placeholder-slate-400" step="0.0001" />
-                    <div class="sm:col-span-2 lg:col-span-3 flex flex-col gap-2">
-                        <input type="text" id="newAirportFlights" name="flights" placeholder="Uçuş bağlantıları (IATA kodları ; ile ayrılmış)" class="border border-slate-200 rounded-lg px-3 py-2 text-slate-800 placeholder-slate-400" />
-                        <div class="flex items-center justify-between gap-2">
-                            <p class="text-[11px] text-slate-500">
-                                Bu alan görselleştirme için isteğe bağlıdır. Örn: <span class="font-mono">IST;SAW;ESB</span>
-                            </p>
-                            <button type="submit" class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700">
-                                Ekle
-                            </button>
-                        </div>
-                    </div>
-                </form>
             </div>
 
             <!-- Havalimanı tablosu -->
@@ -112,6 +82,69 @@
 {% endblock %}
 
 {% block modals %}
+    <!-- Havalimanı ekle modalı -->
+    <div id="airportAddModal" onclick="if(event.target === this) this.classList.add('hidden')" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" aria-hidden="true">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-5 text-sm">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-semibold text-slate-900">Yeni Havalimanı Ekle</h3>
+                <button id="closeAddModal" onclick="document.getElementById('airportAddModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                    <svg class="w-5 h-5" viewBox="0 0 20 20" fill="none">
+                        <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+            <form id="airportAddForm" onsubmit="submitAirportForm(event)">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">İsim *</label>
+                        <input type="text" id="addAirportName" class="w-full border border-slate-200 rounded-lg px-3 py-2" required />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Şehir *</label>
+                        <input type="text" id="addAirportCity" class="w-full border border-slate-200 rounded-lg px-3 py-2" required />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Bölge</label>
+                        <input type="text" id="addAirportRegion" class="w-full border border-slate-200 rounded-lg px-3 py-2" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">IATA *</label>
+                        <input type="text" id="addAirportIata" class="w-full border border-slate-200 rounded-lg px-3 py-2 uppercase" maxlength="5" required />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">ICAO *</label>
+                        <input type="text" id="addAirportIcao" class="w-full border border-slate-200 rounded-lg px-3 py-2 uppercase" maxlength="6" required />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Tür</label>
+                        <input type="text" id="addAirportType" class="w-full border border-slate-200 rounded-lg px-3 py-2" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Açılış yılı</label>
+                        <input type="number" id="addAirportYear" class="w-full border border-slate-200 rounded-lg px-3 py-2" min="1900" max="2100" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Enlem (lat)</label>
+                        <input type="number" id="addAirportLat" class="w-full border border-slate-200 rounded-lg px-3 py-2" step="0.0001" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Boylam (lon)</label>
+                        <input type="number" id="addAirportLon" class="w-full border border-slate-200 rounded-lg px-3 py-2" step="0.0001" />
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Uçuş bağlantıları (IATA kodları ; ile ayrılmış)</label>
+                        <input type="text" id="addAirportFlights" class="w-full border border-slate-200 rounded-lg px-3 py-2" />
+                        <p class="text-[11px] text-slate-500 mt-1">Bu alan görselleştirme için isteğe bağlıdır. Örn: IST;SAW;ESB</p>
+                    </div>
+                </div>
+                <div class="mt-4 flex justify-end gap-2">
+                    <button type="button" id="cancelAddAirport" onclick="document.getElementById('airportAddModal').classList.add('hidden')" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50">İptal</button>
+                    <button type="submit" class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">Ekle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Havalimanı düzenleme modalı -->
     <div id="airportEditModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" aria-hidden="true">
         <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-5 text-sm">
@@ -168,4 +201,57 @@
         </div>
     </div>
 {% endblock %}
+
+<script>
+    async function submitAirportForm(e) {
+        e.preventDefault();
+        
+        const formData = {
+            name: document.getElementById('addAirportName').value,
+            city: document.getElementById('addAirportCity').value,
+            region: document.getElementById('addAirportRegion').value,
+            iata: document.getElementById('addAirportIata').value.toUpperCase(),
+            icao: document.getElementById('addAirportIcao').value.toUpperCase(),
+            type: document.getElementById('addAirportType').value,
+            year: document.getElementById('addAirportYear').value,
+            lat: document.getElementById('addAirportLat').value,
+            lon: document.getElementById('addAirportLon').value,
+            flights: document.getElementById('addAirportFlights').value
+        };
+
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch('/api/admin/airports', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Başarılı',
+                    text: 'Havalimanı başarıyla eklendi',
+                    confirmButtonColor: '#007e8a'
+                }).then(() => {
+                    document.getElementById('airportAddModal').classList.add('hidden');
+                    document.getElementById('airportAddForm').reset();
+                    window.location.reload();
+                });
+            } else {
+                throw new Error('Havalimanı eklenemedi');
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Hata',
+                text: error.message || 'Havalimanı eklenemedi',
+                confirmButtonColor: '#007e8a'
+            });
+        }
+    }
+</script>
 

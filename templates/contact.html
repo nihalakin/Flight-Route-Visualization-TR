@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İletişim - Nodia</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/static/css/global/base.css">
+    <link rel="stylesheet" href="/static/css/global/components.css">
+    <link rel="stylesheet" href="/static/css/global/main.css">
+    <link rel="stylesheet" href="/static/css/global/responsive.css">
+    <style>
+        .contact-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 40px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .contact-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .contact-header h1 {
+            color: #1a1a2e;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        .contact-header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        .contact-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .form-group label {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95rem;
+        }
+        .form-group input,
+        .form-group textarea {
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #007e8a;
+        }
+        .form-group textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+        .submit-btn {
+            background: #007e8a;
+            color: white;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .submit-btn:hover {
+            background: var(--primary-600);
+        }
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar-container"></div>
+
+    <main class="page-content">
+        <div class="container">
+            <header class="page-header">
+                <div class="page-header-badge"><i class="fas fa-envelope"></i> İletişim</div>
+                <h1 class="page-header-main-title">Bize Ulaşın</h1>
+                <p class="page-header-subtitle">Destek talepleriniz, istekleriniz veya şikayetleriniz için bize ulaşın.</p>
+            </header>
+            <div class="contact-container">
+                <form class="contact-form" id="contactForm">
+                    <div class="form-group">
+                        <label for="name">Ad Soyad *</label>
+                        <input type="text" id="name" name="name" required minlength="2" maxlength="255" placeholder="Adınız Soyadınız">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">E-posta *</label>
+                        <input type="email" id="email" name="email" required placeholder="ornek@email.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="subject">Konu *</label>
+                        <input type="text" id="subject" name="subject" required minlength="5" maxlength="255" placeholder="Mesajınızın konusu">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="message">Mesaj *</label>
+                        <textarea id="message" name="message" required minlength="10" maxlength="5000" placeholder="Mesajınızı buraya yazın..."></textarea>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="submitBtn">
+                        Gönder
+                    </button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="/static/js/global/navbar-loader.js"></script>
+    <script src="/static/js/global/utils.js"></script>
+    <script src="/static/js/global/navigation.js"></script>
+    <script src="/static/js/global/app.js"></script>
+    <script>
+        document.getElementById('contactForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gönderiliyor...';
+
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                subject: document.getElementById('subject').value,
+                message: document.getElementById('message').value
+            };
+
+            try {
+                const response = await fetch('/contact/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Başarılı!',
+                        text: 'İletişim formunuz başarıyla gönderildi. En kısa sürede size dönüş yapacağız.',
+                        confirmButtonColor: '#007e8a',
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+                    document.getElementById('contactForm').reset();
+                } else {
+                    throw new Error(data.message || 'Bir hata oluştu');
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Hata!',
+                    text: error.message || 'Bir hata oluştu. Lütfen tekrar deneyin.',
+                    confirmButtonColor: '#007e8a'
+                });
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Gönder';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 import csv
 import sys
-from datetime import datetime
+from datetime import datetime, date
 from pathlib import Path
 
 # Proje kökünü sys.path'e ekle ki "app" modülü bulunabilsin
@@ -31,9 +31,9 @@ TR_MONTHS = {
 }
 
 
-def parse_tr_date(date_str: str | None) -> datetime | None:
+def parse_tr_date(date_str: str | None) -> date | None:
     """
-    "22 Şubat 2026" gibi tarihleri datetime'a çevirir.
+    "22 Şubat 2026" gibi tarihleri date'e çevirir.
     Hatalı formatta ise None döner.
     """
     if not date_str:
@@ -50,7 +50,7 @@ def parse_tr_date(date_str: str | None) -> datetime | None:
         year = int(parts[2])
         if not month:
             return None
-        return datetime(year, month, day)
+        return date(year, month, day)
     except Exception:
         return None
 

@@ -29,6 +29,8 @@
     var reviewSearchInput = document.getElementById('reviewSearchInput');
     var reviewPrevPageBtn = document.getElementById('reviewPrevPage');
     var reviewNextPageBtn = document.getElementById('reviewNextPage');
+    var analyzeReviewsBtn = document.getElementById('analyzeReviewsBtn');
+    var analysisPendingText = document.getElementById('analysisPendingText');
 
     var couponsTableBody = document.getElementById('couponsTableBody');
     var couponsLoadingRow = document.getElementById('couponsLoadingRow');
@@ -79,13 +81,24 @@
 
     // İstatistik yönetimi (admin/statistics)
     var statisticsDatasetSelect = document.getElementById('statisticsDatasetSelect');
-    var statisticsReloadBtn = document.getElementById('statisticsReloadBtn');
     var statisticsHeaderRow = document.getElementById('statisticsHeaderRow');
     var statisticsTableBody = document.getElementById('statisticsTableBody');
     var statisticsLoadingRow = document.getElementById('statisticsLoadingRow');
     var statisticsEmptyRow = document.getElementById('statisticsEmptyRow');
     var statisticsTableTitle = document.getElementById('statisticsTableTitle');
     var statisticsRowCount = document.getElementById('statisticsRowCount');
+
+    // Veri giriş formu elementleri
+    var addDataBtn = document.getElementById('addDataBtn');
+    var dataEntryForm = document.getElementById('dataEntryForm');
+    var entryYear = document.getElementById('entryYear');
+    var airTrafficFields = document.getElementById('airTrafficFields');
+    var passengerTrafficFields = document.getElementById('passengerTrafficFields');
+    var cargoTrafficFields = document.getElementById('cargoTrafficFields');
+    var freightTrafficFields = document.getElementById('freightTrafficFields');
+    var clearFormBtn = document.getElementById('clearFormBtn');
+    var saveDataBtn = document.getElementById('saveDataBtn');
+    var formStatus = document.getElementById('formStatus');
 
     // Dashboard özet kartları
     var dashboardUserTotal = document.getElementById('dashboardUserTotal');
@@ -97,6 +110,20 @@
     var dashboardCouponTotal = document.getElementById('dashboardCouponTotal');
     var dashboardCouponActive = document.getElementById('dashboardCouponActive');
     var dashboardCouponUsage = document.getElementById('dashboardCouponUsage');
+
+    // API durum göstergeleri
+    var amadeusStatusText = document.getElementById('amadeusStatusText');
+    var amadeusStatusIcon = document.getElementById('amadeusStatusIcon');
+    var amadeusStatusMessage = document.getElementById('amadeusStatusMessage');
+    var openrouterStatusText = document.getElementById('openrouterStatusText');
+    var openrouterStatusIcon = document.getElementById('openrouterStatusIcon');
+    var openrouterStatusMessage = document.getElementById('openrouterStatusMessage');
+    var databaseStatusText = document.getElementById('databaseStatusText');
+    var databaseStatusIcon = document.getElementById('databaseStatusIcon');
+    var databaseStatusMessage = document.getElementById('databaseStatusMessage');
+    var smtpStatusText = document.getElementById('smtpStatusText');
+    var smtpStatusIcon = document.getElementById('smtpStatusIcon');
+    var smtpStatusMessage = document.getElementById('smtpStatusMessage');
 
     // Grafikler
     var userGrowthChart;
@@ -124,7 +151,9 @@
     function showAlert(message, type) {
         if (!alertContainer) return;
         var div = document.createElement('div');
-        var typeClasses = type === 'error' ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        var typeClasses = type === 'error' ? 'bg-rose-50 text-rose-700 border-rose-200' : 
+                         type === 'warning' ? 'bg-amber-50 text-amber-700 border-amber-200' : 
+                         'bg-emerald-50 text-emerald-700 border-emerald-200';
         div.className = 'px-4 py-3 rounded-2xl text-sm flex items-center justify-between gap-2 border shadow-md';
         div.className += ' ' + typeClasses;
         div.innerHTML = '<span>' + message + '</span><button class="text-xs text-slate-500 hover:text-slate-700">Kapat</button>';
@@ -379,13 +408,163 @@
         if (statisticsDatasetSelect) {
             statisticsDatasetSelect.addEventListener('change', function () {
                 loadStatisticsDataset();
+                updateFormFields(); // Update form fields when dataset changes
             });
         }
-        if (statisticsReloadBtn) {
-            statisticsReloadBtn.addEventListener('click', function () {
-                loadStatisticsDataset();
+        
+        // Veri giriş formu eventleri
+        // Modal açıldığında form alanlarını güncelle
+        if (addDataBtn) {
+            addDataBtn.addEventListener('click', function () {
+                updateFormFields();
             });
         }
+        if (clearFormBtn) {
+            clearFormBtn.addEventListener('click', function () {
+                clearDataEntryForm();
+            });
+        }
+        if (saveDataBtn) {
+            saveDataBtn.addEventListener('click', function () {
+                saveStatisticsData();
+            });
+        }
+    }
+
+    // Veri giriş formu fonksiyonları
+    function updateFormFields() {
+        var dataset = statisticsDatasetSelect ? statisticsDatasetSelect.value : 'air';
+        
+        // Hide all field groups
+        if (airTrafficFields) airTrafficFields.classList.add('hidden');
+        if (passengerTrafficFields) passengerTrafficFields.classList.add('hidden');
+        if (cargoTrafficFields) cargoTrafficFields.classList.add('hidden');
+        if (freightTrafficFields) freightTrafficFields.classList.add('hidden');
+        
+        // Show relevant field group
+        switch (dataset) {
+            case 'air':
+                if (airTrafficFields) airTrafficFields.classList.remove('hidden');
+                break;
+            case 'passenger':
+                if (passengerTrafficFields) passengerTrafficFields.classList.remove('hidden');
+                break;
+            case 'cargo':
+                if (cargoTrafficFields) cargoTrafficFields.classList.remove('hidden');
+                break;
+            case 'freight':
+                if (freightTrafficFields) freightTrafficFields.classList.remove('hidden');
+                break;
+        }
+    }
+
+    function clearDataEntryForm() {
+        if (entryYear) entryYear.value = '';
+        
+        // Clear all input fields
+        var inputs = dataEntryForm ? dataEntryForm.querySelectorAll('input[type="number"]') : [];
+        inputs.forEach(function(input) {
+            input.value = '';
+        });
+        
+        if (formStatus) formStatus.textContent = '';
+    }
+
+    function validateForm() {
+        var dataset = statisticsDatasetSelect ? statisticsDatasetSelect.value : 'air';
+        var year = entryYear ? parseInt(entryYear.value) : null;
+        
+        if (!year || year < 2000 || year > 2100) {
+            if (formStatus) formStatus.textContent = 'Geçerli bir yıl girin (2000-2100).';
+            return false;
+        }
+        
+        // Check for negative values (but don't require all fields)
+        var allInputs = dataEntryForm ? dataEntryForm.querySelectorAll('input[type="number"]') : [];
+        for (var i = 0; i < allInputs.length; i++) {
+            var input = allInputs[i];
+            if (input.value && parseFloat(input.value) < 0) {
+                if (formStatus) formStatus.textContent = 'Negatif değer girmeyin.';
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    function getFormData() {
+        var dataset = statisticsDatasetSelect ? statisticsDatasetSelect.value : 'air';
+        var year = parseInt(entryYear.value);
+        
+        var data = { yil: year };
+        
+        switch (dataset) {
+            case 'air':
+                data.tüm_uçak_overflight_dahil = parseFloat(document.getElementById('entryTümUçak').value) || 0;
+                data.uçak_trafiği = parseFloat(document.getElementById('entryUçakTrafiği').value) || 0;
+                data.iç_hat = parseFloat(document.getElementById('entryİçHat').value) || 0;
+                data.dış_hat = parseFloat(document.getElementById('entryDışHat').value) || 0;
+                data.overflight_uçak_trafiği = parseFloat(document.getElementById('entryOverflight').value) || 0;
+                break;
+            case 'passenger':
+                data.yolcu_trafiği_transit_dahil = parseFloat(document.getElementById('entryYolcuTransitDahil').value) || 0;
+                data.yolcu_trafiği = parseFloat(document.getElementById('entryYolcuTrafiği').value) || 0;
+                data.iç_hat = parseFloat(document.getElementById('entryYolcuİçHat').value) || 0;
+                data.dış_hat = parseFloat(document.getElementById('entryYolcuDışHat').value) || 0;
+                data.direkt_transit = parseFloat(document.getElementById('entryDirektTransit').value) || 0;
+                break;
+            case 'cargo':
+                data.kargo_trafiği_ton = parseFloat(document.getElementById('entryKargoTon').value) || 0;
+                data.iç_hat_kargo_ton = parseFloat(document.getElementById('entryKargoİçHat').value) || 0;
+                data.dış_hat_kargo_ton = parseFloat(document.getElementById('entryKargoDışHat').value) || 0;
+                break;
+            case 'freight':
+                data.yük_trafiği_ton = parseFloat(document.getElementById('entryYükTon').value) || 0;
+                data.iç_hat_ton = parseFloat(document.getElementById('entryYükİçHat').value) || 0;
+                data.dış_hat_ton = parseFloat(document.getElementById('entryYükDışHat').value) || 0;
+                break;
+        }
+        
+        return { dataset: dataset, data: data };
+    }
+
+    function saveStatisticsData() {
+        if (!validateForm()) return;
+        
+        var formData = getFormData();
+        var apiPath = datasetToAdminPath(formData.dataset);
+        
+        if (formStatus) formStatus.textContent = 'Kaydediliyor...';
+        
+        fetch(apiBase + apiPath, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify(formData.data)
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                return response.json().then(function(err) {
+                    throw new Error(err.detail || 'Kayıt başarısız');
+                });
+            }
+            return response.json();
+        })
+        .then(function(result) {
+            showAlert(result.detail || 'Veri başarıyla kaydedildi', 'success');
+            clearDataEntryForm();
+            // Reload the statistics data to show the new entry
+            loadStatisticsDataset();
+        })
+        .catch(function(err) {
+            console.error('Veri kaydedilirken hata:', err);
+            showAlert('Veri kaydedilirken hata: ' + err.message, 'error');
+        })
+        .finally(function() {
+            if (formStatus) formStatus.textContent = '';
+        });
     }
 
     function parseDate(value) {
@@ -447,10 +626,6 @@
             if (dashboardReview24h) dashboardReview24h.textContent = 'Son 24 saatte ' + (rStats.last24 || 0) + ' yeni';
             if (dashboardReview7d) {
                 var rLabel = 'Son 7 gün: ' + (rStats.last7 || 0) + ' yeni';
-                if (typeof rStats.change7 === 'number') {
-                    var rSign = rStats.change7 >= 0 ? '+' : '';
-                    rLabel += ' (' + rSign + rStats.change7.toFixed(1) + '% vs önceki 7 gün)';
-                }
                 dashboardReview7d.textContent = rLabel;
             }
         }
@@ -652,6 +827,9 @@
                     adminEmailSpan.textContent = admin.email;
                     adminEmailSpan.classList.remove('hidden');
                 }
+                if (analysisPendingText) {
+                    loadPendingReviewAnalysisCount();
+                }
                 if (isStatisticsPage()) {
                     loadStatisticsDataset();
                 } else {
@@ -659,6 +837,10 @@
                     loadReviews();
                     loadCoupons();
                     loadAirports();
+                    // API durumlarını yükle (dashboard sayfasında)
+                    if (window.location.pathname === '/admin/dashboard') {
+                        loadApiStatus();
+                    }
                 }
             })
             .catch(function () { showAlert('Admin bilgisi alınamadı. Lütfen tekrar giriş yapın.', 'error'); });
@@ -739,7 +921,9 @@
                     '<td class="px-3 py-3.5 whitespace-nowrap text-slate-700">' + u.email + '</td>' +
                     '<td class="px-3 py-3.5 whitespace-nowrap text-slate-500 text-xs">' + created + '</td>' +
                     '<td class="px-3 py-3.5 whitespace-nowrap"><span class="inline-flex items-center rounded-full border ' + badgeClass + ' px-2.5 py-0.5 text-[11px] font-medium">' + badgeText + '</span></td>' +
-                    '<td class="py-3.5 pl-3 pr-4 text-right whitespace-nowrap"><button class="text-xs px-3 py-1.5 rounded-full border border-rose-200 text-rose-700 hover:bg-rose-50 delete-user-btn" data-user-id="' + u.id + '">Kullanıcıyı Sil</button></td>';
+                    '<td class="py-3.5 pl-3 pr-4 text-right whitespace-nowrap">' + 
+                    (u.is_admin ? '' : '<button class="text-xs px-3 py-1.5 rounded-full border border-rose-200 text-rose-700 hover:bg-rose-50 delete-user-btn" data-user-id="' + u.id + '">Kullanıcıyı Sil</button>') +
+                    '</td>';
                 usersTableBody.appendChild(tr);
             });
 
@@ -758,8 +942,22 @@
         if (userPaginationInfo) userPaginationInfo.textContent = infoText;
         if (userPaginationInfoBottom) userPaginationInfoBottom.textContent = infoText;
 
-        if (userPrevPageBtn) userPrevPageBtn.disabled = usersPage <= 1;
-        if (userNextPageBtn) userNextPageBtn.disabled = usersPage >= totalPages;
+        if (userPrevPageBtn) {
+            if (usersPage <= 1) {
+                userPrevPageBtn.style.display = 'none';
+            } else {
+                userPrevPageBtn.style.display = '';
+                userPrevPageBtn.disabled = false;
+            }
+        }
+        if (userNextPageBtn) {
+            if (usersPage >= totalPages) {
+                userNextPageBtn.style.display = 'none';
+            } else {
+                userNextPageBtn.style.display = '';
+                userNextPageBtn.disabled = false;
+            }
+        }
     }
 
     function loadUsers() {
@@ -799,6 +997,22 @@
         if (s === 'approved') return { text: 'Onaylı', classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
         if (s === 'rejected') return { text: 'Reddedilen', classes: 'bg-rose-50 text-rose-700 border-rose-200' };
         return { text: 'Beklemede', classes: 'bg-amber-50 text-amber-700 border-amber-200' };
+    }
+
+    function renderAnalysisPendingText(pendingCount) {
+        if (!analysisPendingText) return;
+        var count = Number(pendingCount) || 0;
+        analysisPendingText.textContent = count + ' yorum analiz bekliyor';
+        
+        // Update analyze button state based on pending count
+        if (analyzeReviewsBtn) {
+            analyzeReviewsBtn.disabled = count === 0;
+            if (count === 0) {
+                analyzeReviewsBtn.classList.add('cursor-not-allowed');
+            } else {
+                analyzeReviewsBtn.classList.remove('cursor-not-allowed');
+            }
+        }
     }
 
     function getFilteredPagedReviews() {
@@ -872,11 +1086,27 @@
                     '<span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ' + badge.classes + '">' +
                         badge.text +
                     '</span>' +
+                    '<div class="mt-1 text-[11px] ' + (r.is_analyzed ? 'text-emerald-700' : 'text-slate-500') + '">' +
+                        (r.is_analyzed ? 'Analiz edildi' : 'Analiz edilmedi') +
+                    '</div>' +
                 '</td>' +
                 '<td class="py-3.5 pl-3 pr-4 align-top text-right whitespace-nowrap space-x-1 sm:space-x-2">' +
-                    '<button class="text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded-full border border-emerald-200 text-emerald-700 hover:bg-emerald-50 approve-review-btn" data-review-id="' + r.id + '">Onayla</button>' +
-                    '<button class="text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded-full border border-amber-200 text-amber-700 hover:bg-amber-50 reject-review-btn" data-review-id="' + r.id + '">Reddet</button>' +
-                    '<button class="text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 delete-review-btn" data-review-id="' + r.id + '">Sil</button>' +
+                    (function() {
+                        var status = (r.status || '').toLowerCase();
+                        if (status === 'pending') {
+                            return '<button class="text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded-full border border-emerald-200 text-emerald-700 hover:bg-emerald-50 approve-review-btn" data-review-id="' + r.id + '">Onayla</button>' +
+                                   '<button class="text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded-full border border-rose-200 text-rose-700 hover:bg-rose-50 reject-review-btn" data-review-id="' + r.id + '">Reddet</button>' +
+                                   '<button class="text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 delete-review-btn" data-review-id="' + r.id + '">Sil</button>';
+                        } else if (status === 'approved') {
+                            return '<button class="text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded-full border border-rose-200 text-rose-700 hover:bg-rose-50 reject-review-btn" data-review-id="' + r.id + '">Reddet</button>' +
+                                   '<button class="text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 delete-review-btn" data-review-id="' + r.id + '">Sil</button>';
+                        } else if (status === 'rejected') {
+                            return '<button class="text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded-full border border-emerald-200 text-emerald-700 hover:bg-emerald-50 approve-review-btn" data-review-id="' + r.id + '">Onayla</button>' +
+                                   '<button class="text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 delete-review-btn" data-review-id="' + r.id + '">Sil</button>';
+                        } else {
+                            return '<button class="text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 delete-review-btn" data-review-id="' + r.id + '">Sil</button>';
+                        }
+                    })() +
                 '</td>';
             reviewsTableBody.appendChild(tr);
         });
@@ -898,8 +1128,31 @@
         [].forEach.call(document.querySelectorAll('.delete-review-btn'), function (btn) {
             btn.addEventListener('click', function () {
                 var id = this.getAttribute('data-review-id');
-                if (!id || !confirm('Bu yorumu kalıcı olmamak üzere gizlemek istediğinizden emin misiniz?')) return;
-                softDeleteReview(id);
+                if (!id) return;
+                
+                Swal.fire({
+                    html: `
+                        <div class="error-icon-container">
+                            <svg class="error-icon" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 9v6m0 3.5a.5.5 0 1 1 0-1 .5.5 0 0 1 0 1Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M3 6h18l-1.68 12.392C19.28 19.317 18.522 20 17.652 20H6.348c-.87 0-1.628-.683-1.68-1.608L3 6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div class="error-title">Yorumu Silmek İstediğinize Emin Misiniz?</div>
+                        <div class="error-description">Bu yorum kalıcı olmamak üzere gizlenecektir. Bu işlem geri alınamaz.</div>
+                        <div style="display: flex; gap: 8px; justify-content: center; margin-top: 24px;">
+                            <button onclick="Swal.close()" style="background-color: #6b7280; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;">İptal</button>
+                            <button onclick="confirmDelete('${id}')" style="background-color: #ef4444; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;">Sil</button>
+                        </div>
+                    `,
+                    showConfirmButton: false,
+                    showCloseButton: false,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'custom-error-modal'
+                    }
+                });
             });
         });
 
@@ -926,18 +1179,156 @@
             .then(function (r) {
                 if (!r.ok && (r.status === 401 || r.status === 403)) showAlert('Yorum listesine erişim yetkiniz yok.', 'error');
                 else if (!r.ok) showAlert('Yorumlar yüklenemedi.', 'error');
-                return r.json();
+                return r.text().then(function (text) {
+                    try {
+                        return text ? JSON.parse(text) : [];
+                    } catch (e) {
+                        return [];
+                    }
+                });
             })
             .then(function (reviews) {
                 if (!reviews || !Array.isArray(reviews)) reviews = [];
                 reviewsData = reviews;
                 reviewsPage = 1;
                 renderReviewsTable();
+                loadPendingReviewAnalysisCount();
                 refreshDashboard();
             })
             .catch(function () {
                 if (reviewsLoadingRow) reviewsLoadingRow.classList.add('hidden');
                 showAlert('Yorumlar yüklenirken bir hata oluştu.', 'error');
+                loadPendingReviewAnalysisCount();
+            });
+    }
+
+    function loadPendingReviewAnalysisCount() {
+        if (!analysisPendingText) return;
+        analysisPendingText.textContent = 'Analiz bekleyen yorum sayısı yükleniyor...';
+        var fetchFn = window.NodiaApp && window.NodiaApp.fetchWithAuth ? window.NodiaApp.fetchWithAuth : function (url, opts) { return fetch(apiBase + url, opts); };
+        fetchFn('/api/admin/reviews/analysis-pending', { headers: { 'Authorization': 'Bearer ' + token } })
+            .then(function (r) {
+                return r.text().then(function (text) {
+                    var data = {};
+                    try {
+                        data = text ? JSON.parse(text) : {};
+                    } catch (e) {
+                        data = {};
+                    }
+                    if (!r.ok) {
+                        return { pending_count: 0, _ok: false };
+                    }
+                    if (data && typeof data.pending_count === 'number') {
+                        return { pending_count: data.pending_count, _ok: true };
+                    }
+                    return { pending_count: 0, _ok: true };
+                });
+            })
+            .then(function (result) {
+                if (result._ok) {
+                    renderAnalysisPendingText(result.pending_count);
+                } else {
+                    analysisPendingText.textContent = 'Analiz bekleyen yorum sayısı alınamadı';
+                }
+            })
+            .catch(function () {
+                analysisPendingText.textContent = 'Analiz bekleyen yorum sayısı alınamadı';
+            });
+    }
+
+    function analyzePendingReviews() {
+        var fetchFn = window.NodiaApp && window.NodiaApp.fetchWithAuth ? window.NodiaApp.fetchWithAuth : function (url, opts) { return fetch(apiBase + url, opts); };
+        
+        // Butona basmadan önceki bekleyen yorum sayısını al
+        var pendingText = analysisPendingText ? analysisPendingText.textContent : '';
+        var pendingMatch = pendingText.match(/(\d+)/);
+        var initialPendingCount = pendingMatch ? parseInt(pendingMatch[1], 10) : 0;
+        
+        // Show loading state on button
+        if (analyzeReviewsBtn) {
+            analyzeReviewsBtn.disabled = true;
+            analyzeReviewsBtn.textContent = 'Analiz Ediliyor...';
+            analyzeReviewsBtn.classList.remove('bg-violet-600', 'hover:bg-violet-700');
+            analyzeReviewsBtn.classList.add('bg-amber-500', 'hover:bg-amber-600');
+        }
+        fetchFn('/api/admin/reviews/analyze', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token }
+        })
+            .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, status: r.status, data: data }; }); })
+            .then(function (res) {
+                if (res.ok) {
+                    // API processed_count 0 dönerse, başlangıçtaki pending count'u kullan
+                    var apiCount = (res.data && res.data.processed_count) || 0;
+                    var analyzedCount = apiCount > 0 ? apiCount : initialPendingCount;
+                    Swal.fire({
+                        html: `
+                            <div class="success-icon-container">
+                                <svg class="success-icon" viewBox="0 0 24 24" fill="none">
+                                    <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div class="success-title">Analiz başarıyla tamamlandı!</div>
+                            <div class="success-description">${analyzedCount} yorum analiz edildi.</div>
+                            <button class="success-button" onclick="Swal.close()">Tamam</button>
+                        `,
+                        showConfirmButton: false,
+                        showCloseButton: false,
+                        allowOutsideClick: false,
+                        backdrop: true,
+                        customClass: {
+                            popup: 'custom-success-modal'
+                        }
+                    });
+                    renderAnalysisPendingText(res.data && res.data.pending_count);
+                    loadReviews();
+                } else {
+                    var detail = res.data && res.data.detail;
+                    Swal.fire({
+                        html: `
+                            <div class="error-icon-container">
+                                <svg class="error-icon" viewBox="0 0 24 24" fill="none">
+                                    <path d="M6 6l12 12M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div class="error-title">Analiz Başlatılamadı!</div>
+                            <div class="error-description">${detail || 'Batch analiz başlatılamadı.'}</div>
+                            <button class="error-button" onclick="Swal.close()">Tamam</button>
+                        `,
+                        showConfirmButton: false,
+                        showCloseButton: false,
+                        customClass: {
+                            popup: 'custom-error-modal'
+                        }
+                    });
+                }
+            })
+            .catch(function () {
+                Swal.fire({
+                    html: `
+                        <div class="error-icon-container">
+                            <svg class="error-icon" viewBox="0 0 24 24" fill="none">
+                                <path d="M6 6l12 12M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div class="error-title">Analiz Hatası!</div>
+                        <div class="error-description">Analiz işlemi sırasında bir hata oluştu.</div>
+                        <button class="error-button" onclick="Swal.close()">Tamam</button>
+                    `,
+                    showConfirmButton: false,
+                    showCloseButton: false,
+                    customClass: {
+                        popup: 'custom-error-modal'
+                    }
+                });
+            })
+            .finally(function () {
+                if (analyzeReviewsBtn) {
+                    analyzeReviewsBtn.disabled = false;
+                    analyzeReviewsBtn.textContent = 'Analiz Et';
+                    analyzeReviewsBtn.classList.remove('bg-amber-500', 'hover:bg-amber-600');
+                    analyzeReviewsBtn.classList.add('bg-violet-600', 'hover:bg-violet-700');
+                }
             });
     }
 
@@ -979,6 +1370,11 @@
             .catch(function () { showAlert('Reddetme işlemi sırasında bir hata oluştu.', 'error'); });
     }
 
+    window.confirmDelete = function(reviewId) {
+        Swal.close();
+        softDeleteReview(reviewId);
+    };
+
     function softDeleteReview(reviewId) {
         var fetchFn = window.NodiaApp && window.NodiaApp.fetchWithAuth ? window.NodiaApp.fetchWithAuth : function (url, opts) { return fetch(apiBase + url, opts); };
         fetchFn('/api/admin/reviews/' + encodeURIComponent(reviewId), {
@@ -988,7 +1384,7 @@
             .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, status: r.status, data: data }; }); })
             .then(function (res) {
                 if (res.ok) {
-                    showAlert('Yorum silindi (soft delete).', 'success');
+                    showAlert('Yorum silindi.', 'warning');
                     loadReviews();
                 } else {
                     var detail = res.data && res.data.detail;
@@ -1952,6 +2348,17 @@
             renderReviewsTable();
         });
     }
+    if (analyzeReviewsBtn) {
+        analyzeReviewsBtn.addEventListener('click', function () {
+            // Check if there are pending reviews before allowing analysis
+            var pendingText = analysisPendingText ? analysisPendingText.textContent : '';
+            var pendingCount = parseInt(pendingText.match(/\d+/) || '0');
+            
+            if (pendingCount > 0) {
+                analyzePendingReviews();
+            }
+        });
+    }
 
     if (userSearchInput) {
         userSearchInput.addEventListener('input', function () {
@@ -2036,6 +2443,94 @@
             airportsPage++;
             renderAirportsTable();
         });
+    }
+
+    // API durumlarını yükleme fonksiyonu
+    function loadApiStatus() {
+        if (!token) return;
+
+        var fetchFn = window.NodiaApp && window.NodiaApp.fetchWithAuth
+            ? window.NodiaApp.fetchWithAuth
+            : function (url, opts) { return fetch(apiBase + url, opts); };
+
+        fetchFn('/api/admin/api-status', {})
+        .then(function (r) {
+            return r.json().then(function (data) {
+                return { ok: r.ok, status: r.status, data: data };
+            });
+        })
+        .then(function (result) {
+            if (!result.ok) {
+                console.error('API durumları yüklenemedi:', result.status);
+                setApiStatusErrorState('Durum alınamadı');
+                return;
+            }
+            
+            var statuses = result.data;
+            
+            // Amadeus API durumu
+            if (statuses.amadeus && amadeusStatusText && amadeusStatusIcon && amadeusStatusMessage) {
+                updateApiStatusCard(statuses.amadeus, amadeusStatusText, amadeusStatusIcon, amadeusStatusMessage);
+            }
+            
+            // OpenRouter API durumu
+            if (statuses.openrouter && openrouterStatusText && openrouterStatusIcon && openrouterStatusMessage) {
+                updateApiStatusCard(statuses.openrouter, openrouterStatusText, openrouterStatusIcon, openrouterStatusMessage);
+            }
+            
+            // Veritabanı durumu
+            if (statuses.database && databaseStatusText && databaseStatusIcon && databaseStatusMessage) {
+                updateApiStatusCard(statuses.database, databaseStatusText, databaseStatusIcon, databaseStatusMessage);
+            }
+            
+            // SMTP durumu
+            if (statuses.smtp && smtpStatusText && smtpStatusIcon && smtpStatusMessage) {
+                updateApiStatusCard(statuses.smtp, smtpStatusText, smtpStatusIcon, smtpStatusMessage);
+            }
+        })
+        .catch(function (err) {
+            console.error('API durumları yüklenirken hata:', err);
+            setApiStatusErrorState('Bağlantı hatası');
+        });
+    }
+
+    function setApiStatusErrorState(message) {
+        var errorStatus = {
+            connected: false,
+            message: message || 'Durum bilgisi alınamadı',
+        };
+        if (amadeusStatusText && amadeusStatusIcon && amadeusStatusMessage) {
+            updateApiStatusCard(errorStatus, amadeusStatusText, amadeusStatusIcon, amadeusStatusMessage);
+        }
+        if (openrouterStatusText && openrouterStatusIcon && openrouterStatusMessage) {
+            updateApiStatusCard(errorStatus, openrouterStatusText, openrouterStatusIcon, openrouterStatusMessage);
+        }
+        if (databaseStatusText && databaseStatusIcon && databaseStatusMessage) {
+            updateApiStatusCard(errorStatus, databaseStatusText, databaseStatusIcon, databaseStatusMessage);
+        }
+        if (smtpStatusText && smtpStatusIcon && smtpStatusMessage) {
+            updateApiStatusCard(errorStatus, smtpStatusText, smtpStatusIcon, smtpStatusMessage);
+        }
+    }
+    
+    function updateApiStatusCard(status, textEl, iconEl, messageEl) {
+        if (!status) return;
+        
+        if (status.connected) {
+            textEl.textContent = 'Bağlı';
+            textEl.className = 'mt-1 text-sm font-semibold text-emerald-600';
+            iconEl.className = 'inline-flex items-center justify-center w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600';
+            iconEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500"></span>';
+            messageEl.textContent = status.message || 'Bağlantı başarılı';
+            messageEl.className = 'text-xs text-emerald-600 mt-2';
+        } else {
+            textEl.textContent = 'Bağlantı Hatası';
+            textEl.className = 'mt-1 text-sm font-semibold text-rose-600';
+            iconEl.className = 'inline-flex items-center justify-center w-8 h-8 rounded-xl bg-rose-50 text-rose-600';
+            iconEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span>';
+            messageEl.textContent = status.message || 'Bağlantı başarısız';
+            messageEl.className = 'text-xs text-rose-600 mt-2';
+        }
     }
 
     // Sidebar aç/kapat (sayfalar arası geçiş normal linklerle yapılır)

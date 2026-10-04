@@ -45,6 +45,20 @@ class CouponValidateResponse(BaseModel):
     coupon: CouponPublic | None = None
 
 
+class CouponActiveForFrontend(BaseModel):
+    """
+    Frontend tarafındaki CouponManager'ın beklediği alanlara daha yakın.
+    """
+
+    code: str
+    airline_name: str | None = None
+    discount_amount: float | None = None
+    original_amount: float | None = None
+    issue_date: date | None = None
+    cancel_reason: str | None = None
+    expiry_date: date
+
+
 @router.post("/validate", response_model=CouponValidateResponse)
 async def validate_coupon(
     payload: CouponValidateRequest,
@@ -112,6 +126,41 @@ async def validate_coupon(
     )
 
 
+@router.get("/active", response_model=list[CouponActiveForFrontend])
+async def active_coupons(
+    db: Session = Depends(get_db),
+):
+    """
+    Aktif ve süresi dolmamış kuponları döner.
+
+    Not: Bu endpoint frontend'in kullanıcıya ait yeni üretilen kupon kodlarını
+    doğrulamak için kullanılır.
+    """
+    today = datetime.utcnow().date()
+    rows = (
+        db.query(Coupon)
+        .filter(
+            Coupon.deleted_at.is_(None),
+            Coupon.is_active.is_(True),
+            Coupon.expiry_date >= today,
+        )
+        .all()
+    )
+
+    return [
+        CouponActiveForFrontend(
+            code=c.code,
+            airline_name=c.airline_name,
+            discount_amount=c.refund_amount,
+            original_amount=c.original_amount,
+            issue_date=c.issue_date,
+            cancel_reason=c.cancel_reason,
+            expiry_date=c.expiry_date,
+        )
+        for c in rows
+    ]
+
+
 class MyCoupon(BaseModel):
     id: int
     code: str
@@ -120,6 +169,8 @@ class MyCoupon(BaseModel):
     airline_name: str | None = None
     expiry_date: date
     status: str
+    amount: float | None = None
+    type_label: str | None = None
 
     class Config:
         from_attributes = True
@@ -157,7 +208,10 @@ async def my_coupons(
         elif c.is_used:
             status = "used"
 
-        title = f"{int(c.refund_amount)} TL iade kuponu" if c.refund_amount is not None else "İndirim kuponu"
+        is_refund_coupon = c.refund_amount is not None
+        amount = round(float(c.refund_amount), 2) if is_refund_coupon else None
+        type_label = "İade Kuponu" if is_refund_coupon else "İndirim Kuponu"
+        title = type_label
 
         description_parts: list[str] = []
         if c.airline_name:
@@ -175,6 +229,8 @@ async def my_coupons(
                 airline_name=c.airline_name,
                 expiry_date=c.expiry_date,
                 status=status,
+                amount=amount,
+                type_label=type_label,
             )
         )
 

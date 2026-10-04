@@ -208,3 +208,34 @@ async def list_my_reviews(
             )
         )
     return out
+
+
+@router.get("/all")
+def get_all_reviews(db: Session = Depends(get_db)):
+    """Tüm onaylanmış kullanıcı yorumlarını döndürür."""
+    rows = (
+        db.query(Comment, TicketSegment, TicketDetail, User)
+        .join(TicketSegment, TicketSegment.id == Comment.ticket_segment_id)
+        .join(TicketDetail, TicketDetail.id == TicketSegment.ticket_detail_id)
+        .join(User, User.id == Comment.user_id)
+        .filter(Comment.status == "approved")
+        .order_by(Comment.created_at.desc())
+        .all()
+    )
+    
+    reviews = []
+    for c, seg, detail, user in rows:
+        reviews.append({
+            "id": c.id,
+            "username": user.username or f"{user.first_name or ''} {user.last_name or ''}".strip() or "Anonim",
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "rating": c.rating,
+            "title": c.title,
+            "content": c.content,
+            "review_date": c.created_at.isoformat() if c.created_at else None,
+            "route": _flight_label(seg, detail.pnr if detail else ""),
+            "user_total_reviews": 1  # Her kullanıcının toplam yorum sayısı (basitleştirme)
+        })
+    
+    return {"reviews": reviews}

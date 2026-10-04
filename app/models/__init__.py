@@ -15,6 +15,12 @@ from app.models.annual_statistics import (
 )
 from app.models.user_coupon import UserCoupon
 from app.models.user_review_analysis import UserReviewAnalysis, UserReviewAnalysisReview
+from app.models.airline_dataset_review import (
+    AirlineDatasetReview,
+    AirlineDatasetAnalysis,
+    AirlineDatasetAnalysisReview,
+)
+from app.models.contact_form import ContactForm
 
 __all__ = [
     "User",
@@ -33,4 +39,8 @@ __all__ = [
     "UserCoupon",
     "UserReviewAnalysis",
     "UserReviewAnalysisReview",
+    "AirlineDatasetReview",
+    "AirlineDatasetAnalysis",
+    "AirlineDatasetAnalysisReview",
+    "ContactForm",
 ]

@@ -50,3 +50,10 @@ AMADEUS_API_SECRET = os.getenv("AMADEUS_API_SECRET", "")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemma-3-27b-it")
 
+# SMTP (legacy import uyumlulugu icin)
+SMTP_HOST = settings.smtp_host
+SMTP_PORT = settings.smtp_port
+SMTP_USER = settings.smtp_user
+SMTP_PASSWORD = settings.smtp_password
+EMAIL_FROM = settings.email_from
+

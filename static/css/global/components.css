@@ -12,7 +12,7 @@
 }
 
 .nav-container {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 0 20px;
     display: flex;
@@ -47,7 +47,6 @@
 
 .nav-link {
     color: var(--text-secondary);
-    text-decoration: none;
     padding: 8px 12px;
     border-radius: 999px;
     transition: var(--transition);
@@ -59,14 +58,26 @@
 .nav-link.active {
     background: #eef2ff;
     color: var(--primary);
+    text-decoration: none;
 }
 
 .nav-auth {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-left: auto;
     flex-shrink: 0;
+}
+
+
+.nav-logo-link span {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: -0.5px;
+    background:  var(--primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 /* Profile dropdown */
@@ -93,8 +104,8 @@
 }
 
 .profile-dropdown__avatar {
-    width: 36px;
-    height: 36px;
+    width: 42px;
+    height: 42px;
     border-radius: 999px;
     background: var(--primary);
     color: #fff;
@@ -102,7 +113,7 @@
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 1rem;
     box-shadow: 0 6px 18px rgba(37, 99, 235, 0.4);
 }
 
@@ -212,6 +223,7 @@
 .nav-btn-register:hover {
     background: #e0e7ff;
     color: var(--primary-600);
+    text-decoration: none;
 }
 
 .nav-btn-login {
@@ -222,6 +234,7 @@
 .nav-btn-login:hover {
     background: var(--primary-600);
     color: #fff;
+    text-decoration: none;
 }
 
 .hamburger {

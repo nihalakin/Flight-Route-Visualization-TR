@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -17,6 +17,15 @@ router = APIRouter(prefix="/statistics", tags=["statistics"])
 
 
 class AirTrafficUpdate(BaseModel):
+    yil: int
+    tüm_uçak_overflight_dahil: float | None = None
+    uçak_trafiği: float | None = None
+    iç_hat: float | None = None
+    dış_hat: float | None = None
+    overflight_uçak_trafiği: float | None = None
+
+
+class AirTrafficPatch(BaseModel):
     tüm_uçak_overflight_dahil: float | None = None
     uçak_trafiği: float | None = None
     iç_hat: float | None = None
@@ -25,12 +34,28 @@ class AirTrafficUpdate(BaseModel):
 
 
 class CargoTrafficUpdate(BaseModel):
+    yil: int
+    kargo_trafiği_ton: float | None = None
+    iç_hat_kargo_ton: float | None = None
+    dış_hat_kargo_ton: float | None = None
+
+
+class CargoTrafficPatch(BaseModel):
     kargo_trafiği_ton: float | None = None
     iç_hat_kargo_ton: float | None = None
     dış_hat_kargo_ton: float | None = None
 
 
 class PassengerTrafficUpdate(BaseModel):
+    yil: int
+    yolcu_trafiği_transit_dahil: float | None = None
+    yolcu_trafiği: float | None = None
+    iç_hat: float | None = None
+    dış_hat: float | None = None
+    direkt_transit: float | None = None
+
+
+class PassengerTrafficPatch(BaseModel):
     yolcu_trafiği_transit_dahil: float | None = None
     yolcu_trafiği: float | None = None
     iç_hat: float | None = None
@@ -39,6 +64,13 @@ class PassengerTrafficUpdate(BaseModel):
 
 
 class FreightTrafficUpdate(BaseModel):
+    yil: int
+    yük_trafiği_ton: float | None = None
+    iç_hat_ton: float | None = None
+    dış_hat_ton: float | None = None
+
+
+class FreightTrafficPatch(BaseModel):
     yük_trafiği_ton: float | None = None
     iç_hat_ton: float | None = None
     dış_hat_ton: float | None = None
@@ -119,10 +151,36 @@ async def admin_list_air_traffic(
     return await list_air_traffic(db=db)
 
 
+@router.post("/admin/air-traffic", response_model=dict)
+async def admin_create_air_traffic(
+    payload: AirTrafficUpdate,
+    current_admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    # Check if year already exists
+    existing = db.query(AnnualAirTraffic).filter(AnnualAirTraffic.yil == payload.yil).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Bu yıl için zaten kayıt mevcut")
+    
+    # Create new record
+    row = AnnualAirTraffic(
+        yil=payload.yil,
+        tüm_uçak_overflight_dahil=payload.tüm_uçak_overflight_dahil or 0,
+        uçak_trafiği=payload.uçak_trafiği or 0,
+        iç_hat=payload.iç_hat or 0,
+        dış_hat=payload.dış_hat or 0,
+        overflight_uçak_trafiği=payload.overflight_uçak_trafiği or 0,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return {"detail": "Kayıt oluşturuldu", "yil": row.yil}
+
+
 @router.patch("/admin/air-traffic/{year}", response_model=dict)
 async def admin_update_air_traffic(
     year: int,
-    payload: AirTrafficUpdate,
+    payload: AirTrafficPatch,
     current_admin: User = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ) -> dict:
@@ -153,10 +211,34 @@ async def admin_list_cargo_traffic(
     return await list_cargo_traffic(db=db)
 
 
+@router.post("/admin/cargo-traffic", response_model=dict)
+async def admin_create_cargo_traffic(
+    payload: CargoTrafficUpdate,
+    current_admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    # Check if year already exists
+    existing = db.query(AnnualCargoTraffic).filter(AnnualCargoTraffic.yil == payload.yil).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Bu yıl için zaten kayıt mevcut")
+    
+    # Create new record
+    row = AnnualCargoTraffic(
+        yil=payload.yil,
+        kargo_trafiği_ton=payload.kargo_trafiği_ton or 0,
+        iç_hat_kargo_ton=payload.iç_hat_kargo_ton or 0,
+        dış_hat_kargo_ton=payload.dış_hat_kargo_ton or 0,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return {"detail": "Kayıt oluşturuldu", "yil": row.yil}
+
+
 @router.patch("/admin/cargo-traffic/{year}", response_model=dict)
 async def admin_update_cargo_traffic(
     year: int,
-    payload: CargoTrafficUpdate,
+    payload: CargoTrafficPatch,
     current_admin: User = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ) -> dict:
@@ -185,10 +267,36 @@ async def admin_list_passenger_traffic(
     return await list_passenger_traffic(db=db)
 
 
+@router.post("/admin/passenger-traffic", response_model=dict)
+async def admin_create_passenger_traffic(
+    payload: PassengerTrafficUpdate,
+    current_admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    # Check if year already exists
+    existing = db.query(AnnualPassengerTraffic).filter(AnnualPassengerTraffic.yil == payload.yil).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Bu yıl için zaten kayıt mevcut")
+    
+    # Create new record
+    row = AnnualPassengerTraffic(
+        yil=payload.yil,
+        yolcu_trafiği_transit_dahil=payload.yolcu_trafiği_transit_dahil or 0,
+        yolcu_trafiği=payload.yolcu_trafiği or 0,
+        iç_hat=payload.iç_hat or 0,
+        dış_hat=payload.dış_hat or 0,
+        direkt_transit=payload.direkt_transit or 0,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return {"detail": "Kayıt oluşturuldu", "yil": row.yil}
+
+
 @router.patch("/admin/passenger-traffic/{year}", response_model=dict)
 async def admin_update_passenger_traffic(
     year: int,
-    payload: PassengerTrafficUpdate,
+    payload: PassengerTrafficPatch,
     current_admin: User = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ) -> dict:
@@ -223,10 +331,34 @@ async def admin_list_freight_traffic(
     return await list_freight_traffic(db=db)
 
 
+@router.post("/admin/freight-traffic", response_model=dict)
+async def admin_create_freight_traffic(
+    payload: FreightTrafficUpdate,
+    current_admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    # Check if year already exists
+    existing = db.query(AnnualFreightTraffic).filter(AnnualFreightTraffic.yil == payload.yil).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Bu yıl için zaten kayıt mevcut")
+    
+    # Create new record
+    row = AnnualFreightTraffic(
+        yil=payload.yil,
+        yük_trafiği_ton=payload.yük_trafiği_ton or 0,
+        iç_hat_ton=payload.iç_hat_ton or 0,
+        dış_hat_ton=payload.dış_hat_ton or 0,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return {"detail": "Kayıt oluşturuldu", "yil": row.yil}
+
+
 @router.patch("/admin/freight-traffic/{year}", response_model=dict)
 async def admin_update_freight_traffic(
     year: int,
-    payload: FreightTrafficUpdate,
+    payload: FreightTrafficPatch,
     current_admin: User = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ) -> dict:

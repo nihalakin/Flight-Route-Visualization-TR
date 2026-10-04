@@ -1,3 +1,127 @@
 /* Havayolu Yorumları – Dataset bazlı analiz için kopya stiller */
 @import url("/static/css/reviews/airline-reviews.css");
 
+/* Tüm Yorumlar Bölümü */
+.all-reviews-section {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e5e7eb;
+}
+
+.all-reviews-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0 0 1.5rem 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.all-reviews-count {
+    background: #3b82f6;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.all-reviews-controls {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.all-reviews-per-page,
+.all-reviews-sort {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.all-reviews-per-page label,
+.all-reviews-sort label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6b7280;
+}
+
+.all-reviews-per-page-select,
+.all-reviews-sort-select {
+    padding: 0.375rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    background: white;
+    color: #374151;
+}
+
+.all-reviews-per-page-select:focus,
+.all-reviews-sort-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.all-reviews-list {
+    margin-bottom: 1.5rem;
+}
+
+.all-reviews-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.all-reviews-pagination-info {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.all-reviews-pagination-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.all-reviews-pagination-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    color: #6b7280;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.all-reviews-pagination-btn:hover:not(:disabled) {
+    background: #f9fafb;
+    border-color: #9ca3af;
+}
+
+.all-reviews-pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.all-reviews-pagination-btn:not(:disabled) {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+}
+
+.all-reviews-pagination-btn:not(:disabled):hover {
+    background: #2563eb;
+    border-color: #2563eb;
+}
+

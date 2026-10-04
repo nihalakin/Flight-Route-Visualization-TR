@@ -11,6 +11,7 @@ from app.repositories.airline_reviews_dataset_repo import (
     get_aggregated_result_for_all_airlines,
     get_airlines_with_analysis,
     get_airlines_with_unprocessed_reviews,
+    get_all_dataset_reviews,
     get_multi_airline_overview,
     get_unprocessed_reviews_for_airline,
     save_dataset_analysis_batch,
@@ -23,8 +24,8 @@ from app.services.review_analysis import ReviewAnalysisError, analyze_reviews
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["airline-reviews-dataset"])
 
-# Her istekte yalnızca 1 yeni yorum analiz edilsin (tam sıralı işleme)
-DATASET_BATCH_SIZE = 1
+# Her istekte yalnızca 50 yeni yorum analiz edilsin (tam sıralı işleme)
+DATASET_BATCH_SIZE = 50
 
 
 class SentimentDistribution(BaseModel):
@@ -162,10 +163,10 @@ async def post_dataset_analyze(
     else:
         airlines_with_pending = get_airlines_with_unprocessed_reviews(db)
         if not airlines_with_pending:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Analiz edilecek dataset kaydı bulunamadı.",
-            )
+            # İşlenmemiş yorum yoksa mevcut global analizi döndür
+            logger.info("dataset-analyze: İşlenmemiş yorum bulunamadı, mevcut global sonuç döndürülüyor")
+            aggregated = get_aggregated_result_for_all_airlines(db)
+            return _aggregated_to_response(aggregated, "Tüm Havayolları")
         airline_to_process = airlines_with_pending[0]
 
     if not airline_to_process:
@@ -202,4 +203,14 @@ async def post_dataset_analyze(
     save_dataset_analysis_batch(db, review_ids, result, airline_to_process)
     aggregated = get_aggregated_result_for_airline(db, airline_to_process)
     return _aggregated_to_response(aggregated, airline_to_process)
+
+
+@router.get("/airline-dataset-reviews/all")
+def get_all_reviews_endpoint(db=Depends(get_db)):
+    """
+    airline_dataset_reviews tablosundaki tüm yorumları döndürür.
+    Yorum tarihi en yeni olan en üstte olacak şekilde sıralanır.
+    """
+    reviews = get_all_dataset_reviews(db)
+    return {"reviews": reviews}
 

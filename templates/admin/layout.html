@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Admin Paneli · Nodia{% endblock %}</title>
+    <title>{% block title %}Yönetim Paneli · Nodia{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/static/css/global/sweetalert-custom.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', system-ui, sans-serif; }
@@ -24,7 +26,7 @@
                     </button>
                     <span class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-blue-600 text-white font-semibold text-sm">A</span>
                     <div class="flex flex-col">
-                        <span class="font-semibold text-slate-900 text-sm">Nodia Admin</span>
+                        <span class="font-semibold text-slate-900 text-sm">Nodia Yönetim</span>
                         <span class="text-xs text-slate-500">Yönetim paneli</span>
                     </div>
                 </div>
@@ -51,7 +53,7 @@
             <aside id="adminSidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 transform -translate-x-full lg:translate-x-0 lg:static lg:inset-auto transition-transform duration-150 ease-out">
                 <div class="h-full flex flex-col">
                     <div class="px-4 pt-4 pb-2 flex items-center justify-between lg:hidden">
-                        <div class="text-xs font-medium text-slate-500 uppercase tracking-wide">Admin Menü</div>
+                        <div class="text-xs font-medium text-slate-500 uppercase tracking-wide">Yönetim Menüsü</div>
                         <button id="sidebarCloseBtn" class="inline-flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50">
                             <span class="sr-only">Menüyü kapat</span>
                             <svg class="w-4 h-4" viewBox="0 0 20 20" fill="none">
@@ -63,8 +65,8 @@
                     <nav class="flex-1 overflow-y-auto mt-2 px-2 pb-4 space-y-1 text-sm">
                         <a href="/admin/dashboard"
                            class="w-full flex items-center gap-2 rounded-xl px-3 py-2 {{ 'bg-slate-900 text-white' if current_path == '/admin/dashboard' else 'text-slate-700 hover:bg-slate-50' }}">
-                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-slate-900 text-[11px] text-white">DB</span>
-                            <span>Dashboard</span>
+                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-slate-900 text-[11px] text-white">YP</span>
+                            <span>Yönetim Paneli</span>
                         </a>
                         <a href="/admin/users"
                            class="w-full flex items-center gap-2 rounded-xl px-3 py-2 {{ 'bg-slate-900 text-white' if current_path == '/admin/users' else 'text-slate-700 hover:bg-slate-50' }}">
@@ -112,6 +114,15 @@
                             </span>
                             <span>İstatistikler</span>
                         </a>
+                        <a href="/admin/contact-forms"
+                           class="w-full flex items-center gap-2 rounded-xl px-3 py-2 {{ 'bg-slate-900 text-white' if current_path == '/admin/contact-forms' else 'text-slate-700 hover:bg-slate-50' }}">
+                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-rose-50 text-rose-600 text-[13px]">
+                                <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none">
+                                    <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </span>
+                            <span>İletişim Formları</span>
+                        </a>
                     </nav>
                     
                 </div>
@@ -123,17 +134,13 @@
                     <div class="mb-6 flex items-center justify-between gap-4">
                         <div>
                             <h1 class="text-xl font-semibold text-slate-900">
-                                {% block page_heading %}Admin Paneli{% endblock %}
+                                {% block page_heading %}Yönetim Paneli{% endblock %}
                             </h1>
                             <p class="mt-1 text-sm text-slate-500">
                                 {% block page_subtitle %}
                                 Kullanıcılar, yorumlar, havalimanları ve kuponlar üzerinde tam kontrol.
                                 {% endblock %}
                             </p>
-                        </div>
-                        <div class="inline-flex items-center gap-2 rounded-full bg-slate-900 text-white px-3 py-1 text-xs">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                            <span>Canlı ortam</span>
                         </div>
                     </div>
 

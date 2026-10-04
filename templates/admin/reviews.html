@@ -6,14 +6,7 @@
 {% block content %}
     <section class="space-y-4">
         <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-                <h2 class="text-sm font-semibold text-slate-900">Yorum Yönetimi</h2>
-                <p class="text-xs text-slate-500">Kullanıcı yorumlarını filtreleyin, onaylayın veya reddedin.</p>
-            </div>
             <div class="flex flex-wrap gap-2 items-center">
-                <input id="reviewSearchInput" type="search" placeholder="Kullanıcı veya başlık ara..."
-                       class="w-full sm:w-52 border border-slate-200 rounded-full px-3 py-1.5 text-xs text-slate-700 placeholder-slate-400" />
-                <label for="reviewStatusFilter" class="text-xs text-slate-500">Durum:</label>
                 <select id="reviewStatusFilter" class="border border-slate-200 rounded-full px-3 py-1.5 text-xs text-slate-700 bg-slate-50">
                     <option value="all">Tümü</option>
                     <option value="pending">Bekleyen</option>
@@ -21,13 +14,26 @@
                     <option value="rejected">Reddedilen</option>
                 </select>
             </div>
+            <div class="flex items-center gap-3">
+                <span id="analysisPendingText" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-xs font-medium text-amber-700">
+                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span id="pendingCountText">Yükleniyor...</span>
+                </span>
+                <button id="analyzeReviewsBtn" type="button"
+                        class="rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-blue-500/30 hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg hover:shadow-blue-500/40 transition-all duration-200 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    Analiz Et
+                </button>
+            </div>
         </header>
         <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
             <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100 text-xs text-slate-500">
                 <span id="reviewCountText">Yorumlar yükleniyor...</span>
                 <div class="flex items-center gap-1">
-                    <button id="reviewPrevPage" class="px-2 py-1 rounded-lg border border-slate-200 text-[11px] hover:bg-slate-50" disabled>Önceki</button>
-                    <button id="reviewNextPage" class="px-2 py-1 rounded-lg border border-slate-200 text-[11px] hover:bg-slate-50" disabled>Sonraki</button>
+                    <button id="reviewPrevPage" class="hidden px-2 py-1 rounded-lg border border-slate-200 text-[11px] hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">Önceki</button>
+                    <button id="reviewNextPage" class="hidden px-2 py-1 rounded-lg border border-slate-200 text-[11px] hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">Sonraki</button>
                 </div>
             </div>
             <div class="overflow-x-auto">

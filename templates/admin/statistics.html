@@ -25,13 +25,25 @@ Yıllık uçuş, yolcu, kargo ve yük trafiği istatistiklerini veritabanı üze
                     <option value="cargo">Kargo Trafiği</option>
                     <option value="freight">Yük Trafiği</option>
                 </select>
-                <button id="statisticsReloadBtn" class="text-xs px-3 py-1.5 rounded-full border border-slate-200 text-slate-700 hover:bg-slate-50">
-                    Yenile
-                </button>
             </div>
         </div>
         <div class="text-xs text-slate-500">
             Not: Yıl bazında değerleri güncellediğinizde değişiklikler anında veritabanına kaydedilir. Negatif değer girilmesine izin verilmez.
+        </div>
+    </div>
+
+    <!-- Veri Ekleme Formu -->
+    <div id="dataEntrySection" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <div>
+                <h2 class="text-base font-semibold text-slate-900">Yeni Veri Ekle</h2>
+                <p class="text-xs text-slate-500 mt-1">
+                    Seçili veri seti için yeni yıllık veri girin. Sadece yıl alanı zorunludur, diğer alanları boş bırakabilirsiniz.
+                </p>
+            </div>
+            <button id="addDataBtn" onclick="document.getElementById('dataAddModal').classList.remove('hidden')" class="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
+                + Veri Ekle
+            </button>
         </div>
     </div>
 
@@ -65,5 +77,165 @@ Yıllık uçuş, yolcu, kargo ve yük trafiği istatistiklerini veritabanı üze
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block modals %}
+    <!-- Veri Ekle Modalı -->
+    <div id="dataAddModal" onclick="if(event.target === this) this.classList.add('hidden')" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" aria-hidden="true">
+        <div class="bg-white rounded-2xl shadow-xl max-w-4xl w-full p-5 text-sm max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-semibold text-slate-900">Yeni Veri Ekle</h3>
+                <button id="closeAddModal" onclick="document.getElementById('dataAddModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                    <svg class="w-5 h-5" viewBox="0 0 20 20" fill="none">
+                        <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+            <div id="dataEntryForm" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Yıl *</label>
+                        <input type="number" id="entryYear" min="2000" max="2100" 
+                               class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                               placeholder="Örn: 2024">
+                    </div>
+                    
+                    <!-- Uçuş Trafiği Alanları -->
+                    <div id="airTrafficFields" class="hidden space-y-4 lg:col-span-2">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Tüm Uçak (Overflight Dahil)</label>
+                                <input type="number" id="entryTümUçak" step="0.01" min="0"
+                                       class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                       placeholder="0">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Uçak Trafiği</label>
+                                <input type="number" id="entryUçakTrafiği" step="0.01" min="0"
+                                       class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                       placeholder="0">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-1">İç Hat</label>
+                                <input type="number" id="entryİçHat" step="0.01" min="0"
+                                       class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                       placeholder="0">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Dış Hat</label>
+                                <input type="number" id="entryDışHat" step="0.01" min="0"
+                                       class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                       placeholder="0">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Overflight Uçak Trafiği</label>
+                                <input type="number" id="entryOverflight" step="0.01" min="0"
+                                       class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                       placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Yolcu Trafiği Alanları -->
+                    <div id="passengerTrafficFields" class="hidden space-y-4 lg:col-span-2">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Yolcu Trafiği (Transit Dahil)</label>
+                                <input type="number" id="entryYolcuTransitDahil" step="0.01" min="0"
+                                       class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                       placeholder="0">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Yolcu Trafiği</label>
+                                <input type="number" id="entryYolcuTrafiği" step="0.01" min="0"
+                                       class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                       placeholder="0">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-1">İç Hat</label>
+                                <input type="number" id="entryYolcuİçHat" step="0.01" min="0"
+                                       class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                       placeholder="0">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Dış Hat</label>
+                                <input type="number" id="entryYolcuDışHat" step="0.01" min="0"
+                                       class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                       placeholder="0">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Direkt Transit</label>
+                                <input type="number" id="entryDirektTransit" step="0.01" min="0"
+                                       class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                       placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Kargo Trafiği Alanları -->
+                    <div id="cargoTrafficFields" class="hidden space-y-4 lg:col-span-2">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Kargo Trafiği (Ton)</label>
+                                <input type="number" id="entryKargoTon" step="0.01" min="0"
+                                       class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                       placeholder="0">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-1">İç Hat Kargo (Ton)</label>
+                                <input type="number" id="entryKargoİçHat" step="0.01" min="0"
+                                       class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                       placeholder="0">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Dış Hat Kargo (Ton)</label>
+                                <input type="number" id="entryKargoDışHat" step="0.01" min="0"
+                                       class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                       placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Yük Trafiği Alanları -->
+                    <div id="freightTrafficFields" class="hidden space-y-4 lg:col-span-2">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Yük Trafiği (Ton)</label>
+                                <input type="number" id="entryYükTon" step="0.01" min="0"
+                                       class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                       placeholder="0">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-1">İç Hat Yük (Ton)</label>
+                                <input type="number" id="entryYükİçHat" step="0.01" min="0"
+                                       class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                       placeholder="0">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Dış Hat Yük (Ton)</label>
+                                <input type="number" id="entryYükDışHat" step="0.01" min="0"
+                                       class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                       placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between pt-4 border-t border-slate-200">
+                    <div class="text-xs text-slate-500">
+                        <span id="formStatus"></span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button type="button" id="clearFormBtn" class="text-xs px-3 py-1.5 rounded-full border border-slate-200 text-slate-700 hover:bg-slate-50">
+                            Temizle
+                        </button>
+                        <button type="button" id="saveDataBtn" class="text-xs px-3 py-1.5 rounded-full bg-emerald-600 text-white hover:bg-emerald-700">
+                            Veriyi Kaydet
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}
 
